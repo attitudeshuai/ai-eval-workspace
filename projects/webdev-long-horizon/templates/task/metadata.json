@@ -1,0 +1,15 @@
+{
+  "task_id": "{{task_id}}",
+  "title": "{{title}}",
+  "category_tags": ["{{category}}"],
+  "arena_tags": {{arena_tags}},
+  "prompt_type": "{{prompt_type}}",
+  "required_tools": ["browser", "playwright", "screenshot"],
+  "difficulty": "{{difficulty}}",
+  "annotator": "",
+  "reviewer": "",
+  "status": "draft",
+  "version": "0.1.0",
+  "created_at": "{{created_at}}",
+  "updated_at": "{{created_at}}"
+}

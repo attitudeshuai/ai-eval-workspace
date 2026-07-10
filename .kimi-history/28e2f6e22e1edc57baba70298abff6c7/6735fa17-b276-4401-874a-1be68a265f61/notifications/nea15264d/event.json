@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "nea15264d",
+  "category": "task",
+  "type": "task.timed_out",
+  "source_kind": "background_task",
+  "source_id": "bash-o7uu8mcu",
+  "title": "Background task timed out: codex-proxy for Kimi",
+  "body": "Task ID: bash-o7uu8mcu\nStatus: failed (Finished at: 2026-07-10 21:23:34, Duration: 12s)\nDescription: codex-proxy for Kimi\nTerminal reason: timed_out\nExit code: 1\nFailure reason: Command timed out after 10s",
+  "severity": "error",
+  "created_at": 1783689815.040216,
+  "payload": {
+    "task_id": "bash-o7uu8mcu",
+    "task_kind": "bash",
+    "status": "failed",
+    "description": "codex-proxy for Kimi",
+    "exit_code": 1,
+    "interrupted": true,
+    "timed_out": true,
+    "terminal_reason": "timed_out",
+    "failure_reason": "Command timed out after 10s",
+    "finished_at": 1783689814.851431,
+    "duration_s": 12.594833135604858
+  },
+  "targets": [
+    "llm",
+    "wire",
+    "shell"
+  ],
+  "dedupe_key": "background_task:bash-o7uu8mcu:timed_out"
+}

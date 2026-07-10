@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "ne0219b4b",
+  "category": "task",
+  "type": "task.killed",
+  "source_kind": "background_task",
+  "source_id": "bash-v7i4kpdl",
+  "title": "Background task stopped: codex-proxy for Kimi",
+  "body": "Task ID: bash-v7i4kpdl\nStatus: killed (Finished at: 2026-07-11 07:30:22, Duration: 10h 5m 31s)\nDescription: codex-proxy for Kimi\nExit code: 1\nFailure reason: Renaming workspace directory",
+  "severity": "warning",
+  "created_at": 1783726223.2888808,
+  "payload": {
+    "task_id": "bash-v7i4kpdl",
+    "task_kind": "bash",
+    "status": "killed",
+    "description": "codex-proxy for Kimi",
+    "exit_code": 1,
+    "interrupted": true,
+    "timed_out": false,
+    "terminal_reason": "killed",
+    "failure_reason": "Renaming workspace directory",
+    "finished_at": 1783726222.980755,
+    "duration_s": 36331.46912407875
+  },
+  "targets": [
+    "llm",
+    "wire",
+    "shell"
+  ],
+  "dedupe_key": "background_task:bash-v7i4kpdl:killed"
+}

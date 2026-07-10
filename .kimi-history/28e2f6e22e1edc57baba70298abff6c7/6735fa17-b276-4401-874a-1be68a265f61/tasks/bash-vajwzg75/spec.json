@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "id": "bash-vajwzg75",
+  "kind": "bash",
+  "session_id": "6735fa17-b276-4401-874a-1be68a265f61",
+  "description": "codex-proxy for Kimi",
+  "tool_call_id": "tool_NU2O48xTVywMCDZsuyAohTQ7",
+  "owner_role": "root",
+  "created_at": 1783726678.3281004,
+  "command": "codex-proxy --no-open",
+  "shell_name": "bash",
+  "shell_path": "D:\\Program Files\\Git\\cmd\\..\\bin\\bash.exe",
+  "cwd": "d:\\charles\\program\\ai\\ai-rep-main",
+  "timeout_s": 3600,
+  "kind_payload": null
+}

@@ -1,0 +1,67 @@
+{
+  "version": "0.1.0",
+  "total_weight": 1.0,
+  "dimensions": [
+    {
+      "id": "functionality",
+      "name": "功能完整性",
+      "weight": 0.40,
+      "leaves": [
+        {
+          "id": "f001",
+          "criterion": "核心功能已实现并可交互",
+          "weight": 0.20,
+          "grader_spec": "playwright_assertion",
+          "evidence_required": ["tests/playwright.spec.ts"],
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "visual",
+      "name": "视觉完成度",
+      "weight": 0.30,
+      "leaves": [
+        {
+          "id": "v001",
+          "criterion": "桌面端布局与参考截图高保真对齐",
+          "weight": 0.15,
+          "grader_spec": "llm_judge",
+          "evidence_required": ["assets/reference_desktop.png", "screenshots/final_desktop.png"],
+          "notes": ""
+        },
+        {
+          "id": "v002",
+          "criterion": "移动端响应式适配正确",
+          "weight": 0.15,
+          "grader_spec": "screenshot_review",
+          "evidence_required": ["assets/reference_mobile.png", "screenshots/final_mobile.png"],
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "evidence",
+      "name": "测试与证据",
+      "weight": 0.30,
+      "leaves": [
+        {
+          "id": "t001",
+          "criterion": "Playwright 核心测试可运行",
+          "weight": 0.15,
+          "grader_spec": "unit_test",
+          "evidence_required": ["tests/playwright.spec.ts"],
+          "notes": ""
+        },
+        {
+          "id": "t002",
+          "criterion": "提供了关键状态截图",
+          "weight": 0.15,
+          "grader_spec": "manual_review",
+          "evidence_required": ["screenshots/"],
+          "notes": ""
+        }
+      ]
+    }
+  ]
+}

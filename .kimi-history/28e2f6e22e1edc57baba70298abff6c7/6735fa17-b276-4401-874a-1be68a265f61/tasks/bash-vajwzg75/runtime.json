@@ -1,0 +1,14 @@
+{
+  "status": "running",
+  "worker_pid": 33204,
+  "child_pid": 24816,
+  "child_pgid": null,
+  "started_at": 1783726679.6171134,
+  "heartbeat_at": 1783726699.6987216,
+  "updated_at": 1783726699.6987216,
+  "finished_at": null,
+  "exit_code": null,
+  "interrupted": false,
+  "timed_out": false,
+  "failure_reason": null
+}

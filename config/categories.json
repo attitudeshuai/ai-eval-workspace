@@ -1,0 +1,75 @@
+{
+  "category_tree": [
+    {
+      "id": "content-editor",
+      "label": "内容型应用：编辑器 / 内容管理"
+    },
+    {
+      "id": "content-community",
+      "label": "内容型应用：社区 / 信息流 / 内容展示"
+    },
+    {
+      "id": "tool-config",
+      "label": "工具型应用：配置工具 / 内部工具"
+    },
+    {
+      "id": "tool-lowcode",
+      "label": "工具型应用：低代码 / 页面搭建器"
+    },
+    {
+      "id": "game-experimental",
+      "label": "游戏 / 实验性应用：Web 游戏 / 交互实验"
+    },
+    {
+      "id": "interactive-complex",
+      "label": "交互型应用：复杂交互页面"
+    },
+    {
+      "id": "interactive-visualization",
+      "label": "交互型应用：可视化 / 数据看板"
+    },
+    {
+      "id": "showcase-portfolio",
+      "label": "展示型页面：作品集 / Showcase / Demo"
+    },
+    {
+      "id": "showcase-brand",
+      "label": "展示型页面：品牌官网 / 营销页 / 活动页"
+    },
+    {
+      "id": "ecommerce-o2o",
+      "label": "电商 / 交易应用：O2O 服务 / 聚合平台"
+    },
+    {
+      "id": "ecommerce-shop",
+      "label": "电商 / 交易应用：在线商城 / 独立站"
+    },
+    {
+      "id": "business-saas",
+      "label": "业务型应用：SaaS / 业务平台"
+    },
+    {
+      "id": "business-admin",
+      "label": "业务型应用：中后台 / 管理系统"
+    },
+    {
+      "id": "other",
+      "label": "其他"
+    }
+  ],
+  "arena_tags": [
+    "ui",
+    "creative",
+    "visualize",
+    "game",
+    "retro",
+    "clone",
+    "animation",
+    "3d",
+    "map",
+    "e-commerce",
+    "dashboard",
+    "whimsical"
+  ],
+  "prompt_types": ["前端", "全栈"]
+}

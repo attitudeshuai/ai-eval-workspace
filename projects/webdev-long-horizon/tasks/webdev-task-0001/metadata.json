@@ -1,0 +1,26 @@
+{
+  "task_id": "webdev-task-0001",
+  "title": "复杂 O2O 服务聚合平台",
+  "category_tags": [
+    "电商 / 交易应用：O2O 服务 / 聚合平台"
+  ],
+  "arena_tags": [
+    "ui",
+    "map",
+    "e-commerce",
+    "visualize"
+  ],
+  "prompt_type": "前端",
+  "required_tools": [
+    "browser",
+    "playwright",
+    "screenshot"
+  ],
+  "difficulty": "high",
+  "annotator": "",
+  "reviewer": "",
+  "status": "draft",
+  "version": "0.1.0",
+  "created_at": "2026-07-10T14:06:08.723089Z",
+  "updated_at": "2026-07-10T14:06:08.723089Z"
+}

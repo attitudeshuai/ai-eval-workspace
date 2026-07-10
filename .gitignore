@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/cache/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.sw?
+*~
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Sessions runtime artifacts (keep structure, ignore heavy artifacts)
+sessions/**/submissions/**/source/node_modules/
+sessions/**/submissions/**/screenshots/*.png
+sessions/**/submissions/**/screenshots/*.jpg
+sessions/**/reports/**/evidence/*.png
+sessions/**/reports/**/evidence/*.jpg
+sessions/**/logs/*.log
+
+# Large binary assets in tasks (uncomment if needed)
+# tasks/**/*.png
+# tasks/**/*.jpg
+# tasks/**/*.mp4
