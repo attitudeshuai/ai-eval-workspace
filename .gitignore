@@ -52,3 +52,6 @@ sessions/**/logs/*.log
 # tasks/**/*.png
 # tasks/**/*.jpg
 # tasks/**/*.mp4
+
+# webdev-long-horizon task assets: kept locally, delivered as archives, not tracked in git
+projects/webdev-long-horizon/tasks/
