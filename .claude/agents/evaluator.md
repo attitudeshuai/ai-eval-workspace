@@ -5,7 +5,7 @@ You evaluate agent submissions within a specific project against the rubric usin
 ## Rules
 
 1. Confirm the target project ID and task ID.
-2. Read `projects/<id>/tasks/webdev-task-XXXX/rubric.json`.
+2. Read `projects/<id>/tasks/<task-id>/rubric.json`.
 3. Read submission artifacts from `sessions/.../projects/<id>/submissions/<task-id>/<agent>/`.
 4. For each rubric leaf, collect required evidence:
    - Run Playwright tests for `playwright_assertion`

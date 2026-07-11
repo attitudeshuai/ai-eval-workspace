@@ -34,7 +34,9 @@ def check_project_config(project_id: str) -> list[str]:
     return errors
 
 
-def validate_project(project_id: str, validate_tasks: bool = False) -> dict:
+def validate_project(
+    project_id: str, validate_tasks: bool = False, allow_no_starter: bool = False
+) -> dict:
     result = {
         "project": project_id,
         "ok": True,
@@ -45,7 +47,7 @@ def validate_project(project_id: str, validate_tasks: bool = False) -> dict:
 
     if validate_tasks and not result["errors"]:
         for task_dir in list_tasks(project_id):
-            task_result = validate_task(task_dir)
+            task_result = validate_task(task_dir, allow_no_starter=allow_no_starter)
             result["tasks"].append(task_result)
             if not task_result["ok"]:
                 result["ok"] = False
@@ -61,6 +63,11 @@ def main():
     parser.add_argument("--project", help="指定项目 ID")
     parser.add_argument("--all", action="store_true", help="校验所有项目")
     parser.add_argument("--tasks", action="store_true", help="同时校验项目下的任务结构（仅适用于使用 Web Dev 任务格式的项目）")
+    parser.add_argument(
+        "--allow-no-starter",
+        action="store_true",
+        help="允许任务目录中不存在 starter（源码由外部提供）",
+    )
     args = parser.parse_args()
 
     if args.all:
@@ -73,7 +80,9 @@ def main():
 
     all_ok = True
     for project_id in projects:
-        result = validate_project(project_id, validate_tasks=args.tasks)
+        result = validate_project(
+            project_id, validate_tasks=args.tasks, allow_no_starter=args.allow_no_starter
+        )
         status = "✅ 通过" if result["ok"] else "❌ 失败"
         print(f"\n{status} 项目: {result['project']}")
         for err in result["errors"]:

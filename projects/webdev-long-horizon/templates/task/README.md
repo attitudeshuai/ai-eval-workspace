@@ -11,7 +11,6 @@
 ├── task.md              # 完整任务需求
 ├── metadata.json        # 任务元数据
 ├── README.md            # 本文件
-├── starter/             # 初始项目代码
 ├── assets/              # 参考截图与素材
 ├── mock-data/           # mock 数据
 ├── tests/               # Playwright / 单元测试
@@ -21,7 +20,22 @@
 └── screenshots/         # 最终截图
 ```
 
+源码管理方式（二选一）：
+
+- **外部 source**（推荐）：`../sources/{{task_id}}/`
+- **内置 starter**（传统）：`./starter/`
+
 ## 启动方式
+
+若使用外部 source：
+
+```bash
+cd ../sources/{{task_id}}
+npm install
+npm run dev
+```
+
+若使用内置 starter：
 
 ```bash
 cd starter
@@ -32,8 +46,10 @@ npm run dev
 ## 测试方式
 
 ```bash
-cd starter
+# 单元测试
+cd <source-dir>
 npm run test
+
 # 或运行 Playwright
 cd ..
 npx playwright test tests/playwright.spec.ts

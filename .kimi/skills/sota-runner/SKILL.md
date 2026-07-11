@@ -9,13 +9,14 @@
 ## 工作流程
 
 1. 确认目标项目 ID 与任务 ID。
-2. 读取 `projects/<id>/tasks/webdev-task-XXXX/task.md` 与 `metadata.json`。
-3. 创建会话目录：`sessions/session-sota-YYYY-MM-NNN-<agent>/`。
-4. 将任务 `starter/` 复制到 `sessions/.../projects/<id>/submissions/<task-id>/<agent>/source/`。
-5. 生成标准 Prompt（基于 `task.md` + 项目上下文）。
-6. 调用指定 agent（codex / claude-code / kimi-coding）运行任务。
-7. 收集产物：代码变更、截图、console 日志、网络日志、运行轨迹。
-8. 更新 `projects/<id>/tasks/webdev-task-XXXX/sota-run.md`。
+2. 读取项目 `config.toml` 与项目文档（如 `AGENTS.md`、`OPERATIONAL_WORKFLOW.md`、`README.md`）确认源码存放约定。
+3. 读取 `projects/<id>/tasks/<task-id>/task.md` 与 `metadata.json`。
+4. 创建会话目录：`sessions/session-sota-YYYY-MM-NNN-<agent>/`。
+5. 按项目约定找到任务源码目录（如 `starter/`、`sources/<task-id>/` 等），复制到 `sessions/.../projects/<id>/submissions/<task-id>/<agent>/source/`。
+6. 生成标准 Prompt（基于 `task.md` + 项目上下文）。
+7. 调用指定 agent（codex / claude-code / kimi-coding）运行任务。
+8. 收集产物：代码变更、截图、console 日志、网络日志、运行轨迹。
+9. 更新项目约定的运行记录文件（如 `projects/<id>/tasks/<task-id>/sota-run.md`）。
 
 ## Prompt 模板结构
 

@@ -5,7 +5,7 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
-from utils.helpers import copy_tree, project_dir, tasks_dir, workspace_root
+from utils.helpers import copy_tree, default_source_dir, project_dir, tasks_dir, workspace_root
 
 
 def find_prompt_template(project_id: str, task_dir: Path) -> Path | None:
@@ -63,7 +63,13 @@ cd source
 """
 
 
-def run_sota(session_name: str, project_id: str, task_dir: Path, agent: str) -> Path:
+def run_sota(
+    session_name: str,
+    project_id: str,
+    task_dir: Path,
+    agent: str,
+    source_dir_override: Path | None = None,
+) -> Path:
     session_dir = workspace_root() / "sessions" / session_name
     if session_dir.exists():
         raise FileExistsError(f"会话已存在: {session_dir}")
@@ -77,9 +83,23 @@ def run_sota(session_name: str, project_id: str, task_dir: Path, agent: str) -> 
     submission_dir.mkdir(parents=True, exist_ok=True)
     screenshots_dir.mkdir(parents=True, exist_ok=True)
 
-    starter_dir = task_dir / "starter"
-    if starter_dir.exists():
-        copy_tree(starter_dir, source_dir)
+    # 决定源码来源：外部指定 > 项目默认 sources/<task-id>/ > task/starter
+    src_candidates = []
+    if source_dir_override:
+        src_candidates.append(source_dir_override)
+    src_candidates.append(default_source_dir(project_id, task_dir.name))
+    src_candidates.append(task_dir / "starter")
+
+    chosen_src = None
+    for candidate in src_candidates:
+        if candidate and candidate.exists():
+            chosen_src = candidate
+            break
+
+    if chosen_src:
+        copy_tree(chosen_src, source_dir)
+    else:
+        source_dir.mkdir(parents=True, exist_ok=True)
 
     prompt = build_prompt(project_id, task_dir)
     (submission_dir / "PROMPT.md").write_text(prompt, encoding="utf-8")
@@ -109,13 +129,20 @@ def main():
     parser.add_argument("--task", required=True, help="任务目录或 ID")
     parser.add_argument("--agent", default="codex", help="Agent 名称")
     parser.add_argument("--budget", help="预算（仅记录）")
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        help="指定外部源码目录；否则依次尝试 projects/<project>/sources/<task-id>/ 和 task/starter",
+    )
     args = parser.parse_args()
 
     task_path = Path(args.task)
     if not task_path.is_absolute():
         task_path = tasks_dir(args.project) / task_path.name
 
-    submission_dir = run_sota(args.session, args.project, task_path, args.agent)
+    submission_dir = run_sota(
+        args.session, args.project, task_path, args.agent, source_dir_override=args.source_dir
+    )
     print(f"已创建 SOTA 会话: {submission_dir}")
     print(f"Prompt 文件: {submission_dir / 'PROMPT.md'}")
     print(f"运行脚本: {submission_dir / 'run.sh'}")

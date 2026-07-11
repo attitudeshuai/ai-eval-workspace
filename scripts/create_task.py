@@ -22,6 +22,7 @@ def create_task(
     difficulty: str,
     arena_tags: list[str],
     prompt_type: str = "前端",
+    skip_starter: bool = False,
 ) -> Path:
     pd = project_dir(project_id)
     if not pd.exists():
@@ -60,9 +61,10 @@ def create_task(
             dest = task_dir / template_file.name
             dest.write_text(render_template(template_file, variables), encoding="utf-8")
 
-    starter_template = resolve_template(project_id, "starter")
-    if starter_template.exists():
-        copy_tree(starter_template, task_dir / "starter")
+    if not skip_starter:
+        starter_template = resolve_template(project_id, "starter")
+        if starter_template.exists():
+            copy_tree(starter_template, task_dir / "starter")
 
     return task_dir
 
@@ -75,6 +77,11 @@ def main():
     parser.add_argument("--difficulty", default="高", help="难度")
     parser.add_argument("--arena-tags", default="", help="Arena 标签，逗号分隔")
     parser.add_argument("--prompt-type", default="前端", help="提示类型")
+    parser.add_argument(
+        "--skip-starter",
+        action="store_true",
+        help="不复制 starter 模板；源码可由用户后续放到 projects/<project>/sources/<task-id>/",
+    )
     args = parser.parse_args()
 
     arena_tags = [t.strip() for t in args.arena_tags.split(",") if t.strip()]
@@ -85,12 +92,16 @@ def main():
         args.difficulty,
         arena_tags,
         args.prompt_type,
+        skip_starter=args.skip_starter,
     )
     print(f"已创建任务: {task_dir}")
     print(f"  - {task_dir / 'task.md'}")
     print(f"  - {task_dir / 'metadata.json'}")
-    print(f"  - {task_dir / 'starter'}")
-    print("提示：如果 starter 使用 npm，请手动进入目录执行 npm install 生成 lockfile。")
+    if not args.skip_starter:
+        print(f"  - {task_dir / 'starter'}")
+        print("提示：如果 starter 使用 npm，请手动进入目录执行 npm install 生成 lockfile。")
+    else:
+        print("  - (未生成 starter，请自行提供源码并放到项目约定的 source 目录)")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ from pathlib import Path
 from utils.helpers import load_json
 
 
-def validate_task(task_dir: Path) -> dict:
+def validate_task(task_dir: Path, allow_no_starter: bool = False) -> dict:
     result = {"task": task_dir.name, "ok": True, "errors": [], "warnings": []}
 
     required_files = ["task.md", "metadata.json", "README.md", "rubric.json"]
@@ -19,7 +19,10 @@ def validate_task(task_dir: Path) -> dict:
 
     starter = task_dir / "starter"
     if not starter.exists():
-        result["errors"].append("缺少 starter 目录")
+        if allow_no_starter:
+            result["warnings"].append("缺少 starter 目录（已启用 --allow-no-starter）")
+        else:
+            result["errors"].append("缺少 starter 目录")
     else:
         pkg = starter / "package.json"
         if pkg.exists():
@@ -66,9 +69,14 @@ def validate_task(task_dir: Path) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="校验任务结构")
     parser.add_argument("task_dir", type=Path, help="任务目录路径")
+    parser.add_argument(
+        "--allow-no-starter",
+        action="store_true",
+        help="允许任务目录中不存在 starter（源码由外部提供）",
+    )
     args = parser.parse_args()
 
-    result = validate_task(args.task_dir)
+    result = validate_task(args.task_dir, allow_no_starter=args.allow_no_starter)
     status = "✅ 通过" if result["ok"] else "❌ 失败"
     print(f"{status} 任务: {result['task']}")
     for err in result["errors"]:

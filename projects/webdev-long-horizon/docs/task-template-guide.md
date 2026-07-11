@@ -100,8 +100,15 @@ projects/webdev-long-horizon/tasks/webdev-task-XXXX/
   ✓ task.md
   ✓ metadata.json
   ✓ README.md
-  ✓ starter/
   ✓ rubric.json
+```
+
+源码管理方式二选一：
+
+```text
+  ✓ starter/           # 内置 starter（传统）
+  # 或
+  ✓ ../sources/webdev-task-XXXX/   # 外部 source（推荐，目录名与任务 ID 一致）
 ```
 
 以下目录/文件根据任务需要补充：
@@ -122,6 +129,6 @@ projects/webdev-long-horizon/tasks/webdev-task-XXXX/
 - 需求只有一句话，缺少工程上下文。
 - 缺少移动端参考截图。
 - Rubric 只有功能检查，缺少视觉、交互、边界。
-- starter 项目无法 `npm install` 后直接运行。
+- 源码项目无法 `npm install` 后直接运行。
 - mock-data 不完整，agent 需要臆造数据。
 - 任务泄露答案（如 starter 中已实现核心功能）。

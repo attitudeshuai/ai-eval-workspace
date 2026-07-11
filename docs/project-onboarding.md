@@ -72,6 +72,7 @@ task_prefix = "my-task"              # 可选，任务 ID 前缀
 [paths]
 tasks_dir = "tasks"                  # 可选，任务目录相对路径
 templates_dir = "templates"          # 可选，模板目录
+# task_source = "sources"            # 可选，外部源码目录相对路径（如 webdev-long-horizon 使用 sources/）
 
 [evaluation]
 default_agents = ["codex"]           # 可选，默认评估 agent

@@ -23,6 +23,8 @@ task_mock_data = "mock-data"
 task_tests = "tests"
 task_screenshots = "screenshots"
 task_sota_run = "sota-run.md"
+# 当任务不使用 task/starter 时，源码默认放到 projects/<project>/sources/<task-id>/
+task_source = "sources"
 
 [evaluation]
 default_agents = ["codex", "claude-code", "kimi-coding"]
@@ -31,7 +33,7 @@ screenshot_widths = [1920, 768, 390]
 required_evidence_types = ["screenshot", "dom_assertion", "playwright_assertion"]
 
 [quality_gates]
-run_starter_locally = true
+run_source_locally = true
 run_tests = true
 run_sota_once = true
 review_rubric = true

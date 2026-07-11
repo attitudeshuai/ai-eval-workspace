@@ -19,7 +19,7 @@ docs_dir = "docs"
 # default_timeout_minutes = 30
 
 # [quality_gates]
-# run_starter_locally = true
+# run_source_locally = true
 # run_tests = true
 # run_sota_once = true
 # review_rubric = true

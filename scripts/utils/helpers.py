@@ -130,3 +130,8 @@ def resolve_starter_template(project_id: str) -> Path:
     if project_starter.exists():
         return project_starter
     return workspace_root() / "templates" / "starter"
+
+
+def default_source_dir(project_id: str, task_id: str) -> Path:
+    """返回项目约定的外部源码目录：projects/<project>/sources/<task-id>/"""
+    return project_dir(project_id) / "sources" / task_id

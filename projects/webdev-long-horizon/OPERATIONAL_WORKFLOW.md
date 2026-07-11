@@ -17,18 +17,101 @@
 
 ## 一、本地准备任务资产
 
-### 1.1 创建任务骨架
+### 1.1 创建任务
+
+本项目支持两种任务创建模式。两种模式都使用 `--skip-starter`，源码与任务元数据分离管理。
+
+> **与传统流程的区别**：不再在 `tasks/<task-id>/starter/` 中放源码，而是统一放到 `projects/webdev-long-horizon/sources/<task-id>/`（目录名与任务 ID 一致）。
+
+#### 模式一：基于现有源码生成增量开发任务
+
+你已有可运行项目源码，希望 agent 在其基础上实现新功能。
 
 ```bash
+# 1. 创建任务骨架（不带 starter）
 python scripts/create_task.py \
   --project webdev-long-horizon \
-  --title "你的任务标题" \
+  --title "为电商后台增加订单筛选与导出" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
   --difficulty "high" \
-  --arena-tags "ui,e-commerce,visualize"
+  --arena-tags "ui,e-commerce,visualize" \
+  --skip-starter
+
+# 假设生成任务 ID：webdev-task-0002
+# 2. 将你的源码复制到约定目录
+cp -r /path/to/existing-source/* \
+  projects/webdev-long-horizon/sources/webdev-task-0002/
+
+# 3. AI 分析源码并生成 task.md / rubric.json / README.md / target_states.md
+# 4. 准备 assets/ 参考截图与 mock-data/ 数据
+
+# 5. 校验任务
+python scripts/validate_task.py \
+  --allow-no-starter \
+  projects/webdev-long-horizon/tasks/webdev-task-0002
+
+# 6. 运行 SOTA
+python scripts/run_sota.py \
+  --session session-sota-2026-07-002-codex \
+  --project webdev-long-horizon \
+  --task webdev-task-0002 \
+  --agent codex
+
+# 7. 生成评估报告
+python scripts/evaluate_task.py \
+  --session session-sota-2026-07-002-codex \
+  --project webdev-long-horizon \
+  --task webdev-task-0002 \
+  --agent codex
 ```
 
-执行后会在 `projects/webdev-long-horizon/tasks/` 下生成新的任务目录，例如 `webdev-task-0002/`。
+#### 模式二：根据需求生成从零开发任务
+
+你只有自然语言需求，任务要求 agent 从零实现完整项目。
+
+```bash
+# 1. 创建任务骨架（不带 starter）
+python scripts/create_task.py \
+  --project webdev-long-horizon \
+  --title "支持拖拽看板的任务管理系统" \
+  --category "交互型应用：可视化 / 数据看板" \
+  --difficulty "high" \
+  --arena-tags "ui,visualize,drag-drop" \
+  --skip-starter
+
+# 假设生成任务 ID：webdev-task-0003
+# 2. AI 根据需求生成 task.md / rubric.json / README.md / target_states.md
+# 3. 准备 assets/ 参考截图与 mock-data/ 数据
+
+# 4. 处理源码（二选一）
+# 方式 A：你提供 starter 源码
+cp -r /path/to/your-kanban-starter/* \
+  projects/webdev-long-horizon/sources/webdev-task-0003/
+
+# 方式 B：AI 生成初始 starter 放到 tasks/<task-id>/starter/
+# 此时不需要 --allow-no-starter
+
+# 5. 校验任务
+python scripts/validate_task.py \
+  --allow-no-starter \
+  projects/webdev-long-horizon/tasks/webdev-task-0003
+
+# 6. 运行 SOTA
+python scripts/run_sota.py \
+  --session session-sota-2026-07-003-codex \
+  --project webdev-long-horizon \
+  --task webdev-task-0003 \
+  --agent codex
+
+# 7. 生成评估报告
+python scripts/evaluate_task.py \
+  --session session-sota-2026-07-003-codex \
+  --project webdev-long-horizon \
+  --task webdev-task-0003 \
+  --agent codex
+```
+
+> **源码目录约定**：创建任务后，在 `projects/webdev-long-horizon/tasks/` 下生成任务目录（如 `webdev-task-0002/`）。源码按约定放到 `projects/webdev-long-horizon/sources/<task-id>/`，目录名与任务 ID 保持一致。
 
 ### 1.2 填充任务内容
 
@@ -42,11 +125,17 @@ projects/webdev-long-horizon/tasks/webdev-task-XXXX/
 ├── rubric.json          # 验收标准
 ├── target_states.md     # 关键状态说明（建议）
 ├── sota-run.md          # SOTA 运行记录（建议）
-├── starter/             # 初始项目代码
 ├── assets/              # 参考截图、素材
 ├── mock-data/           # mock 数据
 └── tests/               # Playwright / 单元测试
 ```
+
+源码有两种管理方式，任选其一：
+
+- **内置 starter**：`tasks/webdev-task-XXXX/starter/`（传统）
+- **外部 source**：`sources/webdev-task-XXXX/`（推荐，目录名与任务 ID 保持一致）
+
+> 推荐将源码放到 `projects/webdev-long-horizon/sources/<task-id>/`，这样 `run_sota.py` 和校验脚本都能自动识别，无需额外传 `--source-dir`。
 
 #### task.md 必填内容
 
@@ -67,8 +156,17 @@ projects/webdev-long-horizon/tasks/webdev-task-XXXX/
 
 ### 1.3 初始化 starter 依赖
 
+若使用内置 starter：
+
 ```bash
 cd projects/webdev-long-horizon/tasks/webdev-task-XXXX/starter
+npm install
+```
+
+若使用外部 source：
+
+```bash
+cd projects/webdev-long-horizon/sources/webdev-task-XXXX
 npm install
 ```
 
@@ -77,21 +175,26 @@ npm install
 ### 1.4 本地验证
 
 ```bash
-# 1. 启动 starter，确认可运行
+# 1. 启动源码，确认可运行
 npm run dev
 
-# 2. 运行项目校验
-python scripts/validate_task.py projects/webdev-long-horizon/tasks/webdev-task-XXXX
+# 2. 运行项目校验（若使用外部 source，加 --allow-no-starter）
+python scripts/validate_task.py \
+  --allow-no-starter \
+  projects/webdev-long-horizon/tasks/webdev-task-XXXX
 
 # 3. 可选：全项目批量校验
-python scripts/validate_project.py --project webdev-long-horizon --tasks
+python scripts/validate_project.py \
+  --project webdev-long-horizon \
+  --tasks \
+  --allow-no-starter
 ```
 
 ---
 
 ## 二、打包任务资产
 
-单个任务打包：
+单个任务打包（元数据部分）：
 
 ```bash
 cd d:/charles/program/ai/ai-eval-workspace
@@ -101,17 +204,25 @@ tar czvf webdev-task-XXXX.tar.gz \
   webdev-task-XXXX
 ```
 
+若使用外部 source，源码单独打包：
+
+```bash
+tar czvf webdev-task-XXXX-source.tar.gz \
+  -C projects/webdev-long-horizon/sources \
+  webdev-task-XXXX
+```
+
 交付物包含：
 
 - `task.md`
 - `metadata.json`
 - `README.md`
 - `rubric.json`
-- `starter/`
 - `assets/`
 - `mock-data/`
 - `tests/`
 - `target_states.md`
+- 源码目录：`starter/`（内置）或 `sources/<task-id>/`（外部）
 
 ---
 
@@ -133,12 +244,14 @@ ssh root@59.49.28.154 -p 7826 "cd /root && tar xzvf webdev-task-XXXX.tar.gz"
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd /root/webdev-task-XXXX/starter
+cd /root/webdev-task-XXXX/source
 
 codex \
   --model gpt-5.6-sonnet \
   --prompt-file /root/webdev-task-XXXX/task.md
 ```
+
+> 如果元数据和源码是分开上传的，源码目录通常是 `/root/webdev-task-XXXX/source/`。
 
 ### 4.2 推荐：使用完整 Prompt 文件
 
@@ -161,6 +274,8 @@ codex \
 5. 运行测试并保存结果
 6. 不修改任务原始目录中的文件
 
+> 使用外部 source 时，`run_sota.py` 会自动将 `projects/webdev-long-horizon/sources/<task-id>/` 复制到 session 的 `./source/` 下。
+
 ### 4.4 批量运行 SOTA
 
 当任务数量多时，在远程机器上使用循环脚本：
@@ -173,7 +288,7 @@ TASKS_DIR=/root
 for task_dir in $TASKS_DIR/webdev-task-*; do
   task_id=$(basename $task_dir)
   echo "=== Running SOTA for $task_id ==="
-  cd $task_dir/starter
+  cd $task_dir/source
   codex \
     --model gpt-5.6-sonnet \
     --prompt-file $task_dir/task.md \
@@ -190,6 +305,16 @@ chmod +x /root/batch_run_sota.sh
 ```
 
 > 注意：codex cli 的具体参数可能因版本不同而略有差异，请以远程机器上实际安装的版本为准。
+
+### 4.5 源码查找优先级
+
+`run_sota.py` 按以下优先级确定任务源码：
+
+1. `--source-dir` 显式指定目录
+2. `projects/webdev-long-horizon/sources/<task-id>/`
+3. `tasks/<task-id>/starter/`
+
+> 推荐将源码放到 `sources/<task-id>/`，目录名与任务 ID 保持一致，这样无需额外传 `--source-dir`。
 
 ---
 
@@ -213,7 +338,7 @@ SOTA 产物通常包括：
 
 ```text
 webdev-task-XXXX/
-├── starter/              # codex 修改后的源码
+├── source/               # codex 修改后的源码
 ├── screenshots/          # 关键状态截图
 ├── sota.log              # 运行日志
 └── ...
@@ -231,7 +356,7 @@ webdev-task-XXXX/
 sessions/session-sota-2026-07-XXX-codex/
   projects/webdev-long-horizon/
     submissions/webdev-task-XXXX/codex/
-      source/           # 对应修改后的 starter
+      source/           # 对应修改后的 starter / source
       screenshots/
       sota.log
 ```
@@ -281,7 +406,7 @@ python scripts/generate_report.py \
 交付前自检清单：
 
 - [ ] `task.md` 完整，无泄露答案
-- [ ] `starter/` 可 `npm install && npm run dev` 直接运行
+- [ ] 源码可 `npm install && npm run dev` 直接运行
 - [ ] `rubric.json` 包含 10-20 个叶节点，覆盖六维度
 - [ ] `assets/` 包含桌面端和移动端参考截图
 - [ ] `mock-data/` 数据完整
@@ -339,13 +464,15 @@ codex --help
 
 ## 九、相关命令速查
 
-| 目的 | 命令 |
-|---|---|
-| 创建任务 | `python scripts/create_task.py --project webdev-long-horizon --title "..." --category "..."` |
-| 验证任务 | `python scripts/validate_task.py projects/webdev-long-horizon/tasks/webdev-task-XXXX` |
-| 验证项目 | `python scripts/validate_project.py --project webdev-longorizon --tasks` |
-| 打包任务 | `tar czvf webdev-task-XXXX.tar.gz -C projects/webdev-long-horizon/tasks webdev-task-XXXX` |
-| 上传远程 | `scp -P 7826 webdev-task-XXXX.tar.gz root@59.49.28.154:/root/` |
-| 运行 SOTA | `codex --model gpt-5.6-sonnet --prompt-file /root/webdev-task-XXXX/task.md` |
-| 生成报告 | `python scripts/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-XXXX --agent codex` |
-| 汇总报告 | `python scripts/generate_report.py --session <session>` |
+| 目的                   | 命令                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 创建任务骨架           | `python scripts/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter`                              |
+| 验证任务（外部 source）| `python scripts/validate_task.py --allow-no-starter projects/webdev-long-horizon/tasks/webdev-task-XXXX`                                 |
+| 验证项目               | `python scripts/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter`                                             |
+| 打包任务元数据         | `tar czvf webdev-task-XXXX.tar.gz -C projects/webdev-long-horizon/tasks webdev-task-XXXX`                                                |
+| 打包源码               | `tar czvf webdev-task-XXXX-source.tar.gz -C projects/webdev-long-horizon/sources webdev-task-XXXX`                                      |
+| 上传远程               | `scp -P 7826 webdev-task-XXXX.tar.gz root@59.49.28.154:/root/`                                                                           |
+| 运行 SOTA              | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-XXXX --agent codex`                     |
+| 运行 SOTA（指定源码）  | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-XXXX --agent codex --source-dir <path>` |
+| 生成评估报告           | `python scripts/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-XXXX --agent codex`                |
+| 汇总报告               | `python scripts/generate_report.py --session <session>`                                                                                  |

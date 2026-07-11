@@ -17,7 +17,7 @@ Review 指定项目中的任务是否符合高难度长程任务标准。
 ## Review 输出格式
 
 ```markdown
-# Task Review: <project-id>/webdev-task-XXXX
+# Task Review: <project-id>/<task-id>
 
 ## 总体结论
 [通过 / 有条件通过 / 不通过]

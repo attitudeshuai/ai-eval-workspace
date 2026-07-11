@@ -55,3 +55,5 @@ sessions/**/logs/*.log
 
 # webdev-long-horizon task assets: kept locally, delivered as archives, not tracked in git
 projects/webdev-long-horizon/tasks/
+
+projects/webdev-long-horizon/sources/*

@@ -18,8 +18,8 @@ python scripts/validate_project.py --project <project-id> --tasks
 
 ## 闸门 1：可运行性
 
-- [ ] `starter/` 包含 lockfile（推荐）
-- [ ] `npm install && npm run dev` 能在干净环境启动
+- [ ] 源码目录包含 lockfile（推荐）
+- [ ] `npm install && npm run dev` 能在干净环境启动（Web 项目）
 - [ ] 项目无未声明依赖
 - [ ] `README.md` 中启动说明清晰可复现
 
@@ -65,7 +65,7 @@ python scripts/validate_project.py --project <project-id> --tasks
 
 ## 闸门 6：无污染风险
 
-- [ ] `task.md` 和 `starter/` 不包含完整答案或关键实现代码
+- [ ] `task.md` 和源码目录不包含完整答案或关键实现代码
 - [ ] SOTA 轨迹/参考答案不随任务一起公开
 - [ ] 参考截图已脱敏（无真实品牌、个人信息）
 - [ ] 任务未来自公开 benchmark 或包含其完整答案
