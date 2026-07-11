@@ -87,6 +87,55 @@ projects/webdev-long-horizon/
 
 ---
 
+## 第 1B 步：创建 Greenfield 任务骨架（无源码）
+
+用于 agent 需要**从零开始实现完整项目**的场景，没有父任务、也没有现成源码。
+
+### 指令模板
+
+```text
+创建一个从零开始的 Greenfield 任务骨架。
+- 标题：支持拖拽看板的任务管理系统
+- 类别：交互型应用：可视化 / 数据看板
+- 难度：high
+- arena tags：ui,visualize,drag-drop
+- prompt type：前端
+- 不需要父任务，不需要 starter 源码
+```
+
+### AI 会执行
+
+```bash
+python scripts/webdev-long-horizon/create_task.py \
+  --project webdev-long-horizon \
+  --title "支持拖拽看板的任务管理系统" \
+  --category "交互型应用：可视化 / 数据看板" \
+  --difficulty "high" \
+  --arena-tags "ui,visualize,drag-drop" \
+  --prompt-type "前端" \
+  --skip-starter
+```
+
+此命令会创建任务目录，但**不会生成/继承源码**：
+
+```text
+projects/webdev-long-horizon/
+├── tasks/webdev-task-02/webdev-task-02/
+│   ├── task.md
+│   ├── metadata.json
+│   ├── rubric.json
+│   ├── README.md
+│   ├── target_states.md
+│   ├── assets/
+│   ├── mock-data/
+│   └── screenshots/
+└── sources/webdev-task-02/webdev-task-02/   # 初始为空，等待 agent 生成
+```
+
+> 如果任务属于某个家族（例如 `webdev-task-02` 家族的第一个任务），目录结构仍为 `tasks/webdev-task-02/webdev-task-02/`。若后续有增量子任务，再放到 `tasks/webdev-task-02/webdev-task-02.01/`。
+
+---
+
 ## 第 2 步：生成任务资产
 
 ### 指令模板
@@ -104,7 +153,7 @@ projects/webdev-long-horizon/
 
 ### AI 会执行
 
-分析 `sources/webdev-task-01/webdev-task-01.01/` 源码（已从父任务继承），然后：
+分析需求与 `sources/<family>/<task-id>/` 源码（增量任务已从父任务继承；Greenfield 任务 source 可能为空），然后：
 
 - 填充 `tasks/webdev-task-01/webdev-task-01.01/task.md`
 - 生成 `tasks/webdev-task-01/webdev-task-01.01/PROMPT.md`
@@ -120,6 +169,38 @@ projects/webdev-long-horizon/
 ```text
 sources/webdev-task-01/webdev-task-01.01/mock-data/
 ```
+
+---
+
+## 第 2.5 步：准备源码 baseline（仅 Greenfield 需要）
+
+增量任务因为已经继承了父任务源码，**可跳过此步**。
+
+Greenfield 任务没有现成源码，进入 SOTA 前需要决定源码如何处理：
+
+### 方式 A：你提供初始 starter
+
+如果有可用的项目模板或脚手架，把它放到外部 source 目录：
+
+```bash
+cp -r /path/to/your-kanban-starter/* \
+  projects/webdev-long-horizon/sources/webdev-task-02/webdev-task-02/
+```
+
+然后在该目录执行 `npm install` 生成 lockfile，再进入第 3 步校验（此时 source 非空，仍可加 `--allow-no-starter` 通过校验）。
+
+### 方式 B：完全由 agent 从零生成
+
+保持 `sources/webdev-task-02/webdev-task-02/` 为空（或仅放 `.gitkeep`）。在 `task.md` 和 `PROMPT.md` 中明确要求 agent：
+
+- 选择合适的框架/技术栈
+- 初始化项目结构（`package.json`、入口文件、目录结构等）
+- 安装依赖并生成 lockfile
+- 实现所有功能并确保可构建、可运行
+
+`upload_to_remote.py` 会把这个空目录（以及 PROMPT.md）传到 remote，codex 会在 `/root/charles/webdev-task-02/source/` 下从零创建项目。
+
+> 注意：方式 B 对 `PROMPT.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
 
 ---
 
@@ -307,6 +388,8 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 
 如果你想一次性说完：
 
+### 增量任务
+
 ```text
 帮我全流程跑一个基于 webdev-task-01 的增量任务：
 1. 创建任务并继承父源码：新增订单中心页面，标题"为本地生活平台新增订单中心页面"，medium 难度
@@ -316,4 +399,17 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
 7. 把任务资产和 SOTA 产物打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+```
+
+### Greenfield 任务（无源码）
+
+```text
+帮我全流程跑一个 Greenfield 任务：
+1. 创建无源码任务骨架：支持拖拽看板的任务管理系统，标题"支持拖拽看板的任务管理系统"，high 难度
+2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets（source 目录保持为空）
+3. 把空的 source 目录和 PROMPT.md 上传到 /root/charles/ 远程目录
+4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol），让 agent 从零创建完整项目
+5. 运行完成后把产物拉回本地，整理到标准 session 目录
+6. 基于 rubric.json 生成评估报告
+7. 把任务资产和 SOTA 产物打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-02.tar.gz
 ```
