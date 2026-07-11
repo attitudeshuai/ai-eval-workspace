@@ -100,19 +100,18 @@ SOTA 运行记录表。
 
 初始项目模板，基于 Vite + React + TypeScript + Tailwind CSS。
 
-### 2.8 `templates/PROMPT.md`
+### 2.8 `task.md` 作为 SOTA 提示词
 
-SOTA 运行时使用的 prompt 模板。`run_sota.py` 会优先读取项目级 `templates/PROMPT.md`，将 `{{task_md}}` 替换为实际任务内容，生成任务目录下的 `PROMPT.md`。
+不再单独维护 `PROMPT.md`。`task.md` 直接作为 SOTA 提示词：
 
-如果你要把任务上传到 remote 用 codex 直接运行，必须生成具体的 `PROMPT.md`：
+- `upload_to_remote.py` 上传时会将 `task.md` 重命名为远程 `PROMPT.md`。
+- `run_sota.py` 本地运行时会基于 `task.md` 生成 session 产物中的 `PROMPT.md`。
 
-```bash
-python scripts/webdev-long-horizon/compose_prompt.py \
-  --project webdev-long-horizon \
-  --task webdev-task-01.01
-```
+因此 `task.md` 中必须明确：
 
-> 若 `compose_prompt.py` 不存在，可手动复制 `templates/PROMPT.md` 到任务目录，并将 `{{task_md}}` 替换为 `task.md` 内容。
+1. 源码位置（如 `./source` 或当前目录）。
+2. 启动命令（如 `npm install && npm run dev`）。
+3. 交付要求（截图、测试、不修改原始任务文件等）。
 
 ---
 
@@ -139,11 +138,10 @@ python scripts/webdev-long-horizon/compose_prompt.py \
 
 ```text
 projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
-  ✓ task.md
+  ✓ task.md                # 任务需求，直接作为 SOTA 提示词
   ✓ metadata.json
   ✓ README.md
   ✓ rubric.json
-  ✓ PROMPT.md              # 用于 SOTA / 远程 codex 运行
 ```
 
 源码管理方式二选一：
@@ -175,4 +173,4 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 - 源码项目无法 `npm install` 后直接运行。
 - mock-data 不完整，agent 需要臆造数据。
 - 任务泄露答案（如 starter 中已实现核心功能）。
-- 忘记生成 `PROMPT.md`，导致远程 codex 运行时缺少明确交付要求。
+- `task.md` 没有明确源码位置、启动命令和交付要求。

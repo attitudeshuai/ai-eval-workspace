@@ -63,16 +63,10 @@ projects/webdev-long-horizon/
 7. 处理源码：
    - **用户提供 starter**：放到 `projects/webdev-long-horizon/sources/<task-id>/<task-id>/`。
    - **AI 生成 starter**：基于 `projects/webdev-long-horizon/templates/starter/` 生成初始项目，放到 `projects/webdev-long-horizon/tasks/<task-id>/<task-id>/starter/`。
-8. 生成 `PROMPT.md`：
-   - 基于 `task.md` 与项目模板 `projects/webdev-long-horizon/templates/PROMPT.md`
+8. 确保 `task.md` 可直接作为 SOTA 提示词：
    - 明确告知 agent 源码位于 `./source` 或当前目录
    - 包含完整交付要求
-   ```bash
-   python scripts/webdev-long-horizon/compose_prompt.py \
-     --project webdev-long-horizon \
-     --task <task-id>
-   ```
-   > 若 `compose_prompt.py` 不存在，则手动复制 `templates/PROMPT.md` 并将 `{{task_md}}` 替换为 `task.md` 内容。
+   - 不需要单独维护 `PROMPT.md`；`upload_to_remote.py` 会在上传时把 `task.md` 重命名为 `PROMPT.md`
 9. 运行校验：
    - 外部 source：
      ```bash
@@ -99,8 +93,8 @@ projects/webdev-long-horizon/
 - 必须包含视觉参考截图。
 - 必须覆盖至少 4 类关键状态。
 - 源码必须能本地启动。
-- `PROMPT.md` 必须明确源码位置、启动命令、交付要求。
-- 不得在 `task.md`、源码或 `PROMPT.md` 中泄露答案。
+- `task.md` 必须明确源码位置、启动命令、交付要求。
+- 不得在 `task.md`、源码或提示词中泄露答案。
 
 ## 与远程运行的关系
 

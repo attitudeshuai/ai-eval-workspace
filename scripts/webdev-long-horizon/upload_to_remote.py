@@ -4,11 +4,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 """
-将 webdev-long-horizon 任务的源码、PROMPT.md 和必要任务素材上传到远程机器。
+将 webdev-long-horizon 任务的源码、task.md 和必要任务素材上传到远程机器。
 
 SOTA 运行时需要看到参考截图和测试骨架，因此除源码外，还会上传：
   <remote_dir>/<task-id>/source/      # 源码
-  <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt（默认用 PROMPT.md，不存在则用 task.md）
+  <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt（由 task.md 上传后重命名，可通过 --prompt-file 指定其他文件）
   <remote_dir>/<task-id>/assets/      # 参考截图等任务素材
   <remote_dir>/<task-id>/tests/       # 测试骨架（若存在）
 
@@ -136,7 +136,7 @@ def main():
     pre_args, _ = pre_parser.parse_known_args()
     config = load_remote_config(pre_args.project)
 
-    parser = argparse.ArgumentParser(description="上传任务源码和 PROMPT.md 到远程机器")
+    parser = argparse.ArgumentParser(description="上传任务源码和提示词文件到远程机器")
     parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-01.01")
     parser.add_argument("--project", default="webdev-long-horizon", help="项目 ID")
     parser.add_argument("--remote-host", default=config["host"], help="远程主机地址")
@@ -144,7 +144,7 @@ def main():
     parser.add_argument("--remote-user", default=config["user"], help="远程用户名")
     parser.add_argument("--remote-dir", default=config["remote_dir"], help="远程目标目录")
     parser.add_argument("--remote-password", default=config["password"], help="远程密码（不建议命令行传入）")
-    parser.add_argument("--prompt-file", help="本地提示词文件路径，默认优先 tasks/<family>/<task-id>/PROMPT.md，不存在则用 task.md")
+    parser.add_argument("--prompt-file", help="本地提示词文件路径，默认用 tasks/<family>/<task-id>/task.md")
     args = parser.parse_args()
 
     task_id = args.task
@@ -159,11 +159,8 @@ def main():
     if args.prompt_file:
         prompt_file = Path(args.prompt_file)
     else:
-        # 默认优先 PROMPT.md，不存在则用 task.md
-        if (task_dir / "PROMPT.md").exists():
-            prompt_file = task_dir / "PROMPT.md"
-        else:
-            prompt_file = task_dir / "task.md"
+        # 默认直接用 task.md 作为提示词
+        prompt_file = task_dir / "task.md"
 
     assets_dir = task_dir / "assets"
     tests_dir = task_dir / "tests"
@@ -211,7 +208,7 @@ def main():
     # 上传源码包
     sftp_upload(client, source_tar, f"{remote_dir}/{source_tar.name}")
 
-    # 上传 PROMPT.md（即使实际来源是 task.md，也统一命名为 PROMPT.md）
+    # 上传提示词文件（统一命名为 PROMPT.md，方便 codex 运行时使用）
     remote_prompt_path = f"{remote_task_dir}/PROMPT.md"
     sftp_upload(client, prompt_file, remote_prompt_path)
 

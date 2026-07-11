@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""为指定任务创建 SOTA 运行会话与 Prompt。支持项目级 Prompt 模板覆盖。"""
+"""为指定任务创建 SOTA 运行会话与 Prompt。直接使用 task.md 作为提示词。"""
 
 import argparse
 from datetime import datetime, timezone
@@ -15,24 +15,8 @@ from utils.helpers import (
 )
 
 
-def find_prompt_template(project_id: str, task_dir: Path) -> Path | None:
-    """查找项目级或任务级 Prompt 模板。"""
-    candidates = [
-        task_dir / "PROMPT.md",
-        project_dir(project_id) / "templates" / "PROMPT.md",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    return None
-
-
-def build_prompt(project_id: str, task_dir: Path) -> str:
+def build_prompt(task_dir: Path) -> str:
     task_md = (task_dir / "task.md").read_text(encoding="utf-8")
-
-    template = find_prompt_template(project_id, task_dir)
-    if template:
-        return template.read_text(encoding="utf-8").replace("{{task_md}}", task_md)
 
     # 默认通用 Prompt
     readme_sources = [
@@ -135,7 +119,7 @@ def run_sota(
     else:
         source_dir.mkdir(parents=True, exist_ok=True)
 
-    prompt = build_prompt(project_id, task_dir)
+    prompt = build_prompt(task_dir)
     (submission_dir / "PROMPT.md").write_text(prompt, encoding="utf-8")
 
     run_script = submission_dir / "run.sh"

@@ -50,11 +50,8 @@ python scripts/webdev-long-horizon/create_task.py \
 # 3. 补充 mock-data/ 数据（如新增 orders.json），确保 tasks/ 与 sources/ 下保持一致
 # 4. 准备 assets/reference/ 参考截图
 
-# 5. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
-#    python scripts/webdev-long-horizon/compose_prompt.py \
-#      --project webdev-long-horizon \
-#      --task webdev-task-01.01
-#    若 compose_prompt.py 不存在，手动复制 templates/PROMPT.md 并替换 {{task_md}}
+# 5. task.md 直接作为 SOTA 提示词（不再单独维护 PROMPT.md）
+#    upload_to_remote.py 会把 task.md 上传到 remote 并命名为 PROMPT.md
 
 # 6. 校验任务
 python scripts/webdev-long-horizon/validate_task.py \
@@ -94,11 +91,8 @@ python scripts/webdev-long-horizon/create_task.py \
 # 假设生成任务 ID：webdev-task-02
 # 2. AI 根据需求生成 task.md / rubric.json / README.md / target_states.md
 # 3. 准备 assets/reference/ 参考截图与 mock-data/ 数据
-# 4. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
-#    python scripts/webdev-long-horizon/compose_prompt.py \
-#      --project webdev-long-horizon \
-#      --task webdev-task-02
-#    若 compose_prompt.py 不存在，手动复制 templates/PROMPT.md 并替换 {{task_md}}
+# 4. task.md 直接作为 SOTA 提示词（不再单独维护 PROMPT.md）
+#    upload_to_remote.py 会把 task.md 上传到 remote 并命名为 PROMPT.md
 
 # 5. 处理源码（二选一）
 # 方式 A：你提供 starter 源码
@@ -140,7 +134,6 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 ├── metadata.json        # 任务元数据
 ├── README.md            # 启动与测试说明
 ├── rubric.json          # 验收标准
-├── PROMPT.md            # SOTA / 远程 codex 使用的提示词
 ├── target_states.md     # 关键状态说明（建议）
 ├── sota-run.md          # SOTA 运行记录（建议）
 ├── assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
@@ -241,7 +234,7 @@ password = "your-password"
 远程运行 SOTA 时，agent 需要同时看到源码、提示词、参考截图和测试骨架。因此以下文件会上传到远程：
 
 - `source/`：源码
-- `PROMPT.md`：SOTA 提示词（优先用任务目录下的 `PROMPT.md`，不存在则用 `task.md`）
+- `PROMPT.md`：SOTA 提示词（默认直接用 `task.md` 上传后重命名）
 - `assets/`：参考截图等任务素材
 - `tests/`：测试骨架
 
@@ -257,7 +250,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
 4. 远程解压并整理出：
    - `<remote_dir>/webdev-task-01.01/source/`
    - `<remote_dir>/webdev-task-01.01/assets/`
@@ -285,24 +278,11 @@ codex exec -m gpt-5.6-sol \
   > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`，运行日志建议重定向到 `<remote_dir>/webdev-task-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议重定向到 `<remote_dir>/webdev-task-01.01/sota.log`。
 
-### 4.2 使用 task.md 运行（不推荐）
+### 4.2 Prompt 中必须包含的交付要求
 
-如果没有生成 `PROMPT.md`，可临时使用 `task.md`，但需在命令或对话中明确交付要求：
-
-```bash
-# 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
-# 建议把输出重定向到 sota.log，方便后续回收
-codex exec -m gpt-5.6-sol \
-  --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/task.md \
-  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
-```
-
-### 4.3 Prompt 中必须包含的交付要求
-
-无论用 `task.md` 还是 `PROMPT.md`，都要明确告诉 codex：
+`task.md` 作为提示词时，要明确告诉 codex：
 
 1. 项目代码在 `./source` 或当前目录
 2. 先执行 `npm install && npm run dev`
@@ -313,7 +293,7 @@ codex exec -m gpt-5.6-sol \
 
 > 使用外部 source 时，`run_sota.py` 会自动将 `projects/webdev-long-horizon/sources/<task-id>/` 复制到 session 的 `./source/` 下。
 
-### 4.4 批量运行 SOTA
+### 4.3 批量运行 SOTA
 
 当任务数量多时，在远程机器上使用循环脚本：
 
@@ -343,7 +323,7 @@ chmod +x <remote_dir>/batch_run_sota.sh
 
 > 注意：codex cli 的具体参数可能因版本不同而略有差异，请以远程机器上实际安装的版本为准。
 
-### 4.5 源码查找优先级
+### 4.4 源码查找优先级
 
 `run_sota.py` 按以下优先级确定任务源码：
 
@@ -488,7 +468,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 交付前自检清单：
 
 - [ ] `task.md` 完整，无泄露答案
-- [ ] `PROMPT.md` 已生成，明确源码位置与交付要求
+- [ ] `task.md` 已明确源码位置、参考素材位置与交付要求
 - [ ] `sessions/<session>/projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/` 可 `npm install && npm run dev` 直接运行
 - [ ] `rubric.json` 包含 10-20 个叶节点，覆盖六维度
 - [ ] `assets/reference/` 包含桌面端和移动端参考截图

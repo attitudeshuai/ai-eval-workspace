@@ -147,8 +147,7 @@ projects/webdev-long-horizon/
 ```text
 为 webdev-task-01.01 生成完整任务资产。
 - 基于父任务 webdev-task-01 的源码分析现有技术栈
-- 填充 task.md，明确新增订单中心页面需求
-- 生成 PROMPT.md
+- 填充 task.md（直接作为 SOTA 提示词），明确新增订单中心页面需求
 - 完善 rubric.json
 - 完善 target_states.md
 - 补充 mock-data/orders.json
@@ -159,8 +158,7 @@ projects/webdev-long-horizon/
 
 分析需求与 `sources/<family>/<task-id>/` 源码（增量任务已从父任务继承；Greenfield 任务 source 可能为空），然后：
 
-- 填充 `tasks/webdev-task-01/webdev-task-01.01/task.md`
-- 生成 `tasks/webdev-task-01/webdev-task-01.01/PROMPT.md`
+- 填充 `tasks/webdev-task-01/webdev-task-01.01/task.md`（直接作为 SOTA 提示词）
 - 完善 `tasks/webdev-task-01/webdev-task-01.01/rubric.json`
 - 完善 `tasks/webdev-task-01/webdev-task-01.01/target_states.md`
 - 完善 `tasks/webdev-task-01/webdev-task-01.01/README.md`
@@ -195,7 +193,7 @@ cp -r /path/to/your-kanban-starter/* \
 
 ### 方式 B：完全由 agent 从零生成
 
-保持 `sources/webdev-task-02/webdev-task-02/` 为空（或仅放 `.gitkeep`）。在 `task.md` 和 `PROMPT.md` 中明确要求 agent：
+保持 `sources/webdev-task-02/webdev-task-02/` 为空（或仅放 `.gitkeep`）。在 `task.md` 中明确要求 agent：
 
 - 选择合适的框架/技术栈
 - 初始化项目结构（`package.json`、入口文件、目录结构等）
@@ -204,7 +202,7 @@ cp -r /path/to/your-kanban-starter/* \
 
 `upload_to_remote.py` 会把这个空目录、提示词文件、`assets/`、`tests/` 传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。
 
-> 注意：方式 B 对 `PROMPT.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
+> 注意：方式 B 对 `task.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
 
 ---
 
@@ -229,7 +227,7 @@ python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-ta
 ### 指令模板
 
 ```text
-把 webdev-task-01.01 的源码、PROMPT.md、assets/ 和 tests/ 上传到 remote。
+把 webdev-task-01.01 的源码、task.md、assets/ 和 tests/ 上传到 remote。
 ```
 
 ### AI 会执行
@@ -242,7 +240,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`（优先用任务目录下的 `PROMPT.md`，不存在则用 `task.md`）
+3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
 4. 远程解压并整理出：
    - `<remote_dir>/webdev-task-01.01/source/`
    - `<remote_dir>/webdev-task-01.01/assets/`
@@ -397,8 +395,8 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 ```text
 帮我全流程跑一个基于 webdev-task-01 的增量任务：
 1. 创建任务并继承父源码：新增订单中心页面，标题"为本地生活平台新增订单中心页面"，medium 难度
-2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets
-3. 把源码、PROMPT.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
+2. 生成/填充 task.md、rubric.json、mock-data、assets/reference/
+3. 把源码、task.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol）
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
@@ -410,8 +408,8 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 ```text
 帮我全流程跑一个 Greenfield 任务：
 1. 创建无源码任务骨架：支持拖拽看板的任务管理系统，标题"支持拖拽看板的任务管理系统"，high 难度
-2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets（source 目录保持为空）
-3. 把空的 source 目录、PROMPT.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
+2. 生成/填充 task.md、rubric.json、mock-data、assets/reference/（source 目录保持为空）
+3. 把空的 source 目录、task.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol），让 agent 从零创建完整项目
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告

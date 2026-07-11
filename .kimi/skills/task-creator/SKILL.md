@@ -26,7 +26,7 @@ description: Create a high-quality long-horizon task in a specified project.
 6. 按项目约定准备源码（如 `starter/`、`sources/<family>/<task-id>/` 等）、`assets/` 任务素材（参考截图放 `assets/reference/`，其他素材按类型分子目录）、`mock-data/` 数据。
 7. 设计 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 8. 填写 `target_states.md` 与 `README.md`。
-9. 如项目约定需要 `PROMPT.md`（例如 webdev-long-horizon），按项目模板生成。
+9. 如项目直接使用 `task.md` 作为 SOTA 提示词（例如 webdev-long-horizon），确保 `task.md` 包含完整的源码位置、启动命令和交付要求。
 10. 按项目约定运行校验脚本自检。
 
 ## 输出规范

@@ -56,7 +56,7 @@ projects/webdev-long-horizon/
 ```text
 <remote_dir>/webdev-task-01.01/
 ├── source/               # 源码
-├── PROMPT.md             # 提示词
+├── PROMPT.md             # 提示词（由 task.md 上传后重命名）
 └── ...
 ```
 
@@ -140,6 +140,6 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 
 ## 注意事项
 
-- 上传前确保提示词文件已准备（优先 `PROMPT.md`，也可直接用 `task.md`），且明确告知 codex 源码位于 `./source`，参考截图位于同级 `assets/reference/`。
+- 上传前确保 `task.md` 已准备好作为提示词，且明确告知 codex 源码位于 `./source`，参考截图位于同级 `assets/reference/`。
 - 若 mock 数据需要被源码读取，确保 `mock-data/` 已同时存在于任务目录和源码目录。
 - 远程运行结束后，使用 `evaluator` skill 对产物进行评估。

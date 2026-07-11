@@ -81,11 +81,11 @@ codex exec -m gpt-5.6-sol \
   > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`，运行日志建议保存到 `<remote_dir>/webdev-task-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/webdev-task-01.01/sota.log`。
 
 ## 工作流程
 
-1. 读取 `projects/webdev-long-horizon/tasks/<family>/<task-id>/task.md`、`metadata.json`、`PROMPT.md`。
+1. 读取 `projects/webdev-long-horizon/tasks/<family>/<task-id>/task.md` 与 `metadata.json`。
 2. 按项目约定找到任务源码目录：
    - `projects/webdev-long-horizon/sources/<family>/<task-id>/`
    - `projects/webdev-long-horizon/tasks/<family>/<task-id>/starter/`
@@ -107,7 +107,7 @@ sessions/<session-name>/
     submissions/<task-id>/<agent>/
       source/
       screenshots/
-      PROMPT.md
+      PROMPT.md           # 由 run_sota.py 基于 task.md 生成
       run.sh
 ```
 

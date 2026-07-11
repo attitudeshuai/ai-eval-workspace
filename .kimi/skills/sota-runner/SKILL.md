@@ -23,7 +23,7 @@ description: Run a SOTA Agent for a specified project task and collect artifacts
    - 若项目使用层级目录结构，使用 `find_task_dir(project_id, task_id)` 自动查找。
 4. 创建会话目录：`sessions/session-sota-YYYY-MM-NNN-<agent>/`。
 5. 按项目约定找到任务源码目录（如 `starter/`、`sources/<family>/<task-id>/` 等），复制到 `sessions/.../projects/<id>/submissions/<task-id>/<agent>/source/`。
-6. 生成标准 Prompt（基于 `task.md` / `PROMPT.md` + 项目上下文）。
+6. 生成标准 Prompt（基于 `task.md` + 项目上下文）。
 7. 调用指定 agent（codex / claude-code / kimi-coding）运行任务。
 8. 收集产物：代码变更、截图、console 日志、网络日志、运行轨迹。
 9. 更新项目约定的运行记录文件（如 `projects/<id>/tasks/<family>/<task-id>/sota-run.md`）。
