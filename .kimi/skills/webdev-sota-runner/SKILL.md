@@ -15,41 +15,87 @@ description: Run SOTA for a task in the webdev-long-horizon project. Trigger whe
 
 调用前需要确认：
 
-- 任务 ID（如 `webdev-task-XXXX`）
-- Agent 名称（codex / claude-code / kimi-coding）
+- 任务 ID（如 `webdev-task-01.01`）
+- Agent 名称（`codex` / `claude-code` / `kimi-coding`）
 - Session 名称
+- 运行模式：本地（`run_sota.py`）或远程（`codex`）
 - 是否需要显式指定源码目录（可选，通常不需要）
+
+## 目录结构说明
+
+任务按家族分组存放：
+
+```text
+projects/webdev-long-horizon/
+├── tasks/webdev-task-01/
+│   ├── webdev-task-01/
+│   └── webdev-task-01.01/
+└── sources/webdev-task-01/
+    ├── webdev-task-01/
+    └── webdev-task-01.01/
+```
+
+`run_sota.py` 会根据 task_id 自动在层级目录中查找任务目录和源码目录。
+
+## 两种运行模式
+
+### 模式一：本地运行（推荐用于自动化评估）
+
+使用 `scripts/run_sota.py` 创建隔离会话并调用本地 agent。
+
+```bash
+python scripts/run_sota.py \
+  --session <session-name> \
+  --project webdev-long-horizon \
+  --task webdev-task-01.01 \
+  --agent <agent>
+```
+
+如需显式指定源码：
+
+```bash
+python scripts/run_sota.py \
+  --session <session-name> \
+  --project webdev-long-horizon \
+  --task webdev-task-01.01 \
+  --agent <agent> \
+  --source-dir <path>
+```
+
+### 模式二：远程运行（推荐用于 codex-cli）
+
+将任务资产和源码上传到远程机器，直接运行 codex cli。此模式需配合 `webdev-task-packer` skill。
+
+远程机器示例：
+
+```bash
+ssh root@59.49.28.154 -p 7826
+cd /root/charles/webdev-task-01.01/source
+
+codex \
+  --model gpt-5.6-sonnet \
+  --prompt-file /root/charles/webdev-task-01.01/PROMPT.md
+```
+
+> 如果元数据和源码是分开上传的，源码目录通常是 `/root/charles/webdev-task-01.01/source/`。
 
 ## 工作流程
 
-1. 读取 `projects/webdev-long-horizon/tasks/<task-id>/task.md` 与 `metadata.json`。
-2. 创建会话目录：`sessions/<session-name>/`。
-3. 确定源码来源（按以下优先级）：
-   - `--source-dir` 显式指定目录
-   - `projects/webdev-long-horizon/sources/<task-id>/`
-   - `projects/webdev-long-horizon/tasks/<task-id>/starter/`
-   复制到 `sessions/<session-name>/projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/`。
-4. 运行 SOTA：
-   ```bash
-   python scripts/run_sota.py \
-     --session <session-name> \
-     --project webdev-long-horizon \
-     --task <task-id> \
-     --agent <agent>
-   ```
-   如需显式指定源码：
-   ```bash
-   python scripts/run_sota.py \
-     --session <session-name> \
-     --project webdev-long-horizon \
-     --task <task-id> \
-     --agent <agent> \
-     --source-dir <path>
-   ```
-5. 收集产物：代码变更、截图、console 日志、运行轨迹。
-6. 更新 `projects/webdev-long-horizon/tasks/<task-id>/sota-run.md`。
+1. 读取 `projects/webdev-long-horizon/tasks/<family>/<task-id>/task.md`、`metadata.json`、`PROMPT.md`。
+2. 按项目约定找到任务源码目录：
+   - `projects/webdev-long-horizon/sources/<family>/<task-id>/`
+   - `projects/webdev-long-horizon/tasks/<family>/<task-id>/starter/`
+3. 创建会话目录：`sessions/<session-name>/`。
+4. 将源码复制到 `sessions/.../projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/`。
+5. 运行 agent：
+   - 本地模式：由 `run_sota.py` 自动调用 agent。
+   - 远程模式：提示用户参考 `webdev-task-packer` skill 上传后执行 codex。
+6. 收集产物：代码变更、截图、console 日志、运行轨迹。
+7. 更新 `projects/webdev-long-horizon/tasks/<family>/<task-id>/sota-run.md`。
 
 ## 产物位置
+
+本地模式产物：
 
 ```text
 sessions/<session-name>/
@@ -61,9 +107,18 @@ sessions/<session-name>/
       run.sh
 ```
 
+远程模式产物（默认在远程 `/root/charles/`）：
+
+```text
+/root/charles/webdev-task-01.01/
+  source/               # codex 修改后的源码
+  screenshots/          # 关键状态截图
+  sota.log              # 运行日志（如果已保存）
+```
+
 ## 注意事项
 
-- 推荐将源码放到 `sources/<task-id>/`，目录名与任务 ID 一致，这样无需传 `--source-dir`。
+- 推荐将源码放到 `sources/<family>/<task-id>/`，目录名与任务 ID 一致，这样无需传 `--source-dir`。
 - 记录运行时长与估算消耗。
 - 若 agent 失败，记录失败模式。
 - 不修改原任务目录中的文件。

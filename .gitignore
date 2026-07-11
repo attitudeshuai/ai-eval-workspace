@@ -30,6 +30,8 @@ pnpm-debug.log*
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+venv/
 
 # OS
 .DS_Store
@@ -57,3 +59,10 @@ sessions/**/logs/*.log
 projects/webdev-long-horizon/tasks/
 
 projects/webdev-long-horizon/sources/*
+
+# Secrets
+projects/webdev-long-horizon/secrets.toml
+
+# Project config with remote credentials
+projects/webdev-long-horizon/config.toml
+

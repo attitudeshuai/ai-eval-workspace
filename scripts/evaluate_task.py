@@ -4,12 +4,14 @@
 import argparse
 from pathlib import Path
 
-from utils.helpers import load_json, save_json, tasks_dir, workspace_root
+from utils.helpers import find_task_dir, load_json, save_json, workspace_root
 
 
 def evaluate(session_name: str, project_id: str, task_id: str, agent: str) -> Path:
     session_dir = workspace_root() / "sessions" / session_name
-    task_dir = tasks_dir(project_id) / task_id
+    task_dir = find_task_dir(project_id, task_id)
+    if task_dir is None:
+        raise FileNotFoundError(f"找不到任务: {task_id}")
     submission_dir = session_dir / "projects" / project_id / "submissions" / task_id / agent
     report_dir = session_dir / "projects" / project_id / "reports" / task_id / agent
     evidence_dir = report_dir / "evidence"

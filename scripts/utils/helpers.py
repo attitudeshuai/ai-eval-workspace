@@ -1,6 +1,7 @@
 """通用工具函数。"""
 
 import json
+import re
 import shutil
 import tomllib
 from pathlib import Path
@@ -24,8 +25,84 @@ def project_dir(project_id: str) -> Path:
 
 
 def tasks_dir(project_id: str) -> Path:
-    """返回项目任务目录。"""
+    """返回项目任务根目录。"""
     return project_dir(project_id) / "tasks"
+
+
+def sources_dir(project_id: str) -> Path:
+    """返回项目源码根目录。"""
+    return project_dir(project_id) / "sources"
+
+
+def task_prefix(project_id: str) -> str:
+    """返回项目配置中的任务前缀。"""
+    config_path = project_dir(project_id) / "config.toml"
+    if config_path.exists():
+        data = load_toml(config_path)
+        return data.get("project", {}).get("task_prefix", "task")
+    return "task"
+
+
+def task_id_pattern(prefix: str) -> re.Pattern:
+    """返回任务 ID 正则：prefix-NN[.NN]*"""
+    return re.compile(rf"^{re.escape(prefix)}-(\d+(?:\.\d+)*)$")
+
+
+def is_task_dir(path: Path, prefix: str | None = None) -> bool:
+    """判断一个目录是否是有效的任务目录。
+
+    标准：目录名匹配任务 ID 格式，且包含 metadata.json。
+    """
+    if not path.is_dir():
+        return False
+    if prefix is None:
+        # 从路径推断项目 ID
+        parts = path.relative_to(workspace_root() / "projects").parts
+        if len(parts) < 1:
+            return False
+        prefix = task_prefix(parts[0])
+    pattern = task_id_pattern(prefix)
+    return bool(pattern.match(path.name)) and (path / "metadata.json").exists()
+
+
+def find_task_dir(project_id: str, task_id: str) -> Path | None:
+    """根据 task_id 查找任务目录（支持层级目录结构）。"""
+    td = tasks_dir(project_id)
+    prefix = task_prefix(project_id)
+    pattern = task_id_pattern(prefix)
+    if not pattern.match(task_id):
+        return None
+
+    # 优先直接匹配：tasks/<task-id>/
+    direct = td / task_id
+    if is_task_dir(direct, prefix):
+        return direct
+
+    # 递归查找
+    for path in td.rglob(task_id):
+        if is_task_dir(path, prefix):
+            return path
+    return None
+
+
+def find_source_dir(project_id: str, task_id: str) -> Path | None:
+    """根据 task_id 查找外部源码目录（支持层级目录结构）。"""
+    sd = sources_dir(project_id)
+    prefix = task_prefix(project_id)
+    pattern = task_id_pattern(prefix)
+    if not pattern.match(task_id):
+        return None
+
+    # 优先直接匹配：sources/<task-id>/
+    direct = sd / task_id
+    if direct.is_dir():
+        return direct
+
+    # 递归查找
+    for path in sd.rglob(task_id):
+        if path.is_dir():
+            return path
+    return None
 
 
 def load_json(path: Path) -> Any:
@@ -101,18 +178,13 @@ def list_projects() -> list[Path]:
 
 
 def list_tasks(project_id: str) -> list[Path]:
-    """列出指定项目下所有任务目录。"""
+    """递归列出指定项目下所有任务目录。"""
     td = tasks_dir(project_id)
     if not td.exists():
         return []
 
-    config_path = project_dir(project_id) / "config.toml"
-    prefix = "task"
-    if config_path.exists():
-        data = load_toml(config_path)
-        prefix = data.get("project", {}).get("task_prefix", "task")
-
-    return sorted([p for p in td.iterdir() if p.is_dir() and p.name.startswith(f"{prefix}-")])
+    prefix = task_prefix(project_id)
+    return sorted([p for p in td.rglob("*") if is_task_dir(p, prefix)])
 
 
 def resolve_template(project_id: str, template_name: str) -> Path:
@@ -133,5 +205,8 @@ def resolve_starter_template(project_id: str) -> Path:
 
 
 def default_source_dir(project_id: str, task_id: str) -> Path:
-    """返回项目约定的外部源码目录：projects/<project>/sources/<task-id>/"""
+    """返回项目约定的外部源码目录：projects/<project>/sources/<task-id>/
+
+    保持扁平路径作为默认值；实际查找请使用 find_source_dir。
+    """
     return project_dir(project_id) / "sources" / task_id

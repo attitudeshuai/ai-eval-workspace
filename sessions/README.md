@@ -33,6 +33,6 @@ session-*/
 python scripts/run_sota.py \
   --session session-sota-2026-07-001-codex \
   --project webdev-long-horizon \
-  --task webdev-task-0001 \
+  --task webdev-task-01 \
   --agent codex
 ```

@@ -5,7 +5,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from utils.helpers import load_json
+from utils.helpers import find_task_dir, is_task_dir, load_json
 
 
 def validate_task(task_dir: Path, allow_no_starter: bool = False) -> dict:
@@ -66,9 +66,45 @@ def validate_task(task_dir: Path, allow_no_starter: bool = False) -> dict:
     return result
 
 
+def resolve_task_dir(arg: str) -> Path:
+    """解析用户输入为任务目录。
+
+    支持三种形式：
+    1. 完整路径：projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01
+    2. 相对 tasks 根的路径：webdev-task-01/webdev-task-01
+    3. 仅 task_id：webdev-task-01（自动在项目下递归查找）
+    """
+    path = Path(arg)
+    if path.exists() and is_task_dir(path):
+        return path
+
+    # 尝试作为相对 tasks 根的路径
+    workspace = Path(__file__).resolve().parents[1]
+    for project_dir in (workspace / "projects").iterdir():
+        if not project_dir.is_dir():
+            continue
+        candidate = project_dir / "tasks" / path
+        if candidate.exists() and is_task_dir(candidate):
+            return candidate
+
+    # 尝试作为 task_id 自动查找
+    for project_dir in (workspace / "projects").iterdir():
+        if not project_dir.is_dir():
+            continue
+        found = find_task_dir(project_dir.name, arg)
+        if found:
+            return found
+
+    raise argparse.ArgumentTypeError(f"无法解析为有效任务目录: {arg}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="校验任务结构")
-    parser.add_argument("task_dir", type=Path, help="任务目录路径")
+    parser.add_argument(
+        "task_dir",
+        type=resolve_task_dir,
+        help="任务目录路径、相对 tasks 根的路径或 task_id",
+    )
     parser.add_argument(
         "--allow-no-starter",
         action="store_true",

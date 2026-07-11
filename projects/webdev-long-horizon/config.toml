@@ -44,3 +44,11 @@ max_rubric_leaves = 20
 min_key_states = 4
 required_visual_input = true
 required_browser_tools = true
+
+[remote]
+host = "59.49.28.154"
+port = "7826"
+user = "root"
+remote_dir = "/root/charles"
+# 密码配置在 secrets.toml（已加入 .gitignore，请勿提交）。
+secrets_file = "secrets.toml"

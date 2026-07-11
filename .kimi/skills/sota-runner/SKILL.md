@@ -1,3 +1,8 @@
+---
+name: sota-runner
+description: Run a SOTA Agent for a specified project task and collect artifacts.
+---
+
 # SOTA Runner
 
 为指定项目的任务运行 SOTA Agent，收集轨迹、截图与运行产物。
@@ -9,14 +14,19 @@
 ## 工作流程
 
 1. 确认目标项目 ID 与任务 ID。
-2. 读取项目 `config.toml` 与项目文档（如 `AGENTS.md`、`OPERATIONAL_WORKFLOW.md`、`README.md`）确认源码存放约定。
-3. 读取 `projects/<id>/tasks/<task-id>/task.md` 与 `metadata.json`。
+2. 读取项目级文档确认运行约定：
+   - `projects/<id>/AGENTS.md`
+   - `projects/<id>/OPERATIONAL_WORKFLOW.md`
+   - `projects/<id>/README.md`
+   - `projects/<id>/config.toml`
+3. 读取 `projects/<id>/tasks/<task-dir>/task.md` 与 `metadata.json`。
+   - 若项目使用层级目录结构，使用 `find_task_dir(project_id, task_id)` 自动查找。
 4. 创建会话目录：`sessions/session-sota-YYYY-MM-NNN-<agent>/`。
-5. 按项目约定找到任务源码目录（如 `starter/`、`sources/<task-id>/` 等），复制到 `sessions/.../projects/<id>/submissions/<task-id>/<agent>/source/`。
-6. 生成标准 Prompt（基于 `task.md` + 项目上下文）。
+5. 按项目约定找到任务源码目录（如 `starter/`、`sources/<family>/<task-id>/` 等），复制到 `sessions/.../projects/<id>/submissions/<task-id>/<agent>/source/`。
+6. 生成标准 Prompt（基于 `task.md` / `PROMPT.md` + 项目上下文）。
 7. 调用指定 agent（codex / claude-code / kimi-coding）运行任务。
 8. 收集产物：代码变更、截图、console 日志、网络日志、运行轨迹。
-9. 更新项目约定的运行记录文件（如 `projects/<id>/tasks/<task-id>/sota-run.md`）。
+9. 更新项目约定的运行记录文件（如 `projects/<id>/tasks/<family>/<task-id>/sota-run.md`）。
 
 ## Prompt 模板结构
 
@@ -58,3 +68,8 @@ sessions/session-sota-YYYY-MM-NNN-<agent>/
 - 记录运行时长与估算消耗。
 - 若 agent 失败，记录失败模式。
 - 不修改原任务目录中的文件。
+
+## 项目特定说明
+
+- 对于 `webdev-long-horizon` 项目，优先使用专门的 `webdev-sota-runner` skill。
+- 若用户希望将任务上传到远程机器用 codex 直接运行，使用 `webdev-task-packer` skill。

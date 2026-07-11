@@ -26,7 +26,9 @@
 
 - [docs/project-onboarding.md](./docs/project-onboarding.md) — 新项目接入
 - [docs/workflow.md](./docs/workflow.md) — 评估流程参考
-- [projects/webdev-long-horizon/docs/task-template-guide.md](./projects/webdev-long-horizon/docs/task-template-guide.md) — Web Dev 示例模板（仅参考）
+- [docs/quality-gates.md](./docs/quality-gates.md) — 任务交付质量闸门
+- [projects/webdev-long-horizon/OPERATIONAL_WORKFLOW.md](./projects/webdev-long-horizon/OPERATIONAL_WORKFLOW.md) — Web Dev 实操流程
+- [projects/webdev-long-horizon/docs/task-template-guide.md](./projects/webdev-long-horizon/docs/task-template-guide.md) — Web Dev 任务模板（仅参考）
 
 ## 常用命令
 
@@ -36,6 +38,9 @@ python scripts/create_project.py --id <project-id> --name "..."
 
 # 运行 SOTA
 python scripts/run_sota.py --session <name> --project <id> --task <task-id> --agent codex
+
+# 从远程机器回收 SOTA 产物
+python scripts/fetch_remote_results.py --task <task-id> --agent codex --session <name>
 
 # 评估
 python scripts/evaluate_task.py --session <name> --project <id> --task <task-id> --agent codex

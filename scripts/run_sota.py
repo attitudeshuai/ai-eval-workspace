@@ -5,7 +5,14 @@ import argparse
 from datetime import datetime, timezone
 from pathlib import Path
 
-from utils.helpers import copy_tree, default_source_dir, project_dir, tasks_dir, workspace_root
+from utils.helpers import (
+    copy_tree,
+    find_source_dir,
+    find_task_dir,
+    is_task_dir,
+    project_dir,
+    workspace_root,
+)
 
 
 def find_prompt_template(project_id: str, task_dir: Path) -> Path | None:
@@ -63,6 +70,32 @@ cd source
 """
 
 
+def resolve_task_dir(project_id: str, task_arg: str) -> Path:
+    """解析 --task 参数为任务目录。
+
+    支持：
+    1. 完整路径
+    2. task_id（自动在项目下递归查找）
+    3. 相对 tasks 根的路径
+    """
+    path = Path(task_arg)
+    if path.is_absolute() and is_task_dir(path):
+        return path
+
+    # 相对 tasks 根的路径
+    project_tasks_dir = project_dir(project_id) / "tasks"
+    candidate = project_tasks_dir / path
+    if candidate.exists() and is_task_dir(candidate):
+        return candidate
+
+    # task_id 自动查找
+    found = find_task_dir(project_id, task_arg)
+    if found:
+        return found
+
+    raise FileNotFoundError(f"无法找到任务: {task_arg}")
+
+
 def run_sota(
     session_name: str,
     project_id: str,
@@ -74,8 +107,9 @@ def run_sota(
     if session_dir.exists():
         raise FileExistsError(f"会话已存在: {session_dir}")
 
+    task_id = task_dir.name
     submission_dir = (
-        session_dir / "projects" / project_id / "submissions" / task_dir.name / agent
+        session_dir / "projects" / project_id / "submissions" / task_id / agent
     )
     source_dir = submission_dir / "source"
     screenshots_dir = submission_dir / "screenshots"
@@ -87,7 +121,7 @@ def run_sota(
     src_candidates = []
     if source_dir_override:
         src_candidates.append(source_dir_override)
-    src_candidates.append(default_source_dir(project_id, task_dir.name))
+    src_candidates.append(find_source_dir(project_id, task_id))
     src_candidates.append(task_dir / "starter")
 
     chosen_src = None
@@ -126,7 +160,7 @@ def main():
     parser = argparse.ArgumentParser(description="创建 SOTA 运行会话")
     parser.add_argument("--session", required=True, help="会话名称")
     parser.add_argument("--project", required=True, help="项目 ID")
-    parser.add_argument("--task", required=True, help="任务目录或 ID")
+    parser.add_argument("--task", required=True, help="任务目录、相对路径或 task_id")
     parser.add_argument("--agent", default="codex", help="Agent 名称")
     parser.add_argument("--budget", help="预算（仅记录）")
     parser.add_argument(
@@ -136,9 +170,7 @@ def main():
     )
     args = parser.parse_args()
 
-    task_path = Path(args.task)
-    if not task_path.is_absolute():
-        task_path = tasks_dir(args.project) / task_path.name
+    task_path = resolve_task_dir(args.project, args.task)
 
     submission_dir = run_sota(
         args.session, args.project, task_path, args.agent, source_dir_override=args.source_dir
