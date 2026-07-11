@@ -2,7 +2,6 @@
 name: webdev-greenfield-task-creator
 description: Create a greenfield development task for the webdev-long-horizon project from a natural language requirement. Trigger when the user wants to create a new task that requires building a complete web project from scratch in projects/webdev-long-horizon.
 ---
-
 # Web Dev Greenfield Task Creator
 
 为 `projects/webdev-long-horizon` 创建从零开发的完整项目任务。
@@ -36,7 +35,7 @@ projects/webdev-long-horizon/
         └── webdev-task-02/          # 顶层任务源码
 ```
 
-顶层任务 ID：`webdev-task-01`, `webdev-task-02`, ...
+顶层任务 ID：`{prefix}-01`, `{prefix}-02`, ...（`{prefix}` 为 `config.toml` 的 `task_prefix`，默认 `webdev-task-sxw`）
 
 ## 工作流程
 
@@ -52,8 +51,10 @@ projects/webdev-long-horizon/
      --prompt-type "前端" \
      --skip-starter
    ```
+
    > `--category` 请使用 `categories.json` 中的中文 `label`。
    > 不传 `--parent` 时，会生成顶层任务 ID，例如 `webdev-task-02`。
+   >
 3. 生成完整项目需求的 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
 4. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 5. 生成 `target_states.md` 与 `README.md`。

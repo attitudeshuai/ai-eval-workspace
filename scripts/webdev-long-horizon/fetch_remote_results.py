@@ -11,13 +11,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 用法示例：
     python scripts/webdev-long-horizon/fetch_remote_results.py \
-      --task webdev-task-01.01 \
+      --task webdev-task-sxw-01.01 \
       --agent codex \
       --session session-sota-2026-07-002-codex
 
 也可以只拉回到当前目录：
     python scripts/webdev-long-horizon/fetch_remote_results.py \
-      --task webdev-task-01.01 \
+      --task webdev-task-sxw-01.01 \
       --output ./
 """
 
@@ -135,7 +135,7 @@ def main():
     config = load_remote_config(pre_args.project)
 
     parser = argparse.ArgumentParser(description="从远程机器回收 SOTA 产物")
-    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-01.01")
+    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-sxw-01.01")
     parser.add_argument("--agent", default="codex", help="Agent 名称，默认 codex")
     parser.add_argument("--project", default="webdev-long-horizon", help="项目 ID，默认 webdev-long-horizon")
     parser.add_argument("--remote-host", default=config["host"], help="远程主机地址")

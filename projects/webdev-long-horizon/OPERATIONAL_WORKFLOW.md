@@ -21,7 +21,7 @@
 
 本项目支持两种任务创建模式。两种模式都使用 `--skip-starter`，源码与任务元数据分离管理。
 
-> **与传统流程的区别**：不再在 `tasks/<task-id>/starter/` 中放源码，而是统一放到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`（目录名与任务 ID 一致）。任务按家族分组，例如 `tasks/webdev-task-01/webdev-task-01.01/`。
+> **与传统流程的区别**：不再在 `tasks/<task-id>/starter/` 中放源码，而是统一放到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`（目录名与任务 ID 一致）。任务按家族分组，例如 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`。
 
 #### 模式一：基于现有源码生成增量开发任务
 
@@ -29,9 +29,9 @@
 
 ```bash
 # 1. 创建任务骨架（不带 starter）并自动继承父任务资产。
-#    基于已有任务 webdev-task-01，会自动生成 webdev-task-01.01，并完成以下四步：
-#    - 创建任务目录 tasks/webdev-task-01/webdev-task-01.01/，生成 task.md 等骨架
-#    - 将父任务源码复制到 sources/webdev-task-01/webdev-task-01.01/ 作为 baseline
+#    基于已有任务 webdev-task-sxw-01，会自动生成 webdev-task-sxw-01.01，并完成以下四步：
+#    - 创建任务目录 tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/，生成 task.md 等骨架
+#    - 将父任务源码复制到 sources/webdev-task-sxw-01/webdev-task-sxw-01.01/ 作为 baseline
 #    - 复制父任务 mock-data/ 到任务目录与 source 目录
 #    - 创建 assets/（含 reference/ 子目录）、screenshots/ 目录，并在 metadata.json 中写入 parent_tasks
 python scripts/webdev-long-horizon/create_task.py \
@@ -42,9 +42,9 @@ python scripts/webdev-long-horizon/create_task.py \
   --arena-tags "ui,e-commerce,visualize" \
   --prompt-type "前端" \
   --skip-starter \
-  --parent webdev-task-01
+  --parent webdev-task-sxw-01
 
-# 假设生成任务 ID：webdev-task-01.01
+# 假设生成任务 ID：webdev-task-sxw-01.01
 
 # 2. AI 分析源码并填充 task.md / rubric.json / README.md / target_states.md
 # 3. 补充 mock-data/ 数据（如新增 orders.json），确保 tasks/ 与 sources/ 下保持一致
@@ -56,20 +56,20 @@ python scripts/webdev-long-horizon/create_task.py \
 # 6. 校验任务
 python scripts/webdev-long-horizon/validate_task.py \
   --allow-no-starter \
-  webdev-task-01.01
+  webdev-task-sxw-01.01
 
 # 7. 运行 SOTA
 python scripts/webdev-long-horizon/run_sota.py \
   --session session-sota-2026-07-002-codex \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex
 
 # 8. 生成评估报告
 python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-002-codex \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex
 ```
 
@@ -122,14 +122,14 @@ python scripts/webdev-long-horizon/evaluate_task.py \
   --agent codex
 ```
 
-> **源码目录约定**：创建任务后，在 `projects/webdev-long-horizon/tasks/<family>/` 下生成任务目录（如 `tasks/webdev-task-01/webdev-task-01.01/`）。源码按约定放到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`，目录名与任务 ID 保持一致。
+> **源码目录约定**：创建任务后，在 `projects/webdev-long-horizon/tasks/<family>/` 下生成任务目录（如 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`）。源码按约定放到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`，目录名与任务 ID 保持一致。
 
 ### 1.2 填充任务内容
 
 每个任务目录必须包含以下文件：
 
 ```text
-projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
+projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/
 ├── task.md              # 任务需求主文档
 ├── metadata.json        # 任务元数据
 ├── README.md            # 启动与测试说明
@@ -143,8 +143,8 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 
 源码有两种管理方式，任选其一：
 
-- **内置 starter**：`tasks/webdev-task-01/webdev-task-01.01/starter/`（传统）
-- **外部 source**：`sources/webdev-task-01/webdev-task-01.01/`（推荐，目录名与任务 ID 保持一致）
+- **内置 starter**：`tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/starter/`（传统）
+- **外部 source**：`sources/webdev-task-sxw-01/webdev-task-sxw-01.01/`（推荐，目录名与任务 ID 保持一致）
 
 > 推荐将源码放到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`，这样 `run_sota.py` 和校验脚本都能自动识别，无需额外传 `--source-dir`。
 
@@ -159,7 +159,7 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 
 #### rubric.json 格式
 
-复用 `webdev-task-01` 的 `dimensions + leaves` 结构：
+复用 `webdev-task-sxw-01` 的 `dimensions + leaves` 结构：
 
 - 6 大维度：功能完整性、交互完整性、视觉完成度、工程质量、边界状态、测试与证据
 - 10-20 个叶节点
@@ -170,14 +170,14 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 若使用内置 starter：
 
 ```bash
-cd projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/starter
+cd projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/starter
 npm install
 ```
 
 若使用外部 source：
 
 ```bash
-cd projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01
+cd projects/webdev-long-horizon/sources/webdev-task-sxw-01/webdev-task-sxw-01.01
 npm install
 ```
 
@@ -192,7 +192,7 @@ npm run dev
 # 2. 运行项目校验（若使用外部 source，加 --allow-no-starter）
 python scripts/webdev-long-horizon/validate_task.py \
   --allow-no-starter \
-  webdev-task-01.01
+  webdev-task-sxw-01.01
 
 # 3. 可选：全项目批量校验
 python scripts/webdev-long-horizon/validate_project.py \
@@ -243,18 +243,18 @@ password = "your-password"
 使用 `upload_to_remote.py` 一键上传：
 
 ```bash
-python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
+python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01.01
 ```
 
 此脚本会：
 
-1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
+1. 打包源码、`assets/`、`tests/` 为 `webdev-task-sxw-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`
 4. 远程解压并整理出：
-   - `<remote_dir>/webdev-task-01.01/source/`
-   - `<remote_dir>/webdev-task-01.01/assets/`
-   - `<remote_dir>/webdev-task-01.01/tests/`
+   - `<remote_dir>/webdev-task-sxw-01.01/source/`
+   - `<remote_dir>/webdev-task-sxw-01.01/assets/`
+   - `<remote_dir>/webdev-task-sxw-01.01/tests/`
 
 > 远程配置从 `config.toml` 和 `secrets.toml` 读取。
 > 若源码来自内置 starter，请先放到 `sources/<family>/<task-id>/` 再上传。
@@ -267,18 +267,18 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/webdev-task-01.01/source
+cd <remote_dir>/webdev-task-sxw-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 # 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md \
-  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
+  < <remote_dir>/webdev-task-sxw-01.01/PROMPT.md \
+  > <remote_dir>/webdev-task-sxw-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议重定向到 `<remote_dir>/webdev-task-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/webdev-task-sxw-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议重定向到 `<remote_dir>/webdev-task-sxw-01.01/sota.log`。
 
 ### 4.2 Prompt 中必须包含的交付要求
 
@@ -341,7 +341,7 @@ chmod +x <remote_dir>/batch_run_sota.sh
 
 ```bash
 python scripts/webdev-long-horizon/fetch_remote_results.py \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex \
   --session session-sota-YYYY-MM-NNN-codex
 ```
@@ -351,7 +351,7 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 ```text
 sessions/session-sota-YYYY-MM-NNN-codex/
   projects/webdev-long-horizon/
-    submissions/webdev-task-01.01/codex/
+    submissions/webdev-task-sxw-01.01/codex/
       source/               # codex 修改后的源码
       screenshots/          # 关键状态截图
       sota.log              # 运行日志
@@ -361,7 +361,7 @@ sessions/session-sota-YYYY-MM-NNN-codex/
 
 ```bash
 python scripts/webdev-long-horizon/fetch_remote_results.py \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --output ./
 ```
 
@@ -370,9 +370,9 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 如果脚本不可用，可手动打包拉回：
 
 ```bash
-ssh root@59.49.28.154 -p 7826 "cd <remote_dir> && tar czvf webdev-task-01.01-results.tar.gz webdev-task-01.01"
-scp -P 7826 root@59.49.28.154:<remote_dir>/webdev-task-01.01-results.tar.gz ./
-tar xzvf webdev-task-01.01-results.tar.gz
+ssh root@59.49.28.154 -p 7826 "cd <remote_dir> && tar czvf webdev-task-sxw-01.01-results.tar.gz webdev-task-sxw-01.01"
+scp -P 7826 root@59.49.28.154:<remote_dir>/webdev-task-sxw-01.01-results.tar.gz ./
+tar xzvf webdev-task-sxw-01.01-results.tar.gz
 ```
 
 ---
@@ -386,7 +386,7 @@ tar xzvf webdev-task-01.01-results.tar.gz
 ```text
 sessions/session-sota-2026-07-XXX-codex/
   projects/webdev-long-horizon/
-    submissions/webdev-task-01.01/codex/
+    submissions/webdev-task-sxw-01.01/codex/
       source/           # 对应修改后的 starter / source
       screenshots/
       sota.log
@@ -398,7 +398,7 @@ sessions/session-sota-2026-07-XXX-codex/
 python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-XXX-codex \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex
 ```
 
@@ -407,7 +407,7 @@ python scripts/webdev-long-horizon/evaluate_task.py \
 ```text
 sessions/session-sota-2026-07-XXX-codex/
   projects/webdev-long-horizon/
-    reports/webdev-task-01.01/codex/
+    reports/webdev-task-sxw-01.01/codex/
       report.json
       report.md
 ```
@@ -432,13 +432,13 @@ python scripts/webdev-long-horizon/generate_report.py \
 最终交付内容统一打包为：
 
 ```text
-deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
 ```
 
 交付包结构（tar.gz 解压后）：
 
 ```text
-webdev-task-01.01/
+webdev-task-sxw-01.01/
 ├── task.md              # 任务需求
 ├── metadata.json        # 任务元数据
 ├── README.md            # 启动与测试说明
@@ -456,7 +456,7 @@ webdev-task-01.01/
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex
 ```
@@ -531,15 +531,15 @@ codex --help
 | 目的                    | 命令                                                                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | 创建顶层任务骨架        | `python scripts/webdev-long-horizon/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter`                              |
-| 创建增量任务骨架        | `python scripts/webdev-long-horizon/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter --parent webdev-task-01`     |
-| 验证任务（外部 source） | `python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-01.01`                                                                   |
+| 创建增量任务骨架        | `python scripts/webdev-long-horizon/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter --parent webdev-task-sxw-01`     |
+| 验证任务（外部 source） | `python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-sxw-01.01`                                                                   |
 | 验证项目                | `python scripts/webdev-long-horizon/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter`                                            |
-| 打包任务元数据          | `tar czvf webdev-task-01.01.tar.gz -C projects/webdev-long-horizon/tasks/webdev-task-01 webdev-task-01.01`                               |
-| 打包源码                | `tar czvf webdev-task-01.01-source.tar.gz -C projects/webdev-long-horizon/sources/webdev-task-01 webdev-task-01.01`                    |
-| 打包最终交付资产        | `python scripts/webdev-long-horizon/package_deliverable.py --task webdev-task-01.01 --session <session> --agent codex`                                      |
-| 上传远程                | `scp -P 7826 webdev-task-01.01.tar.gz root@59.49.28.154:<remote_dir>/`                                                                  |
-| 运行 SOTA               | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`                    |
-| 运行 SOTA（指定源码）   | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex --source-dir <path>` |
-| 回收远程产物            | `python scripts/webdev-long-horizon/fetch_remote_results.py --task webdev-task-01.01 --agent codex --session <session>`                                      |
-| 生成评估报告            | `python scripts/webdev-long-horizon/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`               |
+| 打包任务元数据          | `tar czvf webdev-task-sxw-01.01.tar.gz -C projects/webdev-long-horizon/tasks/webdev-task-sxw-01 webdev-task-sxw-01.01`                               |
+| 打包源码                | `tar czvf webdev-task-sxw-01.01-source.tar.gz -C projects/webdev-long-horizon/sources/webdev-task-sxw-01 webdev-task-sxw-01.01`                    |
+| 打包最终交付资产        | `python scripts/webdev-long-horizon/package_deliverable.py --task webdev-task-sxw-01.01 --session <session> --agent codex`                                      |
+| 上传远程                | `scp -P 7826 webdev-task-sxw-01.01.tar.gz root@59.49.28.154:<remote_dir>/`                                                                  |
+| 运行 SOTA               | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-sxw-01.01 --agent codex`                    |
+| 运行 SOTA（指定源码）   | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-sxw-01.01 --agent codex --source-dir <path>` |
+| 回收远程产物            | `python scripts/webdev-long-horizon/fetch_remote_results.py --task webdev-task-sxw-01.01 --agent codex --session <session>`                                      |
+| 生成评估报告            | `python scripts/webdev-long-horizon/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-sxw-01.01 --agent codex`               |
 | 汇总报告                | `python scripts/webdev-long-horizon/generate_report.py --session <session>`                                                                                  |

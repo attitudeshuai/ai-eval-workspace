@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 用法：
     python scripts/webdev-long-horizon/package_deliverable.py \
-      --task webdev-task-01.01 \
+      --task webdev-task-sxw-01.01 \
       --session session-sota-2026-07-01.01-codex \
       --agent codex
 """
@@ -111,7 +111,7 @@ def package_deliverable(
 
 def main():
     parser = argparse.ArgumentParser(description="打包 Web Dev 任务最终交付资产")
-    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-01.01")
+    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-sxw-01.01")
     parser.add_argument("--session", required=True, help="Session 名称")
     parser.add_argument("--agent", default="codex", help="Agent 名称，默认 codex")
     parser.add_argument("--project", default="webdev-long-horizon", help="项目 ID")

@@ -8,6 +8,8 @@
 
 **本工作台对项目内部结构不做强制要求。** 每个 `projects/<project-id>/` 都是自治的评估项目，可以有自己的任务格式、模板、测试方式和文档。
 
+**任务 ID 由项目 `config.toml` 的 `task_prefix` 控制。** 当前 `webdev-long-horizon` 的默认前缀为 `webdev-task-sxw`，新任务将自动按 `webdev-task-sxw-01`、`webdev-task-sxw-01.01` 格式编号。
+
 ## 你能做什么
 
 1. **onboard 项目**：使用 `scripts/create_project.py` 在 `projects/` 下创建新项目。

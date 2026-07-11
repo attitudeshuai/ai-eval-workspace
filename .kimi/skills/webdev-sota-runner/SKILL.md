@@ -15,7 +15,7 @@ description: Run SOTA for a task in the webdev-long-horizon project. Trigger whe
 
 调用前需要确认：
 
-- 任务 ID（如 `webdev-task-01.01`）
+- 任务 ID（如 `{prefix}-01.01`，其中 `{prefix}` 为 `config.toml` 中 `task_prefix` 的值）
 - Agent 名称（`codex` / `claude-code` / `kimi-coding`）
 - Session 名称
 - 运行模式：本地（`run_sota.py`）或远程（`codex`）
@@ -27,15 +27,15 @@ description: Run SOTA for a task in the webdev-long-horizon project. Trigger whe
 
 ```text
 projects/webdev-long-horizon/
-├── tasks/webdev-task-01/
-│   ├── webdev-task-01/
-│   └── webdev-task-01.01/
-└── sources/webdev-task-01/
-    ├── webdev-task-01/
-    └── webdev-task-01.01/
+├── tasks/{prefix}-01/
+│   ├── {prefix}-01/
+│   └── {prefix}-01.01/
+└── sources/{prefix}-01/
+    ├── {prefix}-01/
+    └── {prefix}-01.01/
 ```
 
-`run_sota.py` 会根据 task_id 自动在层级目录中查找任务目录和源码目录。
+> `{prefix}` 为 `config.toml` 中 `task_prefix` 的值（默认 `webdev-task-sxw`）。
 
 ## 两种运行模式
 
@@ -47,7 +47,7 @@ projects/webdev-long-horizon/
 python scripts/webdev-long-horizon/run_sota.py \
   --session <session-name> \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task {prefix}-01.01 \
   --agent <agent>
 ```
 
@@ -57,7 +57,7 @@ python scripts/webdev-long-horizon/run_sota.py \
 python scripts/webdev-long-horizon/run_sota.py \
   --session <session-name> \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task {prefix}-01.01 \
   --agent <agent> \
   --source-dir <path>
 ```
@@ -70,18 +70,18 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/webdev-task-01.01/source
+cd <remote_dir>/{prefix}-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 # 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md \
-  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
+  < <remote_dir>/{prefix}-01.01/PROMPT.md \
+  > <remote_dir>/{prefix}-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/webdev-task-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/{prefix}-01.01/source/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
 
 ## 工作流程
 
@@ -114,7 +114,7 @@ sessions/<session-name>/
 远程模式产物（默认在远程 `<remote_dir>/`）：
 
 ```text
-<remote_dir>/webdev-task-01.01/
+<remote_dir>/{prefix}-01.01/
   source/               # codex 修改后的源码
   screenshots/          # 关键状态截图
   sota.log              # 运行日志（如果已保存）
@@ -126,7 +126,7 @@ SOTA 运行、回收产物并生成评估报告后，使用 `package_deliverable
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
-  --task webdev-task-01.01 \
+  --task {prefix}-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex
 ```
@@ -134,7 +134,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 交付包结构（tar.gz 解压后）：
 
 ```text
-webdev-task-01.01/
+{prefix}-01.01/
 ├── task.md
 ├── metadata.json
 ├── README.md
@@ -148,7 +148,7 @@ webdev-task-01.01/
 └── screenshots/       # 人工验证后放置的关键状态截图（可选）
 ```
 
-打包结果：`deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz`
+打包结果：`deliverables/webdev-long-horizon/{prefix}-01.01.tar.gz`
 
 ## 注意事项
 

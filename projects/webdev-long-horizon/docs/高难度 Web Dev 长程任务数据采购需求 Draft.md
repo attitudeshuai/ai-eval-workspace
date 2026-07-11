@@ -144,7 +144,7 @@
 # 附录：建议任务包结构
 
 ```text
-webdev-task-01/
+webdev-task-sxw-01/
   task.md
   metadata.json
   README.md

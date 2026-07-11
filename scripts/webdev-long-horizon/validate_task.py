@@ -74,9 +74,9 @@ def resolve_task_dir(arg: str) -> Path:
     """解析用户输入为任务目录。
 
     支持三种形式：
-    1. 完整路径：projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01
-    2. 相对 tasks 根的路径：webdev-task-01/webdev-task-01
-    3. 仅 task_id：webdev-task-01（自动在项目下递归查找）
+    1. 完整路径：projects/webdev-long-horizon/tasks/<family>/<task-id>
+    2. 相对 tasks 根的路径：<family>/<task-id>
+    3. 仅 task_id（如 webdev-task-sxw-01），自动在项目下递归查找
     """
     path = Path(arg)
     if path.exists() and is_task_dir(path):

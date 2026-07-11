@@ -29,20 +29,22 @@ description: Create an incremental development task for the webdev-long-horizon 
 ```text
 projects/webdev-long-horizon/
 ├── tasks/
-│   └── webdev-task-01/
-│       ├── webdev-task-01/          # 顶层基础任务
-│       ├── webdev-task-01.01/       # 基于 01 的增量任务
-│       └── webdev-task-01.02/
+│   └── {prefix}-01/
+│       ├── {prefix}-01/          # 顶层基础任务
+│       ├── {prefix}-01.01/       # 基于 01 的增量任务
+│       └── {prefix}-01.02/
 └── sources/
-    └── webdev-task-01/
-        ├── webdev-task-01/          # 顶层基础任务源码
-        ├── webdev-task-01.01/       # 增量任务源码
-        └── webdev-task-01.02/
+    └── {prefix}-01/
+        ├── {prefix}-01/          # 顶层基础任务源码
+        ├── {prefix}-01.01/       # 增量任务源码
+        └── {prefix}-01.02/
 ```
 
+> `{prefix}` 为 `config.toml` 中 `task_prefix` 的值（默认 `webdev-task-sxw`）。
+
 任务 ID 格式：
-- 顶层任务：`webdev-task-01`, `webdev-task-02`, ...
-- 子任务：`webdev-task-01.01`, `webdev-task-01.02`, ...
+- 顶层任务：`{prefix}-01`, `{prefix}-02`, ...
+- 子任务：`{prefix}-01.01`, `{prefix}-01.02`, ...
 
 ## 工作流程
 
@@ -58,10 +60,10 @@ projects/webdev-long-horizon/
      --arena-tags "<tags>" \
      --prompt-type "前端" \
      --skip-starter \
-     --parent webdev-task-01
+     --parent {prefix}-01
    ```
    > `--category` 请使用 `categories.json` 中的中文 `label`，例如 `"电商 / 交易应用：O2O 服务 / 聚合平台"`。
-   > 子任务会自动生成层级 ID，例如 `webdev-task-01.01`。
+   > 子任务会自动生成层级 ID，例如 `{prefix}-01.01`。
 
    此命令会自动完成以下四步：
    1. 创建任务目录 `tasks/<family>/<task-id>/` 并生成 `task.md`、`metadata.json`、`rubric.json`、`README.md`、`target_states.md` 骨架。
@@ -89,12 +91,12 @@ projects/webdev-long-horizon/
     ```bash
     python scripts/webdev-long-horizon/validate_task.py \
       --allow-no-starter \
-      webdev-task-01.01
+      {prefix}-01.01
     ```
     > 可直接用 task_id，脚本会自动在层级目录中查找。
 11. （推荐）本地验证源码可启动：
     ```bash
-    cd projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01
+    cd projects/webdev-long-horizon/sources/{prefix}-01/{prefix}-01.01
     npm install
     npm run dev
     ```

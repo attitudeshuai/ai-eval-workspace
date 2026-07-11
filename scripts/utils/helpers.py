@@ -43,15 +43,28 @@ def task_prefix(project_id: str) -> str:
     return "task"
 
 
+def all_task_prefixes(project_id: str) -> list[str]:
+    """返回所有有效的任务前缀（当前前缀 + 旧前缀），用于向后兼容查找。"""
+    prefixes = [task_prefix(project_id)]
+    config_path = project_dir(project_id) / "config.toml"
+    if config_path.exists():
+        data = load_toml(config_path)
+        legacy = data.get("project", {}).get("legacy_task_prefixes", [])
+        if isinstance(legacy, list):
+            prefixes.extend(legacy)
+    return prefixes
+
+
 def task_id_pattern(prefix: str) -> re.Pattern:
     """返回任务 ID 正则：prefix-NN[.NN]*"""
     return re.compile(rf"^{re.escape(prefix)}-(\d+(?:\.\d+)*)$")
 
 
-def is_task_dir(path: Path, prefix: str | None = None) -> bool:
+def is_task_dir(path: Path, prefix: str | list[str] | None = None) -> bool:
     """判断一个目录是否是有效的任务目录。
 
-    标准：目录名匹配任务 ID 格式，且包含 metadata.json。
+    标准：目录名匹配任一任务前缀的 ID 格式，且包含 metadata.json。
+    prefix 可以是单个前缀字符串、前缀列表，或 None（自动从项目配置推断）。
     """
     if not path.is_dir():
         return False
@@ -60,37 +73,45 @@ def is_task_dir(path: Path, prefix: str | None = None) -> bool:
         parts = path.relative_to(workspace_root() / "projects").parts
         if len(parts) < 1:
             return False
-        prefix = task_prefix(parts[0])
-    pattern = task_id_pattern(prefix)
-    return bool(pattern.match(path.name)) and (path / "metadata.json").exists()
+        prefixes = all_task_prefixes(parts[0])
+    elif isinstance(prefix, str):
+        prefixes = [prefix]
+    else:
+        prefixes = prefix
+
+    if not (path / "metadata.json").exists():
+        return False
+    return any(bool(task_id_pattern(p).match(path.name)) for p in prefixes)
 
 
 def find_task_dir(project_id: str, task_id: str) -> Path | None:
-    """根据 task_id 查找任务目录（支持层级目录结构）。"""
+    """根据 task_id 查找任务目录（支持层级目录结构和多前缀向后兼容）。"""
     td = tasks_dir(project_id)
-    prefix = task_prefix(project_id)
-    pattern = task_id_pattern(prefix)
-    if not pattern.match(task_id):
+    prefixes = all_task_prefixes(project_id)
+
+    # 至少匹配一个前缀
+    if not any(task_id_pattern(p).match(task_id) for p in prefixes):
         return None
 
     # 优先直接匹配：tasks/<task-id>/
     direct = td / task_id
-    if is_task_dir(direct, prefix):
+    if is_task_dir(direct, prefixes):
         return direct
 
     # 递归查找
     for path in td.rglob(task_id):
-        if is_task_dir(path, prefix):
+        if is_task_dir(path, prefixes):
             return path
     return None
 
 
 def find_source_dir(project_id: str, task_id: str) -> Path | None:
-    """根据 task_id 查找外部源码目录（支持层级目录结构）。"""
+    """根据 task_id 查找外部源码目录（支持层级目录结构和多前缀向后兼容）。"""
     sd = sources_dir(project_id)
-    prefix = task_prefix(project_id)
-    pattern = task_id_pattern(prefix)
-    if not pattern.match(task_id):
+    prefixes = all_task_prefixes(project_id)
+
+    # 至少匹配一个前缀
+    if not any(task_id_pattern(p).match(task_id) for p in prefixes):
         return None
 
     # 优先直接匹配：sources/<task-id>/
@@ -178,13 +199,13 @@ def list_projects() -> list[Path]:
 
 
 def list_tasks(project_id: str) -> list[Path]:
-    """递归列出指定项目下所有任务目录。"""
+    """递归列出指定项目下所有任务目录（支持多前缀向后兼容）。"""
     td = tasks_dir(project_id)
     if not td.exists():
         return []
 
-    prefix = task_prefix(project_id)
-    return sorted([p for p in td.rglob("*") if is_task_dir(p, prefix)])
+    prefixes = all_task_prefixes(project_id)
+    return sorted([p for p in td.rglob("*") if is_task_dir(p, prefixes)])
 
 
 def resolve_template(project_id: str, template_name: str) -> Path:

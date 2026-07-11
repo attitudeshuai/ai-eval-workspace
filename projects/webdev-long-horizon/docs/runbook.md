@@ -15,7 +15,7 @@
 如果你不想每次写完整指令，可以用：
 
 ```text
-开始第 N 步：webdev-task-01.01，新增订单中心页面。
+开始第 N 步：webdev-task-sxw-01.01，新增订单中心页面。
 ```
 
 AI 会根据当前任务状态执行对应步骤。
@@ -37,7 +37,7 @@ pip install -r scripts/requirements.txt
 ### 指令模板
 
 ```text
-基于 webdev-task-01 创建一个增量任务骨架。
+基于 webdev-task-sxw-01 创建一个增量任务骨架。
 - 标题：为本地生活平台新增订单中心页面
 - 类别：电商 / 交易应用：O2O 服务 / 聚合平台
 - 难度：medium
@@ -56,14 +56,14 @@ python scripts/webdev-long-horizon/create_task.py \
   --arena-tags "ui,e-commerce" \
   --prompt-type "前端" \
   --skip-starter \
-  --parent webdev-task-01
+  --parent webdev-task-sxw-01
 ```
 
 此命令会一步完成以下操作：
 
-1. 创建任务目录 `projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/`
+1. 创建任务目录 `projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`
 2. 生成 `task.md`、`metadata.json`、`rubric.json`、`README.md`、`target_states.md` 骨架
-3. 将父任务源码复制到 `projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01/` 作为 baseline
+3. 将父任务源码复制到 `projects/webdev-long-horizon/sources/webdev-task-sxw-01/webdev-task-sxw-01.01/` 作为 baseline
 4. 复制父任务 `mock-data/` 到任务目录与 source 目录
 5. 创建 `assets/`（含 `reference/` 子目录）、`screenshots/` 目录
 6. 在 `metadata.json` 中写入 `parent_tasks`
@@ -72,7 +72,7 @@ python scripts/webdev-long-horizon/create_task.py \
 
 ```text
 projects/webdev-long-horizon/
-├── tasks/webdev-task-01/webdev-task-01.01/
+├── tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/
 │   ├── task.md
 │   ├── metadata.json
 │   ├── rubric.json
@@ -82,7 +82,7 @@ projects/webdev-long-horizon/
 │   │   └── reference/
 │   ├── mock-data/
 │   └── screenshots/
-└── sources/webdev-task-01/webdev-task-01.01/
+└── sources/webdev-task-sxw-01/webdev-task-sxw-01.01/
     ├── src/
     ├── package.json
     └── mock-data/
@@ -145,8 +145,8 @@ projects/webdev-long-horizon/
 ### 指令模板
 
 ```text
-为 webdev-task-01.01 生成完整任务资产。
-- 基于父任务 webdev-task-01 的源码分析现有技术栈
+为 webdev-task-sxw-01.01 生成完整任务资产。
+- 基于父任务 webdev-task-sxw-01 的源码分析现有技术栈
 - 填充 task.md（直接作为 SOTA 提示词），明确新增订单中心页面需求
 - 完善 rubric.json
 - 完善 target_states.md
@@ -158,18 +158,18 @@ projects/webdev-long-horizon/
 
 分析需求与 `sources/<family>/<task-id>/` 源码（增量任务已从父任务继承；Greenfield 任务 source 可能为空），然后：
 
-- 填充 `tasks/webdev-task-01/webdev-task-01.01/task.md`（直接作为 SOTA 提示词）
-- 完善 `tasks/webdev-task-01/webdev-task-01.01/rubric.json`
-- 完善 `tasks/webdev-task-01/webdev-task-01.01/target_states.md`
-- 完善 `tasks/webdev-task-01/webdev-task-01.01/README.md`
-- 补充 `tasks/webdev-task-01/webdev-task-01.01/mock-data/orders.json`
-- 生成 `tasks/webdev-task-01/webdev-task-01.01/tests/playwright.spec.ts`
-- 准备 `tasks/webdev-task-01/webdev-task-01.01/assets/reference/` 参考截图
+- 填充 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/task.md`（直接作为 SOTA 提示词）
+- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/rubric.json`
+- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/target_states.md`
+- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/README.md`
+- 补充 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/mock-data/orders.json`
+- 生成 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/tests/playwright.spec.ts`
+- 准备 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/assets/reference/` 参考截图
 
 并将新增的 mock-data 同步复制到源码目录：
 
 ```text
-sources/webdev-task-01/webdev-task-01.01/mock-data/
+sources/webdev-task-sxw-01/webdev-task-sxw-01.01/mock-data/
 ```
 
 ---
@@ -211,13 +211,13 @@ cp -r /path/to/your-kanban-starter/* \
 ### 指令模板
 
 ```text
-校验 webdev-task-01.01 是否通过 validate_task.py。
+校验 webdev-task-sxw-01.01 是否通过 validate_task.py。
 ```
 
 ### AI 会执行
 
 ```bash
-python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-01.01
+python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-sxw-01.01
 ```
 
 ---
@@ -227,24 +227,24 @@ python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-ta
 ### 指令模板
 
 ```text
-把 webdev-task-01.01 的源码、task.md、assets/ 和 tests/ 上传到 remote。
+把 webdev-task-sxw-01.01 的源码、task.md、assets/ 和 tests/ 上传到 remote。
 ```
 
 ### AI 会执行
 
 ```bash
-python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
+python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01.01
 ```
 
 此脚本会：
 
-1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`
+1. 打包源码、`assets/`、`tests/` 为 `webdev-task-sxw-01.01-source.tar.gz`
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`
 4. 远程解压并整理出：
-   - `<remote_dir>/webdev-task-01.01/source/`
-   - `<remote_dir>/webdev-task-01.01/assets/`
-   - `<remote_dir>/webdev-task-01.01/tests/`
+   - `<remote_dir>/webdev-task-sxw-01.01/source/`
+   - `<remote_dir>/webdev-task-sxw-01.01/assets/`
+   - `<remote_dir>/webdev-task-sxw-01.01/tests/`
 
 其他任务资产（`rubric.json`、`target_states.md`、`README.md` 等）保留在本地，不上传。
 远程配置读取 `config.toml` 和 `secrets.toml`。
@@ -256,22 +256,22 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 ### 指令模板
 
 ```text
-在 remote 上运行 codex-cli 执行 webdev-task-01.01，模型用 gpt-5.6-sol。
+在 remote 上运行 codex-cli 执行 webdev-task-sxw-01.01，模型用 gpt-5.6-sol。
 ```
 
 ### AI 会执行
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/webdev-task-01.01/source
+cd <remote_dir>/webdev-task-sxw-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 # 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md \
-  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
+  < <remote_dir>/webdev-task-sxw-01.01/PROMPT.md \
+  > <remote_dir>/webdev-task-sxw-01.01/sota.log 2>&1
 ```
 
 > 注意：此步骤可能耗时较长。AI 会把命令给你，你可以选择自己盯着跑，或让 AI 后台运行并等待完成。
@@ -283,7 +283,7 @@ codex exec -m gpt-5.6-sol \
 ### 指令模板
 
 ```text
-把 webdev-task-01.01 在 remote 上的产物拉回本地，整理到 session 目录。
+把 webdev-task-sxw-01.01 在 remote 上的产物拉回本地，整理到 session 目录。
 - session 名：session-sota-2026-07-01.01-codex
 ```
 
@@ -291,7 +291,7 @@ codex exec -m gpt-5.6-sol \
 
 ```bash
 python scripts/webdev-long-horizon/fetch_remote_results.py \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex \
   --session session-sota-2026-07-01.01-codex
 ```
@@ -301,7 +301,7 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 ```text
 sessions/session-sota-2026-07-01.01-codex/
   projects/webdev-long-horizon/
-    submissions/webdev-task-01.01/codex/
+    submissions/webdev-task-sxw-01.01/codex/
       source/
       screenshots/
       sota.log
@@ -314,7 +314,7 @@ sessions/session-sota-2026-07-01.01-codex/
 ### 指令模板
 
 ```text
-评估 webdev-task-01.01 的 codex 运行结果。
+评估 webdev-task-sxw-01.01 的 codex 运行结果。
 - session：session-sota-2026-07-01.01-codex
 ```
 
@@ -324,7 +324,7 @@ sessions/session-sota-2026-07-01.01-codex/
 python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-01.01-codex \
   --project webdev-long-horizon \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --agent codex
 ```
 
@@ -333,7 +333,7 @@ python scripts/webdev-long-horizon/evaluate_task.py \
 ```text
 sessions/session-sota-2026-07-01.01-codex/
   projects/webdev-long-horizon/
-    reports/webdev-task-01.01/codex/
+    reports/webdev-task-sxw-01.01/codex/
       report.json
       report.md
 ```
@@ -345,18 +345,18 @@ sessions/session-sota-2026-07-01.01-codex/
 ### 指令模板
 
 ```text
-把 webdev-task-01.01 的最终交付资产打包好：
+把 webdev-task-sxw-01.01 的最终交付资产打包好：
 - 任务资产（task.md、metadata.json、rubric.json、assets、mock-data、tests 等）
 - starter/：初始项目代码
 - screenshots/：人工验证后放置的关键状态截图（可选）
-- 输出到 deliverables/webdev-task-01.01.tar.gz
+- 输出到 deliverables/webdev-task-sxw-01.01.tar.gz
 ```
 
 ### AI 会执行
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
-  --task webdev-task-01.01 \
+  --task webdev-task-sxw-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex
 ```
@@ -364,7 +364,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 交付包结构（tar.gz 解压后）：
 
 ```text
-webdev-task-01.01/
+webdev-task-sxw-01.01/
 ├── task.md              # 任务需求
 ├── metadata.json        # 任务元数据
 ├── README.md            # 启动与测试说明
@@ -381,7 +381,7 @@ webdev-task-01.01/
 打包结果：
 
 ```text
-deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
 ```
 
 ---
@@ -393,14 +393,14 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 ### 增量任务
 
 ```text
-帮我全流程跑一个基于 webdev-task-01 的增量任务：
+帮我全流程跑一个基于 webdev-task-sxw-01 的增量任务：
 1. 创建任务并继承父源码：新增订单中心页面，标题"为本地生活平台新增订单中心页面"，medium 难度
 2. 生成/填充 task.md、rubric.json、mock-data、assets/reference/
 3. 把源码、task.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol）
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
-7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
 ```
 
 ### Greenfield 任务（无源码）

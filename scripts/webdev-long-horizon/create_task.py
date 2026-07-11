@@ -6,9 +6,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 """在指定项目下创建新任务。使用项目级模板（项目自治）。
 
 支持层级任务 ID 与层级目录结构：
-- 顶层任务：tasks/webdev-task-01/webdev-task-01/
-- 子任务：tasks/webdev-task-01/webdev-task-01.01/
-- 孙任务：tasks/webdev-task-01/webdev-task-01.01/webdev-task-01.01.01/
+- 顶层任务：tasks/<family>/<task-id>/
+- 子任务：tasks/<family>/<task-id.01>/
+- 孙任务：tasks/<family>/<task-id.01>/<task-id.01.01>/
+
+任务 ID 格式由项目 config.toml 的 task_prefix 控制（默认 webdev-task-sxw）。
 """
 
 import argparse
@@ -34,10 +36,10 @@ from utils.helpers import (
 def parse_task_id(task_id: str, prefix: str) -> tuple[str, list[int]]:
     """解析任务 ID，返回 (prefix, [层级序号])。
 
-    例如：
-    - webdev-task-01        -> ("webdev-task", [1])
-    - webdev-task-01.02     -> ("webdev-task", [1, 2])
-    - webdev-task-01.02.03  -> ("webdev-task", [1, 2, 3])
+    例如（以默认前缀 webdev-task-sxw 为例）：
+    - webdev-task-sxw-01        -> ("webdev-task-sxw", [1])
+    - webdev-task-sxw-01.02     -> ("webdev-task-sxw", [1, 2])
+    - webdev-task-sxw-01.02.03  -> ("webdev-task-sxw", [1, 2, 3])
     """
     pattern = rf"^{re.escape(prefix)}-(\d+(?:\.\d+)*)$"
     match = re.match(pattern, task_id)
@@ -317,7 +319,7 @@ def main():
     )
     parser.add_argument(
         "--parent",
-        help="父任务 ID（如 webdev-task-01），创建子任务时会生成 webdev-task-01.01",
+        help="父任务 ID（如 webdev-task-sxw-01），创建子任务时会生成 webdev-task-sxw-01.01",
     )
     args = parser.parse_args()
 

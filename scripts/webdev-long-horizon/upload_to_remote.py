@@ -18,7 +18,7 @@ SOTA 运行时需要看到参考截图和测试骨架，因此除源码外，还
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
 
 用法示例：
-    python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
+    python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01.01
 """
 
 import argparse
@@ -137,7 +137,7 @@ def main():
     config = load_remote_config(pre_args.project)
 
     parser = argparse.ArgumentParser(description="上传任务源码和提示词文件到远程机器")
-    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-01.01")
+    parser.add_argument("--task", required=True, help="任务 ID，例如 webdev-task-sxw-01.01")
     parser.add_argument("--project", default="webdev-long-horizon", help="项目 ID")
     parser.add_argument("--remote-host", default=config["host"], help="远程主机地址")
     parser.add_argument("--remote-port", type=int, default=int(config["port"]), help="远程 SSH 端口")

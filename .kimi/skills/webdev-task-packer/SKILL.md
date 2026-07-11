@@ -43,18 +43,18 @@ password = "your-password"
 
 ```text
 projects/webdev-long-horizon/
-├── tasks/webdev-task-01/
-│   ├── webdev-task-01/
-│   └── webdev-task-01.01/
-└── sources/webdev-task-01/
-    ├── webdev-task-01/
-    └── webdev-task-01.01/
+├── tasks/{prefix}-01/
+│   ├── {prefix}-01/
+│   └── {prefix}-01.01/
+└── sources/{prefix}-01/
+    ├── {prefix}-01/
+    └── {prefix}-01.01/
 ```
 
 远程运行时期望的目录结构：
 
 ```text
-<remote_dir>/webdev-task-01.01/
+<remote_dir>/{prefix}-01.01/
 ├── source/               # 源码
 ├── PROMPT.md             # 提示词（由 task.md 上传后重命名）
 └── ...
@@ -64,7 +64,7 @@ projects/webdev-long-horizon/
 
 调用前需要确认：
 
-- 任务 ID（如 `webdev-task-01.01`）
+- 任务 ID（如 `{prefix}-01.01`，其中 `{prefix}` 为 `config.toml` 中 `task_prefix` 的值）
 - 远程机器配置已写入 `config.toml` 和 `secrets.toml`
 - 源码位置：
   - `projects/webdev-long-horizon/sources/<family>/<task-id>/`
@@ -74,38 +74,38 @@ projects/webdev-long-horizon/
 
 1. 确认任务目录存在：
    ```bash
-   ls projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01
+   ls projects/webdev-long-horizon/tasks/{prefix}-01/{prefix}-01.01
    ```
 2. 确认源码目录存在：
    ```bash
-   ls projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01
+   ls projects/webdev-long-horizon/sources/{prefix}-01/{prefix}-01.01
    # 或
-   ls projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/starter
+   ls projects/webdev-long-horizon/tasks/{prefix}-01/{prefix}-01.01/starter
    ```
 3. 打包并上传到远程机器：
    ```bash
-   python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
+   python scripts/webdev-long-horizon/upload_to_remote.py --task {prefix}-01.01
    ```
    此脚本会：
-   - 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`
+   - 打包源码、`assets/`、`tests/` 为 `{prefix}-01.01-source.tar.gz`
    - 通过 SSH 上传到 `<remote_dir>/`
-   - 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+   - 把提示词文件上传到 `<remote_dir>/{prefix}-01.01/PROMPT.md`
    - 远程解压并整理出：
-     - `<remote_dir>/webdev-task-01.01/source/`
-     - `<remote_dir>/webdev-task-01.01/assets/`
-     - `<remote_dir>/webdev-task-01.01/tests/`
+     - `<remote_dir>/{prefix}-01.01/source/`
+     - `<remote_dir>/{prefix}-01.01/assets/`
+     - `<remote_dir>/{prefix}-01.01/tests/`
 4. 提示用户在远程运行 codex：
    ```bash
    ssh root@59.49.28.154 -p 7826
-   cd <remote_dir>/webdev-task-01.01/source
+   cd <remote_dir>/{prefix}-01.01/source
 
    # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
    # 若手动交互运行，可去掉该参数
    # 建议把输出重定向到 sota.log，方便后续回收
    codex exec -m gpt-5.6-sol \
      --dangerously-bypass-approvals-and-sandbox \
-     < <remote_dir>/webdev-task-01.01/PROMPT.md \
-     > <remote_dir>/webdev-task-01.01/sota.log 2>&1
+     < <remote_dir>/{prefix}-01.01/PROMPT.md \
+     > <remote_dir>/{prefix}-01.01/sota.log 2>&1
    ```
 
 ## 远程产物回收
@@ -114,7 +114,7 @@ projects/webdev-long-horizon/
 
 ```bash
 python scripts/webdev-long-horizon/fetch_remote_results.py \
-  --task webdev-task-01.01 \
+  --task {prefix}-01.01 \
   --agent codex \
   --session session-sota-YYYY-MM-NNN-codex
 ```
@@ -124,7 +124,7 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 ```text
 sessions/session-sota-YYYY-MM-NNN-codex/
   projects/webdev-long-horizon/
-    submissions/webdev-task-01.01/codex/
+    submissions/{prefix}-01.01/codex/
       source/               # codex 修改后的源码
       screenshots/          # 关键状态截图
       sota.log              # 运行日志（如果已保存）
@@ -134,7 +134,7 @@ sessions/session-sota-YYYY-MM-NNN-codex/
 
 ```bash
 python scripts/webdev-long-horizon/fetch_remote_results.py \
-  --task webdev-task-01.01 \
+  --task {prefix}-01.01 \
   --output ./
 ```
 

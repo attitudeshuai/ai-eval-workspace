@@ -14,13 +14,13 @@ projects/webdev-long-horizon/
 ├── templates/           # 项目专属模板（可覆盖全局模板）
 ├── rubrics/             # 共享 Rubric 模板
 ├── tasks/               # 任务仓库（按家族分组）
-│   └── webdev-task-01/
-│       ├── webdev-task-01/          # 顶层基础任务
-│       └── webdev-task-01.01/       # 基于 01 的增量任务
+│   └── webdev-task-sxw-01/
+│       ├── webdev-task-sxw-01/          # 顶层基础任务
+│       └── webdev-task-sxw-01.01/       # 基于 01 的增量任务
 └── sources/             # 任务源码仓库（推荐，按家族分组）
-    └── webdev-task-01/
-        ├── webdev-task-01/
-        └── webdev-task-01.01/
+    └── webdev-task-sxw-01/
+        ├── webdev-task-sxw-01/
+        └── webdev-task-sxw-01.01/
 ```
 
 ## 创建新任务
@@ -39,10 +39,10 @@ python scripts/webdev-long-horizon/create_task.py \
   --difficulty "high" \
   --arena-tags "ui,e-commerce,visualize" \
   --skip-starter \
-  --parent webdev-task-01
+  --parent webdev-task-sxw-01
 ```
 
-生成目录：`tasks/webdev-task-01/webdev-task-01.01/`
+生成目录：`tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`
 
 ### 模式二：根据需求生成从零开发任务
 

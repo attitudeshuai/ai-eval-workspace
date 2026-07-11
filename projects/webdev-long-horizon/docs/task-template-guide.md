@@ -21,7 +21,7 @@ python scripts/webdev-long-horizon/create_task.py \
   --skip-starter
 ```
 
-生成目录：`projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01/`
+生成目录：`projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01/`
 
 ### 1.2 创建增量任务
 
@@ -34,10 +34,10 @@ python scripts/webdev-long-horizon/create_task.py \
   --arena-tags "ui,e-commerce" \
   --prompt-type "前端" \
   --skip-starter \
-  --parent webdev-task-01
+  --parent webdev-task-sxw-01
 ```
 
-生成目录：`projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/`
+生成目录：`projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`
 
 > `--category` 请使用 `categories.json` 中的中文 `label`，不要直接使用英文 id。
 
@@ -66,7 +66,7 @@ python scripts/webdev-long-horizon/create_task.py \
 
 ```json
 {
-  "task_id": "webdev-task-01",
+  "task_id": "webdev-task-sxw-01",
   "title": "复杂 O2O 服务聚合平台",
   "category_tags": ["电商 / 交易应用：O2O 服务 / 聚合平台"],
   "arena_tags": ["ui", "map", "e-commerce", "visualize"],
@@ -119,16 +119,16 @@ SOTA 运行记录表。
 
 - 项目 ID：`webdev-long-horizon`
 - 任务 ID：
-  - 顶层任务：`webdev-task-01`, `webdev-task-02`, ...
-  - 子任务：`webdev-task-01.01`, `webdev-task-01.02`, ...（基于父任务的层级序号）
+  - 顶层任务：`webdev-task-sxw-01`, `webdev-task-02`, ...
+  - 子任务：`webdev-task-sxw-01.01`, `webdev-task-sxw-01.02`, ...（基于父任务的层级序号）
 - 任务目录按家族分组：
-  - `tasks/webdev-task-01/webdev-task-01/`
-  - `tasks/webdev-task-01/webdev-task-01.01/`
+  - `tasks/webdev-task-sxw-01/webdev-task-sxw-01/`
+  - `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/`
   - `tasks/webdev-task-02/webdev-task-02/`
 - 源码目录同样按家族分组：
-  - `sources/webdev-task-01/webdev-task-01/`
-  - `sources/webdev-task-01/webdev-task-01.01/`
-- 创建子任务时使用 `--parent <parent-task-id>`，例如 `--parent webdev-task-01`
+  - `sources/webdev-task-sxw-01/webdev-task-sxw-01/`
+  - `sources/webdev-task-sxw-01/webdev-task-sxw-01.01/`
+- 创建子任务时使用 `--parent <parent-task-id>`，例如 `--parent webdev-task-sxw-01`
 - 会话目录：`session-<type>-YYYY-MM-NNN[-<agent>]`
 - 截图命名：`sota_final_desktop.png`、`sota_final_mobile.png`、`state_empty.png`
 
@@ -137,7 +137,7 @@ SOTA 运行记录表。
 ## 4. 必填文件清单
 
 ```text
-projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
+projects/webdev-long-horizon/tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/
   ✓ task.md                # 任务需求，直接作为 SOTA 提示词
   ✓ metadata.json
   ✓ README.md
@@ -149,7 +149,7 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 ```text
   ✓ starter/           # 内置 starter（传统）
   # 或
-  ✓ ../../sources/webdev-task-01/webdev-task-01.01/   # 外部 source（推荐，目录名与任务 ID 一致）
+  ✓ ../../sources/webdev-task-sxw-01/webdev-task-sxw-01.01/   # 外部 source（推荐，目录名与任务 ID 一致）
 ```
 
 以下目录/文件根据任务需要补充：

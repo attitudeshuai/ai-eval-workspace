@@ -12,7 +12,7 @@
 2. 读取 `projects/<id>/tasks/<task-id>/rubric.json`。
 3. 读取 SOTA 产物：
    - 本地运行：`sessions/.../projects/<id>/submissions/<task-id>/<agent>/`
-   - 远程运行：需先将 `<remote_dir>/webdev-task-01.01/` 产物拉回本地，并放入标准 session 目录，或使用 `webdev-task-packer` skill 回收产物。（`<remote_dir>` 来自项目 `config.toml` 中 `[remote].remote_dir`，默认 `/root/charles`）
+   - 远程运行：需先将 `<remote_dir>/<task-id>/` 产物拉回本地，并放入标准 session 目录，或使用 `webdev-task-packer` skill 回收产物。（`<remote_dir>` 来自项目 `config.toml` 中 `[remote].remote_dir`，默认 `/root/charles`）
 4. 对每个 Rubric 叶节点收集证据：
    - `playwright_assertion`：运行 Playwright 测试
    - `screenshot_review`：检查关键状态截图
