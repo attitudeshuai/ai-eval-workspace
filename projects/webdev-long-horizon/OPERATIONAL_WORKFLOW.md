@@ -10,7 +10,7 @@
 - 本地已 clone `ai-eval-workspace` 仓库
 - 远程机器：`ssh root@59.49.28.154 -p 7826`
 - 远程机器已安装并配置好 `codex cli`
-- 远程机器使用模型：`gpt-5.6-sonnet`
+- 远程机器使用模型：`gpt-5.6-sol`
 - Python 环境已安装 `scripts/requirements.txt`
 
 ---
@@ -28,7 +28,12 @@
 你已有可运行项目源码，希望 agent 在其基础上实现新功能。
 
 ```bash
-# 1. 创建任务骨架（不带 starter），基于已有任务 webdev-task-01
+# 1. 创建任务骨架（不带 starter）并自动继承父任务资产。
+#    基于已有任务 webdev-task-01，会自动生成 webdev-task-01.01，并完成以下四步：
+#    - 创建任务目录 tasks/webdev-task-01/webdev-task-01.01/，生成 task.md 等骨架
+#    - 将父任务源码复制到 sources/webdev-task-01/webdev-task-01.01/ 作为 baseline
+#    - 复制父任务 mock-data/ 到任务目录与 source 目录
+#    - 创建 assets/、screenshots/ 目录，并在 metadata.json 中写入 parent_tasks
 python scripts/create_task.py \
   --project webdev-long-horizon \
   --title "为电商后台增加订单筛选与导出" \
@@ -40,12 +45,11 @@ python scripts/create_task.py \
   --parent webdev-task-01
 
 # 假设生成任务 ID：webdev-task-01.01
-# 2. 将你的源码复制到约定目录
-cp -r /path/to/existing-source/* \
-  projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01/
 
-# 3. AI 分析源码并生成 task.md / rubric.json / README.md / target_states.md
-# 4. 准备 assets/ 参考截图与 mock-data/ 数据
+# 2. AI 分析源码并填充 task.md / rubric.json / README.md / target_states.md
+# 3. 补充 mock-data/ 数据（如新增 orders.json），确保 tasks/ 与 sources/ 下保持一致
+# 4. 准备 assets/ 参考截图
+
 # 5. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
 #    python scripts/compose_prompt.py \
 #      --project webdev-long-horizon \
@@ -228,9 +232,11 @@ password = "your-password"
 
 ---
 
-## 三、打包并上传到远程机器
+## 三、上传源码和 PROMPT.md 到远程机器
 
-使用 `upload_to_remote.py` 一键打包上传：
+任务资产（`task.md`、`rubric.json`、`assets/`、`tests/` 等）是本地最终交付产物，**不上传到远程**。远程只需要源码和 `PROMPT.md`。
+
+使用 `upload_to_remote.py` 一键上传：
 
 ```bash
 python scripts/upload_to_remote.py --task webdev-task-01.01
@@ -238,17 +244,13 @@ python scripts/upload_to_remote.py --task webdev-task-01.01
 
 此脚本会：
 
-1. 打包任务资产为 `webdev-task-01.01.tar.gz`
-2. 打包源码为 `webdev-task-01.01-source.tar.gz`
-3. 通过 SSH 上传到 `/root/charles/`
+1. 打包源码为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
+2. 通过 SSH 上传到 `/root/charles/`
+3. 把 `PROMPT.md` 上传到 `/root/charles/webdev-task-01.01/PROMPT.md`
 4. 远程解压并整理出 `/root/charles/webdev-task-01.01/source/`
 
 > 远程配置从 `config.toml` 和 `secrets.toml` 读取。
-> 若源码来自内置 starter，远程解压后需将 `starter/` 重命名为 `source/`：
->
-> ```bash
-> mv /root/charles/webdev-task-01.01/starter /root/charles/webdev-task-01.01/source
-> ```
+> 若源码来自内置 starter，请先放到 `sources/<family>/<task-id>/` 再上传。
 
 ---
 
@@ -260,21 +262,24 @@ python scripts/upload_to_remote.py --task webdev-task-01.01
 ssh root@59.49.28.154 -p 7826
 cd /root/charles/webdev-task-01.01/source
 
-codex \
-  --model gpt-5.6-sonnet \
-  --prompt-file /root/charles/webdev-task-01.01/PROMPT.md
+# 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
+# 若手动交互运行，可去掉该参数
+codex exec -m gpt-5.6-sol \
+  --dangerously-bypass-approvals-and-sandbox \
+  < /root/charles/webdev-task-01.01/PROMPT.md
 ```
 
-> 如果元数据和源码是分开上传的，源码目录通常是 `/root/charles/webdev-task-01.01/source/`。
+> 源码目录为 `/root/charles/webdev-task-01.01/source/`，PROMPT 文件在 `/root/charles/webdev-task-01.01/PROMPT.md`。
 
 ### 4.2 使用 task.md 运行（不推荐）
 
 如果没有生成 `PROMPT.md`，可临时使用 `task.md`，但需在命令或对话中明确交付要求：
 
 ```bash
-codex \
-  --model gpt-5.6-sonnet \
-  --prompt-file /root/charles/webdev-task-01.01/task.md
+# 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
+codex exec -m gpt-5.6-sol \
+  --dangerously-bypass-approvals-and-sandbox \
+  < /root/charles/webdev-task-01.01/task.md
 ```
 
 ### 4.3 Prompt 中必须包含的交付要求
@@ -303,9 +308,9 @@ for task_dir in $TASKS_DIR/webdev-task-*; do
   task_id=$(basename $task_dir)
   echo "=== Running SOTA for $task_id ==="
   cd $task_dir/source
-  codex \
-    --model gpt-5.6-sonnet \
-    --prompt-file $task_dir/PROMPT.md \
+  codex exec -m gpt-5.6-sol \
+    --dangerously-bypass-approvals-and-sandbox \
+    < $task_dir/PROMPT.md \
     > $task_dir/sota.log 2>&1
   cd /root/charles
 done
@@ -426,22 +431,58 @@ python scripts/generate_report.py \
 
 ## 七、最终交付
 
-最终交付内容为：
+最终交付内容统一打包为：
 
-1. **任务资产压缩包**：`webdev-task-01.01.tar.gz`
-2. **Rubric 文件**：`rubric.json`（已包含在压缩包内，可单独再附一份）
+```text
+deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+```
+
+交付包结构（tar.gz 解压后）：
+
+```text
+webdev-task-01.01/
+├── task.md              # 任务需求
+├── metadata.json        # 任务元数据
+├── README.md            # 启动与测试说明
+├── rubric.json          # 验收标准
+├── target_states.md     # 关键状态说明
+├── sota-run.md          # SOTA 运行记录
+├── assets/              # 参考截图与素材
+├── mock-data/           # mock 数据
+├── tests/               # 测试骨架
+└── sota/                # SOTA 产物
+    ├── source/          # 从远端拉下来的 agent 修改后源码
+    ├── screenshots/     # agent 输出的关键状态截图
+    ├── sota.log         # 运行日志
+    ├── PROMPT.md        # 使用的提示词
+    └── report/          # 评估报告
+        ├── report.json
+        └── report.md
+```
+
+使用 `package_deliverable.py` 一键打包：
+
+```bash
+python scripts/package_deliverable.py \
+  --task webdev-task-01.01 \
+  --session session-sota-2026-07-01.01-codex \
+  --agent codex
+```
+
+> **注意**：交付包中的源码是 `sota/source/`，即从远端拉回来的 agent 修改后源码，而不是初始 baseline。初始 baseline 仍保留在 `projects/webdev-long-horizon/sources/<family>/<task-id>/`。
 
 交付前自检清单：
 
 - [ ] `task.md` 完整，无泄露答案
 - [ ] `PROMPT.md` 已生成，明确源码位置与交付要求
-- [ ] 源码可 `npm install && npm run dev` 直接运行
+- [ ] `sota/source/` 可 `npm install && npm run dev` 直接运行
 - [ ] `rubric.json` 包含 10-20 个叶节点，覆盖六维度
 - [ ] `assets/` 包含桌面端和移动端参考截图
 - [ ] `mock-data/` 数据完整
-- [ ] `tests/` 测试可运行
+- [ ] `tests/` 测试骨架完整
 - [ ] 已通过 `validate_task.py` 校验
 - [ ] 已跑过至少一次 SOTA 可解性测试
+- [ ] `deliverables/<task-id>.tar.gz` 已生成
 
 ---
 
@@ -501,6 +542,7 @@ codex --help
 | 验证项目                | `python scripts/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter`                                            |
 | 打包任务元数据          | `tar czvf webdev-task-01.01.tar.gz -C projects/webdev-long-horizon/tasks/webdev-task-01 webdev-task-01.01`                               |
 | 打包源码                | `tar czvf webdev-task-01.01-source.tar.gz -C projects/webdev-long-horizon/sources/webdev-task-01 webdev-task-01.01`                    |
+| 打包最终交付资产        | `python scripts/package_deliverable.py --task webdev-task-01.01 --session <session> --agent codex`                                      |
 | 上传远程                | `scp -P 7826 webdev-task-01.01.tar.gz root@59.49.28.154:/root/charles/`                                                                  |
 | 运行 SOTA               | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`                    |
 | 运行 SOTA（指定源码）   | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex --source-dir <path>` |

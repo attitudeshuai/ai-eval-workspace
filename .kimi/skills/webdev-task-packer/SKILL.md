@@ -90,9 +90,11 @@ projects/webdev-long-horizon/
    ssh root@59.49.28.154 -p 7826
    cd /root/charles/webdev-task-01.01/source
 
-   codex \
-     --model gpt-5.6-sonnet \
-     --prompt-file /root/charles/webdev-task-01.01/PROMPT.md
+   # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
+   # 若手动交互运行，可去掉该参数
+   codex exec -m gpt-5.6-sol \
+     --dangerously-bypass-approvals-and-sandbox \
+     < /root/charles/webdev-task-01.01/PROMPT.md
    ```
 
 ## 远程产物回收

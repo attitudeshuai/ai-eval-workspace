@@ -94,9 +94,17 @@ def ssh_client(config: dict):
 
 
 def remote_tar(client, remote_dir: str, task_id: str) -> str:
-    """在远程打包任务目录。"""
+    """在远程打包任务目录，排除 node_modules 等依赖与构建产物。"""
     tar_name = f"{task_id}-results.tar.gz"
-    cmd = f"cd {remote_dir} && tar czvf {tar_name} {task_id}"
+    excludes = " ".join([
+        "--exclude='node_modules'",
+        "--exclude='.git'",
+        "--exclude='dist'",
+        "--exclude='build'",
+        "--exclude='.cache'",
+        "--exclude='*.log'",
+    ])
+    cmd = f"cd {remote_dir} && tar czvf {tar_name} {excludes} {task_id}"
     print(f"$ {cmd}")
     stdin, stdout, stderr = client.exec_command(cmd)
     print(stdout.read().decode())
@@ -164,13 +172,21 @@ def main():
         "password": args.remote_password,
     })
 
-    # 2. 远程打包
+    # 2. 远程打包（排除 node_modules 等；sota.log 单独下载保留）
     print(f"\n[2/4] 在远程打包 {remote_dir}/{task_id} ...")
     remote_tar_path = remote_tar(client, remote_dir, task_id)
 
     # 3. 下载到本地
     local_tar = local_temp / f"{task_id}-results.tar.gz"
     sftp_download(client, remote_tar_path, local_tar)
+
+    # 单独下载 sota.log（tar 包中排除了 *.log）
+    remote_log = f"{remote_dir}/{task_id}/sota.log"
+    local_log = local_temp / "sota.log"
+    try:
+        sftp_download(client, remote_log, local_log)
+    except Exception as e:
+        print(f"警告：无法下载 sota.log: {e}")
 
     # 4. 本地解压
     print(f"\n[3/4] 解压 {local_tar} ...")

@@ -16,10 +16,13 @@ from pathlib import Path
 from utils.helpers import (
     copy_tree,
     find_task_dir,
+    load_json,
     load_toml,
     project_dir,
     render_template,
     resolve_template,
+    save_json,
+    sources_dir,
     task_prefix,
 )
 
@@ -96,6 +99,91 @@ def determine_task_dir(tasks_dir: Path, task_id: str, parent_id: str | None = No
     return parent_dir.parent / task_id
 
 
+def inherit_from_parent(
+    project_id: str,
+    task_dir: Path,
+    task_id: str,
+    parent_id: str,
+) -> dict[str, Path]:
+    """增量任务继承父任务资产：源码、mock-data、目录结构。
+
+    目录约定：
+    - 任务：tasks/<family>/<task-id>/
+    - 源码：sources/<family>/<task-id>/
+
+    返回创建/复制的关键路径字典。
+    """
+    created: dict[str, Path] = {}
+
+    # 1. 父任务目录（层级结构：tasks/<family>/<parent-id>/）
+    parent_task_dir = find_task_dir(project_id, parent_id)
+    if parent_task_dir is None:
+        raise FileExistsError(f"父任务目录不存在: {parent_id}")
+
+    # family 目录名与 tasks/<family>/ 一致
+    family_name = parent_task_dir.parent.name
+    sd = sources_dir(project_id)
+    family_source_dir = sd / family_name
+
+    # 2. 父任务源码 -> 子任务源码（sources/<family>/<task-id>/）
+    parent_source_dir = family_source_dir / parent_id
+    if parent_source_dir.is_dir():
+        child_source_dir = family_source_dir / task_id
+        copy_tree(parent_source_dir, child_source_dir)
+        created["source_dir"] = child_source_dir
+
+        # 同时生成 source 专属 README（提示这是增量任务的 baseline）
+        source_readme = child_source_dir / "README.md"
+        if not source_readme.exists():
+            source_readme.write_text(
+                f"# {task_id} 初始源码\n\n"
+                f"本目录为 `{parent_id}` 的源码副本，作为 `{task_id}` 增量开发的 baseline。\n"
+                "请根据任务需求在此基础上完成新增功能。\n",
+                encoding="utf-8",
+            )
+
+    # 3. 父任务 mock-data -> 子任务 mock-data
+    parent_mock = parent_task_dir / "mock-data"
+    if parent_mock.is_dir():
+        child_mock_task = task_dir / "mock-data"
+        copy_tree(parent_mock, child_mock_task)
+        created["mock_data_task"] = child_mock_task
+
+        # 同步到 source 目录
+        if "source_dir" in created:
+            child_mock_source = created["source_dir"] / "mock-data"
+            copy_tree(parent_mock, child_mock_source)
+            created["mock_data_source"] = child_mock_source
+
+    # 4. 创建 assets/ 占位说明
+    assets_dir = task_dir / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    assets_readme = assets_dir / "README.md"
+    if not assets_readme.exists():
+        assets_readme.write_text(
+            "# 参考截图说明\n\n"
+            "本目录需放置任务相关的参考截图与素材，供 SOTA Agent 与评估人员对齐视觉风格。\n\n"
+            "## 常见需要提供的参考图\n\n"
+            "- `reference_desktop.png`：桌面端完整页面参考\n"
+            "- `reference_mobile.png`：移动端完整页面参考\n"
+            "- `empty_state.png`：空状态参考\n"
+            "- `interaction_state.png`：交互状态参考\n\n"
+            "## 截图规范\n\n"
+            "- 桌面端截图宽度：1920px\n"
+            "- 移动端截图宽度：390px\n"
+            "- 参考图仅用于布局和视觉风格对齐，不照搬品牌资产\n",
+            encoding="utf-8",
+        )
+    created["assets_dir"] = assets_dir
+
+    # 5. 创建 screenshots/ 目录
+    screenshots_dir = task_dir / "screenshots"
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    created["screenshots_dir"] = screenshots_dir
+
+    return created
+
+
 def project_id_from_path(tasks_dir: Path) -> str:
     """从 tasks/ 目录路径推断项目 ID。"""
     # tasks_dir = workspace_root/projects/<project-id>/tasks
@@ -153,7 +241,18 @@ def create_task(
         if starter_template.exists():
             copy_tree(starter_template, task_dir / "starter")
 
-    return task_dir
+    # 增量任务：继承父任务资产
+    inherited: dict[str, Path] = {}
+    if parent and skip_starter:
+        inherited = inherit_from_parent(project_id, task_dir, task_id, parent)
+        # 在 metadata.json 中写入 parent_tasks
+        metadata_path = task_dir / "metadata.json"
+        if metadata_path.exists():
+            metadata = load_json(metadata_path)
+            metadata.setdefault("parent_tasks", []).append(parent)
+            save_json(metadata_path, metadata)
+
+    return task_dir, inherited
 
 
 def main():
@@ -176,7 +275,7 @@ def main():
     args = parser.parse_args()
 
     arena_tags = [t.strip() for t in args.arena_tags.split(",") if t.strip()]
-    task_dir = create_task(
+    task_dir, inherited = create_task(
         args.project,
         args.title,
         args.category,
@@ -193,7 +292,14 @@ def main():
         print(f"  - {task_dir / 'starter'}")
         print("提示：如果 starter 使用 npm，请手动进入目录执行 npm install 生成 lockfile。")
     else:
-        print("  - (未生成 starter，请自行提供源码并放到项目约定的 source 目录)")
+        print("  - (未生成 starter)")
+
+    if inherited:
+        print("\n已继承父任务资产：")
+        for name, path in inherited.items():
+            print(f"  - {name}: {path}")
+        if "source_dir" not in inherited:
+            print("\n⚠️ 未找到父任务外部源码，请手动放到项目约定的 source 目录。")
 
 
 if __name__ == "__main__":

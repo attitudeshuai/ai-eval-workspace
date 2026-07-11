@@ -48,7 +48,7 @@ projects/webdev-long-horizon/
 
 1. 读取 `projects/webdev-long-horizon/categories.json` 确认类别 label 与 arena tags。
 2. 读取父任务源码目录，分析现有功能、技术栈、项目结构。
-3. 调用 `create_task.py --skip-starter --parent <parent-task-id>` 生成任务骨架：
+3. 调用 `create_task.py --skip-starter --parent <parent-task-id>` 一步生成任务骨架并继承父任务资产：
    ```bash
    python scripts/create_task.py \
      --project webdev-long-horizon \
@@ -62,25 +62,23 @@ projects/webdev-long-horizon/
    ```
    > `--category` 请使用 `categories.json` 中的中文 `label`，例如 `"电商 / 交易应用：O2O 服务 / 聚合平台"`。
    > 子任务会自动生成层级 ID，例如 `webdev-task-01.01`。
-4. 将父任务源码复制到 `projects/webdev-long-horizon/sources/<family>/<task-id>/`，作为新任务的 baseline：
-   ```bash
-   cp -r projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01/* \
-     projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01/
-   ```
-   - 在 `metadata.json` 中增加 `parent_tasks` 字段，记录父任务 ID，例如：
-     ```json
-     "parent_tasks": ["webdev-task-01"]
-     ```
-   - 在 `task.md` 背景中说明本任务基于哪个任务的源码进行增量开发。
-5. 生成 `task.md`：
+
+   此命令会自动完成以下四步：
+   1. 创建任务目录 `tasks/<family>/<task-id>/` 并生成 `task.md`、`metadata.json`、`rubric.json`、`README.md`、`target_states.md` 骨架。
+   2. 将父任务源码复制到 `sources/<family>/<task-id>/`，作为新任务的 baseline。
+   3. 复制父任务 `mock-data/` 到任务目录，并同步一份到 `sources/<family>/<task-id>/mock-data/`。
+   4. 创建 `assets/`、`screenshots/` 目录，并在 `metadata.json` 中写入 `parent_tasks`。
+
+4. AI 填充 `task.md`：
+   - 说明本任务基于哪个父任务源码进行增量开发
    - 现有项目背景与已具备的功能
    - 需要新增的模块/页面/交互
    - 新增功能必须复用现有技术栈与数据约定
    - 约束、边界状态、交付标准
-6. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
-7. 生成 `target_states.md` 与 `README.md`。
-8. 准备 `assets/` 参考截图、`mock-data/` 数据。
-   - 如 mock 数据需要被 agent 在源码中直接读取，建议同时复制一份到 `sources/<family>/<task-id>/mock-data/`。
+5. AI 完善 `rubric.json`（10-20 个叶节点，覆盖六维度）。
+6. AI 完善 `target_states.md` 与 `README.md`。
+7. 补充/新增 `mock-data/` 数据（如新增订单数据 `orders.json`），确保任务目录与 source 目录的 `mock-data/` 保持一致。
+8. 准备 `assets/` 参考截图（桌面端、移动端、空态、交互态等）。
 9. 生成 `PROMPT.md`：
    - 基于 `task.md` 与项目模板 `projects/webdev-long-horizon/templates/PROMPT.md`
    - 明确告知 agent 源码位于 `./source` 或当前目录

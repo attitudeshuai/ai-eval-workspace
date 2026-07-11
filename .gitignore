@@ -66,3 +66,5 @@ projects/webdev-long-horizon/secrets.toml
 # Project config with remote credentials
 projects/webdev-long-horizon/config.toml
 
+/sessions/*
+/deliverables/*

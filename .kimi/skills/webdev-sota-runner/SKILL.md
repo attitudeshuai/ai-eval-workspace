@@ -72,9 +72,11 @@ python scripts/run_sota.py \
 ssh root@59.49.28.154 -p 7826
 cd /root/charles/webdev-task-01.01/source
 
-codex \
-  --model gpt-5.6-sonnet \
-  --prompt-file /root/charles/webdev-task-01.01/PROMPT.md
+# 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
+# 若手动交互运行，可去掉该参数
+codex exec -m gpt-5.6-sol \
+  --dangerously-bypass-approvals-and-sandbox \
+  < /root/charles/webdev-task-01.01/PROMPT.md
 ```
 
 > 如果元数据和源码是分开上传的，源码目录通常是 `/root/charles/webdev-task-01.01/source/`。
@@ -116,9 +118,46 @@ sessions/<session-name>/
   sota.log              # 运行日志（如果已保存）
 ```
 
+## 最终交付打包
+
+SOTA 运行、回收产物并生成评估报告后，使用 `package_deliverable.py` 一键打包最终交付资产：
+
+```bash
+python scripts/package_deliverable.py \
+  --task webdev-task-01.01 \
+  --session session-sota-2026-07-01.01-codex \
+  --agent codex
+```
+
+交付包结构（tar.gz 解压后）：
+
+```text
+webdev-task-01.01/
+├── task.md
+├── metadata.json
+├── README.md
+├── rubric.json
+├── target_states.md
+├── sota-run.md
+├── assets/
+├── mock-data/
+├── tests/
+└── sota/
+    ├── source/          # 从远端拉下来的 agent 修改后源码
+    ├── screenshots/
+    ├── sota.log
+    ├── PROMPT.md
+    └── report/
+        ├── report.json
+        └── report.md
+```
+
+打包结果：`deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz`
+
 ## 注意事项
 
 - 推荐将源码放到 `sources/<family>/<task-id>/`，目录名与任务 ID 一致，这样无需传 `--source-dir`。
 - 记录运行时长与估算消耗。
 - 若 agent 失败，记录失败模式。
 - 不修改原任务目录中的文件。
+- 最终交付包中的源码应使用从远端拉下来的 `sota/source/`，而不是初始 baseline。
