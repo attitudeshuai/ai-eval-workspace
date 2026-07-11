@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 """校验 Web Dev 项目中的单个任务格式。仅适用于使用固定任务结构的项目。"""
 
 import argparse
@@ -79,7 +83,7 @@ def resolve_task_dir(arg: str) -> Path:
         return path
 
     # 尝试作为相对 tasks 根的路径
-    workspace = Path(__file__).resolve().parents[1]
+    workspace = Path(__file__).resolve().parents[2]
     for project_dir in (workspace / "projects").iterdir():
         if not project_dir.is_dir():
             continue

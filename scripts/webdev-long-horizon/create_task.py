@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 """在指定项目下创建新任务。使用项目级模板（项目自治）。
 
 支持层级任务 ID 与层级目录结构：

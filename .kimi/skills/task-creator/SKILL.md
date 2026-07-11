@@ -20,7 +20,7 @@ description: Create a high-quality long-horizon task in a specified project.
    - `projects/<id>/OPERATIONAL_WORKFLOW.md`
    - `projects/<id>/README.md`
    - `projects/<id>/config.toml`
-4. 使用 `python scripts/create_task.py --project <id>` 生成任务骨架。
+4. 使用 `python scripts/webdev-long-horizon/create_task.py --project <id>` 生成任务骨架。
    - 若项目是层级结构（如 webdev-long-horizon），增量任务需传 `--parent <task-id>`。
 5. 填充 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
 6. 按项目约定准备源码（如 `starter/`、`sources/<family>/<task-id>/` 等）、`assets/` 参考截图、`mock-data/` 数据。

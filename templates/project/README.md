@@ -17,7 +17,8 @@ projects/{{project_id}}/
 ## 创建新任务
 
 ```bash
-python scripts/create_task.py \
+# 若项目复用 webdev-long-horizon 任务模板，使用项目级脚本：
+python scripts/webdev-long-horizon/create_task.py \
   --project {{project_id}} \
   --title "任务标题" \
   --category "类目" \

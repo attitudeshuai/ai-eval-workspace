@@ -32,7 +32,7 @@ projects/webdev-long-horizon/
 已有可运行项目源码，希望 agent 在其基础上实现新功能。
 
 ```bash
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "为电商后台增加订单筛选与导出" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
@@ -49,7 +49,7 @@ python scripts/create_task.py \
 只有自然语言需求，任务要求 agent 从零实现完整项目。
 
 ```bash
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "支持拖拽看板的任务管理系统" \
   --category "交互型应用：可视化 / 数据看板" \
@@ -65,7 +65,7 @@ python scripts/create_task.py \
 ## 校验项目
 
 ```bash
-python scripts/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter
+python scripts/webdev-long-horizon/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter
 ```
 
 ## 质量闸门

@@ -50,7 +50,7 @@ projects/webdev-long-horizon/
 2. 读取父任务源码目录，分析现有功能、技术栈、项目结构。
 3. 调用 `create_task.py --skip-starter --parent <parent-task-id>` 一步生成任务骨架并继承父任务资产：
    ```bash
-   python scripts/create_task.py \
+   python scripts/webdev-long-horizon/create_task.py \
      --project webdev-long-horizon \
      --title "<title>" \
      --category "<category-label>" \
@@ -84,14 +84,14 @@ projects/webdev-long-horizon/
    - 明确告知 agent 源码位于 `./source` 或当前目录
    - 包含交付要求：安装依赖、运行、截图、测试
    ```bash
-   python scripts/compose_prompt.py \
+   python scripts/webdev-long-horizon/compose_prompt.py \
      --project webdev-long-horizon \
      --task <task-id>
    ```
    > 若 `compose_prompt.py` 不存在，则手动复制 `templates/PROMPT.md` 并将 `{{task_md}}` 替换为 `task.md` 内容。
 10. 运行校验：
     ```bash
-    python scripts/validate_task.py \
+    python scripts/webdev-long-horizon/validate_task.py \
       --allow-no-starter \
       webdev-task-01.01
     ```

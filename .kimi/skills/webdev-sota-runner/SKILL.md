@@ -44,7 +44,7 @@ projects/webdev-long-horizon/
 使用 `scripts/run_sota.py` 创建隔离会话并调用本地 agent。
 
 ```bash
-python scripts/run_sota.py \
+python scripts/webdev-long-horizon/run_sota.py \
   --session <session-name> \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
@@ -54,7 +54,7 @@ python scripts/run_sota.py \
 如需显式指定源码：
 
 ```bash
-python scripts/run_sota.py \
+python scripts/webdev-long-horizon/run_sota.py \
   --session <session-name> \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
@@ -123,7 +123,7 @@ sessions/<session-name>/
 SOTA 运行、回收产物并生成评估报告后，使用 `package_deliverable.py` 一键打包最终交付资产：
 
 ```bash
-python scripts/package_deliverable.py \
+python scripts/webdev-long-horizon/package_deliverable.py \
   --task webdev-task-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex

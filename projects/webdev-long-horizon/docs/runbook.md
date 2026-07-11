@@ -46,7 +46,7 @@ pip install -r scripts/requirements.txt
 ### AI 会执行
 
 ```bash
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "为本地生活平台新增订单中心页面" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
@@ -134,7 +134,7 @@ sources/webdev-task-01/webdev-task-01.01/mock-data/
 ### AI 会执行
 
 ```bash
-python scripts/validate_task.py --allow-no-starter webdev-task-01.01
+python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-01.01
 ```
 
 ---
@@ -150,7 +150,7 @@ python scripts/validate_task.py --allow-no-starter webdev-task-01.01
 ### AI 会执行
 
 ```bash
-python scripts/upload_to_remote.py --task webdev-task-01.01
+python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 ```
 
 此脚本会：
@@ -202,7 +202,7 @@ codex exec -m gpt-5.6-sol \
 ### AI 会执行
 
 ```bash
-python scripts/fetch_remote_results.py \
+python scripts/webdev-long-horizon/fetch_remote_results.py \
   --task webdev-task-01.01 \
   --agent codex \
   --session session-sota-2026-07-01.01-codex
@@ -233,7 +233,7 @@ sessions/session-sota-2026-07-01.01-codex/
 ### AI 会执行
 
 ```bash
-python scripts/evaluate_task.py \
+python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-01.01-codex \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
@@ -266,7 +266,7 @@ sessions/session-sota-2026-07-01.01-codex/
 ### AI 会执行
 
 ```bash
-python scripts/package_deliverable.py \
+python scripts/webdev-long-horizon/package_deliverable.py \
   --task webdev-task-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex

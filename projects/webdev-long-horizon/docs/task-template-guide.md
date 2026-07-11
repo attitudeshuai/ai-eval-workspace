@@ -11,7 +11,7 @@
 ### 1.1 创建顶层任务
 
 ```bash
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "复杂 O2O 服务聚合平台" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
@@ -26,7 +26,7 @@ python scripts/create_task.py \
 ### 1.2 创建增量任务
 
 ```bash
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "为本地生活平台新增订单中心页面" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
@@ -107,7 +107,7 @@ SOTA 运行时使用的 prompt 模板。`run_sota.py` 会优先读取项目级 `
 如果你要把任务上传到 remote 用 codex 直接运行，必须生成具体的 `PROMPT.md`：
 
 ```bash
-python scripts/compose_prompt.py \
+python scripts/webdev-long-horizon/compose_prompt.py \
   --project webdev-long-horizon \
   --task webdev-task-01.01
 ```

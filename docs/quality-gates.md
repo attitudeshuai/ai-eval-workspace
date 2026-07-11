@@ -5,7 +5,8 @@
 这些闸门目前以人工检查清单为主；自动化辅助命令为：
 
 ```bash
-python scripts/validate_task.py projects/<project-id>/tasks/<task-id>
+# 以 webdev-long-horizon 项目为例
+python scripts/webdev-long-horizon/validate_task.py projects/<project-id>/tasks/<task-id>
 ```
 
 对于 Web Dev 项目，也可以一次性校验整个项目：

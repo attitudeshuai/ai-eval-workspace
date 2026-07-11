@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 """
 从远程机器回收 SOTA 产物（修改后的源码、截图、日志等）。
 
@@ -6,13 +10,13 @@
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
 
 用法示例：
-    python scripts/fetch_remote_results.py \
+    python scripts/webdev-long-horizon/fetch_remote_results.py \
       --task webdev-task-01.01 \
       --agent codex \
       --session session-sota-2026-07-002-codex
 
 也可以只拉回到当前目录：
-    python scripts/fetch_remote_results.py \
+    python scripts/webdev-long-horizon/fetch_remote_results.py \
       --task webdev-task-01.01 \
       --output ./
 """
@@ -26,7 +30,7 @@ from pathlib import Path
 
 
 def workspace_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def project_dir(project_id: str) -> Path:

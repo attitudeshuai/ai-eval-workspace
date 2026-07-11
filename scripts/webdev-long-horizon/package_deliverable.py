@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 """
 打包 Web Dev 任务的最终交付资产。
 
@@ -24,7 +28,7 @@
             └── report.md
 
 用法：
-    python scripts/package_deliverable.py \
+    python scripts/webdev-long-horizon/package_deliverable.py \
       --task webdev-task-01.01 \
       --session session-sota-2026-07-01.01-codex \
       --agent codex

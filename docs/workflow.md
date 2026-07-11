@@ -54,7 +54,7 @@ sessions/session-sota-2026-07-001-codex/
 ## 阶段四：评估
 
 ```bash
-python scripts/evaluate_task.py \
+python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-001-codex \
   --project <project-id> \
   --task <task-id> \
@@ -71,7 +71,22 @@ python scripts/evaluate_task.py \
 
 ---
 
-## 阶段五：汇总
+## 阶段五：打包交付（可选）
+
+部分项目需要把任务资产与 SOTA 产物打包为最终交付包：
+
+```bash
+python scripts/webdev-long-horizon/package_deliverable.py \
+  --task <task-id> \
+  --session session-sota-2026-07-001-codex \
+  --agent codex
+```
+
+输出：`deliverables/<project-id>/<task-id>.tar.gz`
+
+> 具体交付格式由项目自定义；`package_deliverable.py` 目前主要用于 `webdev-long-horizon` 项目。
+
+## 阶段六：汇总
 
 ```bash
 python scripts/generate_report.py --session session-sota-2026-07-001-codex
@@ -88,7 +103,7 @@ python scripts/generate_report.py --session session-sota-2026-07-001-codex
 ## 流程图
 
 ```text
-onboard 项目 → 准备任务/环境 → 运行 SOTA → 评估 → 汇总基准
+onboard 项目 → 准备任务/环境 → 运行 SOTA → 评估 → [打包交付] → 汇总基准
 ```
 
 每个阶段的具体实现由项目自行定义。

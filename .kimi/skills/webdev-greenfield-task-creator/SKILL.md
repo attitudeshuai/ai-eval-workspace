@@ -43,7 +43,7 @@ projects/webdev-long-horizon/
 1. 读取 `projects/webdev-long-horizon/categories.json` 确认类别 label 与 arena tags。
 2. 调用 `create_task.py --skip-starter` 生成顶层任务骨架：
    ```bash
-   python scripts/create_task.py \
+   python scripts/webdev-long-horizon/create_task.py \
      --project webdev-long-horizon \
      --title "<title>" \
      --category "<category-label>" \
@@ -66,7 +66,7 @@ projects/webdev-long-horizon/
    - 明确告知 agent 源码位于 `./source` 或当前目录
    - 包含完整交付要求
    ```bash
-   python scripts/compose_prompt.py \
+   python scripts/webdev-long-horizon/compose_prompt.py \
      --project webdev-long-horizon \
      --task <task-id>
    ```
@@ -74,13 +74,13 @@ projects/webdev-long-horizon/
 9. 运行校验：
    - 外部 source：
      ```bash
-     python scripts/validate_task.py \
+     python scripts/webdev-long-horizon/validate_task.py \
        --allow-no-starter \
        webdev-task-02
      ```
    - 内置 starter：
      ```bash
-     python scripts/validate_task.py \
+     python scripts/webdev-long-horizon/validate_task.py \
        webdev-task-02
      ```
 10. （推荐）本地验证源码可启动：

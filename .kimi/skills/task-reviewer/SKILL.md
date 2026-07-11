@@ -16,8 +16,8 @@ Review 指定项目中的任务是否符合高难度长程任务标准。
 3. 读取任务目录下所有文件。
 4. 对照 `docs/quality-gates.md` 逐项检查六大量闸门。
 5. 运行校验脚本：
-   - 通用：`python scripts/validate_task.py projects/<id>/tasks/<task-id>`
-   - webdev 外部 source：`python scripts/validate_task.py --allow-no-starter projects/webdev-long-horizon/tasks/<task-id>`
+   - 通用：`python scripts/webdev-long-horizon/validate_task.py projects/<id>/tasks/<task-id>`
+   - webdev 外部 source：`python scripts/webdev-long-horizon/validate_task.py --allow-no-starter projects/webdev-long-horizon/tasks/<task-id>`
 6. 输出 review 报告，列出问题与修改建议。
 
 ## Review 输出格式

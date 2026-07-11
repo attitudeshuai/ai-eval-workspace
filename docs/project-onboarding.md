@@ -52,7 +52,7 @@ projects/my-project/
 
 1. 将 `projects/webdev-long-horizon/templates/` 复制到自己项目下。
 2. 在 `config.toml` 中配置 `task_prefix = "xxx-task"`。
-3. 使用 `python scripts/create_task.py --project <id>` 创建任务。
+3. 若复用 webdev-long-horizon 任务模板，使用 `python scripts/webdev-long-horizon/create_task.py --project <id>` 创建任务。
 
 但这完全是可选的。其他项目可以用完全不同的任务组织方式。
 

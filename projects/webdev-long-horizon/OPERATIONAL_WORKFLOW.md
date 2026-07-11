@@ -34,7 +34,7 @@
 #    - 将父任务源码复制到 sources/webdev-task-01/webdev-task-01.01/ 作为 baseline
 #    - 复制父任务 mock-data/ 到任务目录与 source 目录
 #    - 创建 assets/、screenshots/ 目录，并在 metadata.json 中写入 parent_tasks
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "为电商后台增加订单筛选与导出" \
   --category "电商 / 交易应用：O2O 服务 / 聚合平台" \
@@ -51,25 +51,25 @@ python scripts/create_task.py \
 # 4. 准备 assets/ 参考截图
 
 # 5. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
-#    python scripts/compose_prompt.py \
+#    python scripts/webdev-long-horizon/compose_prompt.py \
 #      --project webdev-long-horizon \
 #      --task webdev-task-01.01
 #    若 compose_prompt.py 不存在，手动复制 templates/PROMPT.md 并替换 {{task_md}}
 
 # 6. 校验任务
-python scripts/validate_task.py \
+python scripts/webdev-long-horizon/validate_task.py \
   --allow-no-starter \
   webdev-task-01.01
 
 # 7. 运行 SOTA
-python scripts/run_sota.py \
+python scripts/webdev-long-horizon/run_sota.py \
   --session session-sota-2026-07-002-codex \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
   --agent codex
 
 # 8. 生成评估报告
-python scripts/evaluate_task.py \
+python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-002-codex \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
@@ -82,7 +82,7 @@ python scripts/evaluate_task.py \
 
 ```bash
 # 1. 创建任务骨架（不带 starter）
-python scripts/create_task.py \
+python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "支持拖拽看板的任务管理系统" \
   --category "交互型应用：可视化 / 数据看板" \
@@ -95,7 +95,7 @@ python scripts/create_task.py \
 # 2. AI 根据需求生成 task.md / rubric.json / README.md / target_states.md
 # 3. 准备 assets/ 参考截图与 mock-data/ 数据
 # 4. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
-#    python scripts/compose_prompt.py \
+#    python scripts/webdev-long-horizon/compose_prompt.py \
 #      --project webdev-long-horizon \
 #      --task webdev-task-02
 #    若 compose_prompt.py 不存在，手动复制 templates/PROMPT.md 并替换 {{task_md}}
@@ -109,19 +109,19 @@ cp -r /path/to/your-kanban-starter/* \
 # 此时不需要 --allow-no-starter
 
 # 6. 校验任务
-python scripts/validate_task.py \
+python scripts/webdev-long-horizon/validate_task.py \
   --allow-no-starter \
   webdev-task-02
 
 # 7. 运行 SOTA
-python scripts/run_sota.py \
+python scripts/webdev-long-horizon/run_sota.py \
   --session session-sota-2026-07-003-codex \
   --project webdev-long-horizon \
   --task webdev-task-02 \
   --agent codex
 
 # 8. 生成评估报告
-python scripts/evaluate_task.py \
+python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-003-codex \
   --project webdev-long-horizon \
   --task webdev-task-02 \
@@ -197,12 +197,12 @@ npm install
 npm run dev
 
 # 2. 运行项目校验（若使用外部 source，加 --allow-no-starter）
-python scripts/validate_task.py \
+python scripts/webdev-long-horizon/validate_task.py \
   --allow-no-starter \
   webdev-task-01.01
 
 # 3. 可选：全项目批量校验
-python scripts/validate_project.py \
+python scripts/webdev-long-horizon/validate_project.py \
   --project webdev-long-horizon \
   --tasks \
   --allow-no-starter
@@ -239,7 +239,7 @@ password = "your-password"
 使用 `upload_to_remote.py` 一键上传：
 
 ```bash
-python scripts/upload_to_remote.py --task webdev-task-01.01
+python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 ```
 
 此脚本会：
@@ -342,7 +342,7 @@ chmod +x /root/charles/batch_run_sota.sh
 使用 `scripts/fetch_remote_results.py` 一键回收并整理产物：
 
 ```bash
-python scripts/fetch_remote_results.py \
+python scripts/webdev-long-horizon/fetch_remote_results.py \
   --task webdev-task-01.01 \
   --agent codex \
   --session session-sota-YYYY-MM-NNN-codex
@@ -362,7 +362,7 @@ sessions/session-sota-YYYY-MM-NNN-codex/
 也可以只拉回到当前目录：
 
 ```bash
-python scripts/fetch_remote_results.py \
+python scripts/webdev-long-horizon/fetch_remote_results.py \
   --task webdev-task-01.01 \
   --output ./
 ```
@@ -397,7 +397,7 @@ sessions/session-sota-2026-07-XXX-codex/
 运行评估：
 
 ```bash
-python scripts/evaluate_task.py \
+python scripts/webdev-long-horizon/evaluate_task.py \
   --session session-sota-2026-07-XXX-codex \
   --project webdev-long-horizon \
   --task webdev-task-01.01 \
@@ -417,7 +417,7 @@ sessions/session-sota-2026-07-XXX-codex/
 ### 6.2 汇总多个任务
 
 ```bash
-python scripts/generate_report.py \
+python scripts/webdev-long-horizon/generate_report.py \
   --session session-sota-2026-07-XXX-codex
 ```
 
@@ -463,7 +463,7 @@ webdev-task-01.01/
 使用 `package_deliverable.py` 一键打包：
 
 ```bash
-python scripts/package_deliverable.py \
+python scripts/webdev-long-horizon/package_deliverable.py \
   --task webdev-task-01.01 \
   --session session-sota-2026-07-01.01-codex \
   --agent codex
@@ -515,7 +515,7 @@ tasks:
 然后批量创建：
 
 ```bash
-python scripts/batch_create_tasks.py \
+python scripts/webdev-long-horizon/batch_create_tasks.py \
   --project webdev-long-horizon \
   --batch task-queue.yaml
 ```
@@ -536,16 +536,16 @@ codex --help
 
 | 目的                    | 命令                                                                                                                                       |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| 创建顶层任务骨架        | `python scripts/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter`                              |
-| 创建增量任务骨架        | `python scripts/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter --parent webdev-task-01`     |
-| 验证任务（外部 source） | `python scripts/validate_task.py --allow-no-starter webdev-task-01.01`                                                                   |
-| 验证项目                | `python scripts/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter`                                            |
+| 创建顶层任务骨架        | `python scripts/webdev-long-horizon/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter`                              |
+| 创建增量任务骨架        | `python scripts/webdev-long-horizon/create_task.py --project webdev-long-horizon --title "..." --category "..." --skip-starter --parent webdev-task-01`     |
+| 验证任务（外部 source） | `python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-task-01.01`                                                                   |
+| 验证项目                | `python scripts/webdev-long-horizon/validate_project.py --project webdev-long-horizon --tasks --allow-no-starter`                                            |
 | 打包任务元数据          | `tar czvf webdev-task-01.01.tar.gz -C projects/webdev-long-horizon/tasks/webdev-task-01 webdev-task-01.01`                               |
 | 打包源码                | `tar czvf webdev-task-01.01-source.tar.gz -C projects/webdev-long-horizon/sources/webdev-task-01 webdev-task-01.01`                    |
-| 打包最终交付资产        | `python scripts/package_deliverable.py --task webdev-task-01.01 --session <session> --agent codex`                                      |
+| 打包最终交付资产        | `python scripts/webdev-long-horizon/package_deliverable.py --task webdev-task-01.01 --session <session> --agent codex`                                      |
 | 上传远程                | `scp -P 7826 webdev-task-01.01.tar.gz root@59.49.28.154:/root/charles/`                                                                  |
-| 运行 SOTA               | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`                    |
-| 运行 SOTA（指定源码）   | `python scripts/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex --source-dir <path>` |
-| 回收远程产物            | `python scripts/fetch_remote_results.py --task webdev-task-01.01 --agent codex --session <session>`                                      |
-| 生成评估报告            | `python scripts/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`               |
-| 汇总报告                | `python scripts/generate_report.py --session <session>`                                                                                  |
+| 运行 SOTA               | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`                    |
+| 运行 SOTA（指定源码）   | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex --source-dir <path>` |
+| 回收远程产物            | `python scripts/webdev-long-horizon/fetch_remote_results.py --task webdev-task-01.01 --agent codex --session <session>`                                      |
+| 生成评估报告            | `python scripts/webdev-long-horizon/evaluate_task.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`               |
+| 汇总报告                | `python scripts/webdev-long-horizon/generate_report.py --session <session>`                                                                                  |

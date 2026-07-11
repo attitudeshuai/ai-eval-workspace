@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 """
 将 webdev-long-horizon 任务的源码和 PROMPT.md 上传到远程机器。
 
@@ -11,7 +15,7 @@
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
 
 用法示例：
-    python scripts/upload_to_remote.py --task webdev-task-01.01
+    python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 """
 
 import argparse
@@ -21,7 +25,7 @@ from pathlib import Path
 
 
 def workspace_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    return Path(__file__).resolve().parents[2]
 
 
 def project_dir(project_id: str) -> Path:

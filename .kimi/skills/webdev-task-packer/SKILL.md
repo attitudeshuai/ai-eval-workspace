@@ -78,7 +78,7 @@ projects/webdev-long-horizon/
    ```
 3. 打包并上传到远程机器：
    ```bash
-   python scripts/upload_to_remote.py --task webdev-task-01.01
+   python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
    ```
    此脚本会：
    - 打包任务资产为 `webdev-task-01.01.tar.gz`
@@ -102,7 +102,7 @@ projects/webdev-long-horizon/
 运行结束后，使用 `scripts/fetch_remote_results.py` 一键拉回并整理产物：
 
 ```bash
-python scripts/fetch_remote_results.py \
+python scripts/webdev-long-horizon/fetch_remote_results.py \
   --task webdev-task-01.01 \
   --agent codex \
   --session session-sota-YYYY-MM-NNN-codex
@@ -122,7 +122,7 @@ sessions/session-sota-YYYY-MM-NNN-codex/
 也可以只拉回到当前目录：
 
 ```bash
-python scripts/fetch_remote_results.py \
+python scripts/webdev-long-horizon/fetch_remote_results.py \
   --task webdev-task-01.01 \
   --output ./
 ```
