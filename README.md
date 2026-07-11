@@ -22,9 +22,8 @@
 ├── README.md                 # 本文件
 ├── AGENTS.md                 # 给 AI Agent 的工作台使用说明
 ├── .gitignore
-├── config/                   # 工作台级配置（如跨项目共享标签体系，可选）
-│   ├── workspace.toml
-│   └── categories.json
+├── config/                   # 工作台级通用配置（不绑定任何项目）
+│   └── workspace.toml
 ├── .kimi/skills/             # 全局技能：项目接入、任务评估、SOTA 运行等
 ├── .claude/agents/           # Claude Agent 定义
 ├── docs/                     # 工作台级文档：流程、规范、接入指南

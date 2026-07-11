@@ -9,7 +9,7 @@
 ## 工作流程
 
 1. 确认目标项目 ID（如未指定，询问用户）。
-2. 读取 `config/categories.json` 确认可选标签。
+2. 若项目定义了分类体系，读取 `projects/<id>/categories.json` 确认可选标签。
 3. 使用 `python scripts/create_task.py --project <id>` 生成任务骨架。
 4. 填充 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
 5. 准备 `starter/` 初始项目、`assets/` 参考截图、`mock-data/` 数据。

@@ -7,6 +7,7 @@
 ```text
 projects/webdev-long-horizon/
 ├── config.toml          # 项目级配置
+├── categories.json      # 项目专属任务分类与 Arena 标签
 ├── README.md            # 本文件
 ├── docs/                # 项目专属文档（可选）
 ├── templates/           # 项目专属模板（可覆盖全局模板）

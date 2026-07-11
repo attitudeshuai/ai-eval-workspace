@@ -7,19 +7,19 @@ created_at = "{{created_at}}"
 task_prefix = "{{project_id}}-task"
 
 [paths]
+# 项目内部目录相对路径（可选，以下为常见约定）
 tasks_dir = "tasks"
 templates_dir = "templates"
 rubrics_dir = "rubrics"
 docs_dir = "docs"
 
-[evaluation]
-default_agents = ["codex", "claude-code", "kimi-coding"]
-default_timeout_minutes = 30
-screenshot_widths = [1920, 768, 390]
-required_evidence_types = ["screenshot", "dom_assertion", "playwright_assertion"]
+# 以下为可选配置示例；不同项目可按自身需求增删。
+# [evaluation]
+# default_agents = ["codex", "claude-code", "kimi-coding"]
+# default_timeout_minutes = 30
 
-[quality_gates]
-run_starter_locally = true
-run_tests = true
-run_sota_once = true
-review_rubric = true
+# [quality_gates]
+# run_starter_locally = true
+# run_tests = true
+# run_sota_once = true
+# review_rubric = true

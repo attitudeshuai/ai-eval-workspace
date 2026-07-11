@@ -6,29 +6,6 @@ sessions_dir = "sessions"
 benchmarks_dir = "benchmarks"
 templates_dir = "templates"
 
-[evaluation]
-default_agents = ["codex", "claude-code", "kimi-coding"]
-default_timeout_minutes = 30
-screenshot_widths = [1920, 768, 390]
-required_evidence_types = ["screenshot", "dom_assertion", "playwright_assertion"]
-
-[quality_gates]
-run_starter_locally = true
-run_tests = true
-run_sota_once = true
-review_rubric = true
-
-[paths]
-# 相对路径均基于 workspace root
-project_config = "config.toml"
-task_metadata = "metadata.json"
-task_readme = "README.md"
-task_requirements = "task.md"
-task_rubric = "rubric.json"
-task_target_states = "target_states.md"
-task_starter = "starter"
-task_assets = "assets"
-task_mock_data = "mock-data"
-task_tests = "tests"
-task_screenshots = "screenshots"
-task_sota_run = "sota-run.md"
+# 注意：工作台不对项目内部结构做强制要求。
+# 与具体任务格式相关的配置（如 screenshot_widths、任务文件命名、质量闸门等）
+# 应放在 projects/<project-id>/config.toml 中，而非此处。

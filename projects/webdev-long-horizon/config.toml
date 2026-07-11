@@ -11,6 +11,18 @@ tasks_dir = "tasks"
 templates_dir = "templates"
 rubrics_dir = "rubrics"
 docs_dir = "docs"
+# 任务内部文件命名约定（相对任务目录）
+task_metadata = "metadata.json"
+task_readme = "README.md"
+task_requirements = "task.md"
+task_rubric = "rubric.json"
+task_target_states = "target_states.md"
+task_starter = "starter"
+task_assets = "assets"
+task_mock_data = "mock-data"
+task_tests = "tests"
+task_screenshots = "screenshots"
+task_sota_run = "sota-run.md"
 
 [evaluation]
 default_agents = ["codex", "claude-code", "kimi-coding"]
