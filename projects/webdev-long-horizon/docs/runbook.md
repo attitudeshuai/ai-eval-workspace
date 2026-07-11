@@ -65,7 +65,7 @@ python scripts/webdev-long-horizon/create_task.py \
 2. 生成 `task.md`、`metadata.json`、`rubric.json`、`README.md`、`target_states.md` 骨架
 3. 将父任务源码复制到 `projects/webdev-long-horizon/sources/webdev-task-01/webdev-task-01.01/` 作为 baseline
 4. 复制父任务 `mock-data/` 到任务目录与 source 目录
-5. 创建 `assets/`、`screenshots/` 目录
+5. 创建 `assets/`（含 `reference/` 子目录）、`screenshots/` 目录
 6. 在 `metadata.json` 中写入 `parent_tasks`
 
 生成目录示例：
@@ -79,6 +79,7 @@ projects/webdev-long-horizon/
 │   ├── README.md
 │   ├── target_states.md
 │   ├── assets/
+│   │   └── reference/
 │   ├── mock-data/
 │   └── screenshots/
 └── sources/webdev-task-01/webdev-task-01.01/
@@ -129,6 +130,7 @@ projects/webdev-long-horizon/
 │   ├── README.md
 │   ├── target_states.md
 │   ├── assets/
+│   │   └── reference/
 │   ├── mock-data/
 │   └── screenshots/
 └── sources/webdev-task-02/webdev-task-02/   # 初始为空，等待 agent 生成
@@ -150,7 +152,7 @@ projects/webdev-long-horizon/
 - 完善 rubric.json
 - 完善 target_states.md
 - 补充 mock-data/orders.json
-- 生成 assets/ 参考截图
+- 生成 assets/reference/ 参考截图
 ```
 
 ### AI 会执行
@@ -164,7 +166,7 @@ projects/webdev-long-horizon/
 - 完善 `tasks/webdev-task-01/webdev-task-01.01/README.md`
 - 补充 `tasks/webdev-task-01/webdev-task-01.01/mock-data/orders.json`
 - 生成 `tasks/webdev-task-01/webdev-task-01.01/tests/playwright.spec.ts`
-- 准备 `tasks/webdev-task-01/webdev-task-01.01/assets/` 参考截图
+- 准备 `tasks/webdev-task-01/webdev-task-01.01/assets/reference/` 参考截图
 
 并将新增的 mock-data 同步复制到源码目录：
 
@@ -200,7 +202,7 @@ cp -r /path/to/your-kanban-starter/* \
 - 安装依赖并生成 lockfile
 - 实现所有功能并确保可构建、可运行
 
-`upload_to_remote.py` 会把这个空目录（以及 PROMPT.md）传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。
+`upload_to_remote.py` 会把这个空目录、提示词文件、`assets/`、`tests/` 传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。
 
 > 注意：方式 B 对 `PROMPT.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
 
@@ -227,7 +229,7 @@ python scripts/webdev-long-horizon/validate_task.py --allow-no-starter webdev-ta
 ### 指令模板
 
 ```text
-把 webdev-task-01.01 的源码和 PROMPT.md 上传到 remote，任务资产保留在本地。
+把 webdev-task-01.01 的源码、PROMPT.md、assets/ 和 tests/ 上传到 remote。
 ```
 
 ### AI 会执行
@@ -238,12 +240,15 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 此脚本会：
 
-1. 打包源码为 `webdev-task-01.01-source.tar.gz`
+1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把 `PROMPT.md` 上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
-4. 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
+3. 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`（优先用任务目录下的 `PROMPT.md`，不存在则用 `task.md`）
+4. 远程解压并整理出：
+   - `<remote_dir>/webdev-task-01.01/source/`
+   - `<remote_dir>/webdev-task-01.01/assets/`
+   - `<remote_dir>/webdev-task-01.01/tests/`
 
-任务资产（`task.md`、`rubric.json`、`assets/`、`tests/` 等）保留在本地，不上传。
+其他任务资产（`rubric.json`、`target_states.md`、`README.md` 等）保留在本地，不上传。
 远程配置读取 `config.toml` 和 `secrets.toml`。
 
 ---
@@ -264,9 +269,11 @@ cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
+# 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md \
+  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
 > 注意：此步骤可能耗时较长。AI 会把命令给你，你可以选择自己盯着跑，或让 AI 后台运行并等待完成。
@@ -342,7 +349,8 @@ sessions/session-sota-2026-07-01.01-codex/
 ```text
 把 webdev-task-01.01 的最终交付资产打包好：
 - 任务资产（task.md、metadata.json、rubric.json、assets、mock-data、tests 等）
-- SOTA 产物：从远端拉下来的修改后源码、截图、sota.log、PROMPT.md、评估报告
+- starter/：初始项目代码
+- screenshots/：人工验证后放置的关键状态截图（可选）
 - 输出到 deliverables/webdev-task-01.01.tar.gz
 ```
 
@@ -365,17 +373,11 @@ webdev-task-01.01/
 ├── rubric.json          # 验收标准
 ├── target_states.md     # 关键状态说明
 ├── sota-run.md          # SOTA 运行记录
-├── assets/              # 参考截图与素材
+├── starter/             # 初始项目代码
+├── assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
 ├── mock-data/           # mock 数据
-├── tests/               # 测试骨架
-└── sota/                # SOTA 产物
-    ├── source/          # 从远端拉下来的修改后源码
-    ├── screenshots/     # agent 输出的关键状态截图
-    ├── sota.log         # 运行日志
-    ├── PROMPT.md        # 使用的提示词
-    └── report/          # 评估报告
-        ├── report.json
-        └── report.md
+├── tests/               # Playwright / 单元测试骨架
+└── screenshots/         # 人工验证后放置的关键状态截图（可选）
 ```
 
 打包结果：
@@ -396,11 +398,11 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 帮我全流程跑一个基于 webdev-task-01 的增量任务：
 1. 创建任务并继承父源码：新增订单中心页面，标题"为本地生活平台新增订单中心页面"，medium 难度
 2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets
-3. 打包并上传到 <remote_dir>/ 远程目录
+3. 把源码、PROMPT.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol）
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
-7. 把任务资产和 SOTA 产物打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
+7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 ```
 
 ### Greenfield 任务（无源码）
@@ -409,9 +411,9 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 帮我全流程跑一个 Greenfield 任务：
 1. 创建无源码任务骨架：支持拖拽看板的任务管理系统，标题"支持拖拽看板的任务管理系统"，high 难度
 2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets（source 目录保持为空）
-3. 把空的 source 目录和 PROMPT.md 上传到 <remote_dir>/ 远程目录
+3. 把空的 source 目录、PROMPT.md、assets/、tests/ 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol），让 agent 从零创建完整项目
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
-7. 把任务资产和 SOTA 产物打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-02.tar.gz
+7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-02.tar.gz
 ```

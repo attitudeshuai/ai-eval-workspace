@@ -159,19 +159,33 @@ def inherit_from_parent(
             copy_tree(parent_mock, child_mock_source)
             created["mock_data_source"] = child_mock_source
 
-    # 4. 创建 assets/ 占位说明
+    # 4. 父任务 assets -> 子任务 assets（增量任务视觉风格通常继承父任务）
+    parent_assets = parent_task_dir / "assets"
+    if parent_assets.is_dir():
+        child_assets = task_dir / "assets"
+        copy_tree(parent_assets, child_assets)
+        created["assets_dir"] = child_assets
+
+    # 5. 创建 assets/ 占位说明（若尚未创建）
     assets_dir = task_dir / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
+    reference_dir = assets_dir / "reference"
+    reference_dir.mkdir(parents=True, exist_ok=True)
     assets_readme = assets_dir / "README.md"
     if not assets_readme.exists():
         assets_readme.write_text(
-            "# 参考截图说明\n\n"
-            "本目录需放置任务相关的参考截图与素材，供 SOTA Agent 与评估人员对齐视觉风格。\n\n"
-            "## 常见需要提供的参考图\n\n"
-            "- `reference_desktop.png`：桌面端完整页面参考\n"
-            "- `reference_mobile.png`：移动端完整页面参考\n"
-            "- `empty_state.png`：空状态参考\n"
-            "- `interaction_state.png`：交互状态参考\n\n"
+            "# 任务素材说明\n\n"
+            "本目录存放任务所需素材，按子目录组织：\n\n"
+            "```text\n"
+            "assets/\n"
+            "└── reference/           # 参考截图（人工准备，供 agent 视觉还原使用）\n"
+            "    ├── desktop.png      # 桌面端完整页面参考\n"
+            "    ├── mobile.png       # 移动端完整页面参考\n"
+            "    ├── empty_state.png  # 空状态参考\n"
+            "    └── interaction_state.png  # 交互状态参考\n"
+            "```\n\n"
+            "> 其他任务若有图标、字体、示例图片等素材，可继续在 `assets/` 下新增子目录，\n"
+            "> 例如 `assets/icons/`、`assets/fonts/`、`assets/images/`。\n\n"
             "## 截图规范\n\n"
             "- 桌面端截图宽度：1920px\n"
             "- 移动端截图宽度：390px\n"
@@ -244,6 +258,35 @@ def create_task(
         starter_template = resolve_template(project_id, "starter")
         if starter_template.exists():
             copy_tree(starter_template, task_dir / "starter")
+
+    # 创建通用任务目录：assets/（含 reference/）、screenshots/
+    assets_dir = task_dir / "assets"
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    reference_dir = assets_dir / "reference"
+    reference_dir.mkdir(parents=True, exist_ok=True)
+    assets_readme = assets_dir / "README.md"
+    if not assets_readme.exists():
+        assets_readme.write_text(
+            "# 任务素材说明\n\n"
+            "本目录存放任务所需素材，按子目录组织：\n\n"
+            "```text\n"
+            "assets/\n"
+            "└── reference/           # 参考截图（人工准备，供 agent 视觉还原使用）\n"
+            "    ├── desktop.png      # 桌面端完整页面参考\n"
+            "    ├── mobile.png       # 移动端完整页面参考\n"
+            "    ├── empty_state.png  # 空状态参考\n"
+            "    └── interaction_state.png  # 交互状态参考\n"
+            "```\n\n"
+            "> 其他任务若有图标、字体、示例图片等素材，可继续在 `assets/` 下新增子目录，\n"
+            "> 例如 `assets/icons/`、`assets/fonts/`、`assets/images/`。\n\n"
+            "## 截图规范\n\n"
+            "- 桌面端截图宽度：1920px\n"
+            "- 移动端截图宽度：390px\n"
+            "- 参考图仅用于布局和视觉风格对齐，不照搬品牌资产\n",
+            encoding="utf-8",
+        )
+    screenshots_dir = task_dir / "screenshots"
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
 
     # 增量任务：继承父任务资产
     inherited: dict[str, Path] = {}

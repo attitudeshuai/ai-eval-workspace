@@ -33,7 +33,7 @@
 #    - 创建任务目录 tasks/webdev-task-01/webdev-task-01.01/，生成 task.md 等骨架
 #    - 将父任务源码复制到 sources/webdev-task-01/webdev-task-01.01/ 作为 baseline
 #    - 复制父任务 mock-data/ 到任务目录与 source 目录
-#    - 创建 assets/、screenshots/ 目录，并在 metadata.json 中写入 parent_tasks
+#    - 创建 assets/（含 reference/ 子目录）、screenshots/ 目录，并在 metadata.json 中写入 parent_tasks
 python scripts/webdev-long-horizon/create_task.py \
   --project webdev-long-horizon \
   --title "为电商后台增加订单筛选与导出" \
@@ -48,7 +48,7 @@ python scripts/webdev-long-horizon/create_task.py \
 
 # 2. AI 分析源码并填充 task.md / rubric.json / README.md / target_states.md
 # 3. 补充 mock-data/ 数据（如新增 orders.json），确保 tasks/ 与 sources/ 下保持一致
-# 4. 准备 assets/ 参考截图
+# 4. 准备 assets/reference/ 参考截图
 
 # 5. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
 #    python scripts/webdev-long-horizon/compose_prompt.py \
@@ -93,7 +93,7 @@ python scripts/webdev-long-horizon/create_task.py \
 
 # 假设生成任务 ID：webdev-task-02
 # 2. AI 根据需求生成 task.md / rubric.json / README.md / target_states.md
-# 3. 准备 assets/ 参考截图与 mock-data/ 数据
+# 3. 准备 assets/reference/ 参考截图与 mock-data/ 数据
 # 4. 生成 PROMPT.md（用于 SOTA / 远程 codex 运行）
 #    python scripts/webdev-long-horizon/compose_prompt.py \
 #      --project webdev-long-horizon \
@@ -143,7 +143,7 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 ├── PROMPT.md            # SOTA / 远程 codex 使用的提示词
 ├── target_states.md     # 关键状态说明（建议）
 ├── sota-run.md          # SOTA 运行记录（建议）
-├── assets/              # 参考截图、素材
+├── assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
 ├── mock-data/           # mock 数据
 └── tests/               # Playwright / 单元测试
 ```
@@ -236,9 +236,16 @@ password = "your-password"
 
 ---
 
-## 三、上传源码和 PROMPT.md 到远程机器
+## 三、上传源码、提示词和任务素材到远程机器
 
-任务资产（`task.md`、`rubric.json`、`assets/`、`tests/` 等）是本地最终交付产物，**不上传到远程**。远程只需要源码和 `PROMPT.md`。
+远程运行 SOTA 时，agent 需要同时看到源码、提示词、参考截图和测试骨架。因此以下文件会上传到远程：
+
+- `source/`：源码
+- `PROMPT.md`：SOTA 提示词（优先用任务目录下的 `PROMPT.md`，不存在则用 `task.md`）
+- `assets/`：参考截图等任务素材
+- `tests/`：测试骨架
+
+其他任务资产（`rubric.json`、`target_states.md`、`README.md` 等）保留在本地，不上传。
 
 使用 `upload_to_remote.py` 一键上传：
 
@@ -248,10 +255,13 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 此脚本会：
 
-1. 打包源码为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
+1. 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
 2. 通过 SSH 上传到 `<remote_dir>/`
-3. 把 `PROMPT.md` 上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
-4. 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
+3. 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+4. 远程解压并整理出：
+   - `<remote_dir>/webdev-task-01.01/source/`
+   - `<remote_dir>/webdev-task-01.01/assets/`
+   - `<remote_dir>/webdev-task-01.01/tests/`
 
 > 远程配置从 `config.toml` 和 `secrets.toml` 读取。
 > 若源码来自内置 starter，请先放到 `sources/<family>/<task-id>/` 再上传。
@@ -268,12 +278,14 @@ cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
+# 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md \
+  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`。
+> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`，运行日志建议重定向到 `<remote_dir>/webdev-task-01.01/sota.log`。
 
 ### 4.2 使用 task.md 运行（不推荐）
 
@@ -281,9 +293,11 @@ codex exec -m gpt-5.6-sol \
 
 ```bash
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
+# 建议把输出重定向到 sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/task.md
+  < <remote_dir>/webdev-task-01.01/task.md \
+  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
 ### 4.3 Prompt 中必须包含的交付要求
@@ -451,17 +465,11 @@ webdev-task-01.01/
 ├── rubric.json          # 验收标准
 ├── target_states.md     # 关键状态说明
 ├── sota-run.md          # SOTA 运行记录
-├── assets/              # 参考截图与素材
+├── starter/             # 初始项目代码
+├── assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
 ├── mock-data/           # mock 数据
-├── tests/               # 测试骨架
-└── sota/                # SOTA 产物
-    ├── source/          # 从远端拉下来的 agent 修改后源码
-    ├── screenshots/     # agent 输出的关键状态截图
-    ├── sota.log         # 运行日志
-    ├── PROMPT.md        # 使用的提示词
-    └── report/          # 评估报告
-        ├── report.json
-        └── report.md
+├── tests/               # Playwright / 单元测试骨架
+└── screenshots/         # 人工验证后放置的关键状态截图（可选）
 ```
 
 使用 `package_deliverable.py` 一键打包：
@@ -473,15 +481,17 @@ python scripts/webdev-long-horizon/package_deliverable.py \
   --agent codex
 ```
 
-> **注意**：交付包中的源码是 `sota/source/`，即从远端拉回来的 agent 修改后源码，而不是初始 baseline。初始 baseline 仍保留在 `projects/webdev-long-horizon/sources/<family>/<task-id>/`。
+> **注意**：
+> - 交付包严格遵循《高难度 Web Dev 长程任务数据采购需求 Draft》附录建议结构，只包含任务资产、`starter/` 和人工验证后的关键状态截图。
+> - `starter/` 是任务初始项目代码（来自 `projects/webdev-long-horizon/sources/<family>/<task-id>/`）；增量任务为父任务源码，Greenfield 任务为空目录（保留 `.gitkeep`）。
 
 交付前自检清单：
 
 - [ ] `task.md` 完整，无泄露答案
 - [ ] `PROMPT.md` 已生成，明确源码位置与交付要求
-- [ ] `sota/source/` 可 `npm install && npm run dev` 直接运行
+- [ ] `sessions/<session>/projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/` 可 `npm install && npm run dev` 直接运行
 - [ ] `rubric.json` 包含 10-20 个叶节点，覆盖六维度
-- [ ] `assets/` 包含桌面端和移动端参考截图
+- [ ] `assets/reference/` 包含桌面端和移动端参考截图
 - [ ] `mock-data/` 数据完整
 - [ ] `tests/` 测试骨架完整
 - [ ] 已通过 `validate_task.py` 校验

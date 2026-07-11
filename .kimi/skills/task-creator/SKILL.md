@@ -23,7 +23,7 @@ description: Create a high-quality long-horizon task in a specified project.
 4. 使用 `python scripts/webdev-long-horizon/create_task.py --project <id>` 生成任务骨架。
    - 若项目是层级结构（如 webdev-long-horizon），增量任务需传 `--parent <task-id>`。
 5. 填充 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
-6. 按项目约定准备源码（如 `starter/`、`sources/<family>/<task-id>/` 等）、`assets/` 参考截图、`mock-data/` 数据。
+6. 按项目约定准备源码（如 `starter/`、`sources/<family>/<task-id>/` 等）、`assets/` 任务素材（参考截图放 `assets/reference/`，其他素材按类型分子目录）、`mock-data/` 数据。
 7. 设计 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 8. 填写 `target_states.md` 与 `README.md`。
 9. 如项目约定需要 `PROMPT.md`（例如 webdev-long-horizon），按项目模板生成。

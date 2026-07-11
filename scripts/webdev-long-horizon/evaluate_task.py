@@ -6,12 +6,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 """基于 Rubric 评估 Agent 提交。"""
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 from utils.helpers import find_task_dir, load_json, save_json, workspace_root
 
 
-def evaluate(session_name: str, project_id: str, task_id: str, agent: str) -> Path:
+def evaluate(session_name: str, project_id: str, task_id: str, agent: str, model: str = "gpt-5.6-sol") -> Path:
     session_dir = workspace_root() / "sessions" / session_name
     task_dir = find_task_dir(project_id, task_id)
     if task_dir is None:
@@ -84,7 +85,35 @@ def evaluate(session_name: str, project_id: str, task_id: str, agent: str) -> Pa
 
     (report_dir / "report.md").write_text(md, encoding="utf-8")
 
+    # 更新任务目录的 sota-run.md（追加方式，不覆盖用户手动调整的内容）
+    update_sota_run(task_dir, project_id, session_name, agent, model, total_score)
+
     return report_dir
+
+
+def update_sota_run(task_dir: Path, project_id: str, session: str, agent: str, model: str, total_score: float) -> None:
+    """追加一条 SOTA 运行记录到任务目录的 sota-run.md，不覆盖用户手动调整的内容。"""
+    sota_run_path = task_dir / "sota-run.md"
+
+    record = f"""## Run: {session}
+
+- Agent: {agent}
+- Model: {model}
+- Date: {datetime.now().isoformat()}
+- Total Score: {total_score:.4f} / 1.00
+- Report: `sessions/{session}/projects/{project_id}/reports/{task_dir.name}/{agent}/`
+
+"""
+
+    if sota_run_path.exists():
+        content = sota_run_path.read_text(encoding="utf-8")
+        # 避免同一 session 重复追加
+        if f"## Run: {session}" in content:
+            return
+        sota_run_path.write_text(content.rstrip() + "\n\n" + record, encoding="utf-8")
+    else:
+        header = f"# SOTA Run Records: {task_dir.name}\n\n"
+        sota_run_path.write_text(header + record, encoding="utf-8")
 
 
 def main():
@@ -93,9 +122,10 @@ def main():
     parser.add_argument("--project", required=True, help="项目 ID")
     parser.add_argument("--task", required=True, help="任务 ID")
     parser.add_argument("--agent", default="codex", help="Agent 名称")
+    parser.add_argument("--model", default="gpt-5.6-sol", help="模型名称，默认 gpt-5.6-sol")
     args = parser.parse_args()
 
-    report_dir = evaluate(args.session, args.project, args.task, args.agent)
+    report_dir = evaluate(args.session, args.project, args.task, args.agent, args.model)
     print(f"评估报告已生成: {report_dir}")
 
 

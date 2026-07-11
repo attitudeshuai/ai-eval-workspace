@@ -157,12 +157,12 @@ projects/webdev-long-horizon/tasks/webdev-task-01/webdev-task-01.01/
 以下目录/文件根据任务需要补充：
 
 ```text
-  assets/              # 参考截图与素材
+  assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
   mock-data/           # mock 数据
   tests/               # Playwright / 单元测试
   target_states.md     # 关键状态说明
   sota-run.md          # SOTA 运行记录
-  screenshots/         # 最终截图
+  screenshots/         # 人工验证后放置的关键状态截图（可选）
 ```
 
 ---

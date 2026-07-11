@@ -57,7 +57,9 @@ projects/webdev-long-horizon/
 3. 生成完整项目需求的 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
 4. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 5. 生成 `target_states.md` 与 `README.md`。
-6. 准备 `assets/` 参考截图、`mock-data/` 数据。
+6. 准备 `assets/` 任务素材与 `mock-data/` 数据：
+   - 参考截图放 `assets/reference/`
+   - 图标、字体、示例图片等按需放 `assets/icons/`、`assets/fonts/`、`assets/images/`
 7. 处理源码：
    - **用户提供 starter**：放到 `projects/webdev-long-horizon/sources/<task-id>/<task-id>/`。
    - **AI 生成 starter**：基于 `projects/webdev-long-horizon/templates/starter/` 生成初始项目，放到 `projects/webdev-long-horizon/tasks/<task-id>/<task-id>/starter/`。

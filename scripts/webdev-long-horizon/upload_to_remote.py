@@ -4,12 +4,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 """
-将 webdev-long-horizon 任务的源码和 PROMPT.md 上传到远程机器。
+将 webdev-long-horizon 任务的源码、PROMPT.md 和必要任务素材上传到远程机器。
 
-任务资产（task.md、rubric.json、assets/、tests/ 等）保留在本地，不上传。
-远程仅保留运行 SOTA 所需的最小内容（<remote_dir> 来自 config.toml [remote].remote_dir，默认 /root/charles）：
+SOTA 运行时需要看到参考截图和测试骨架，因此除源码外，还会上传：
   <remote_dir>/<task-id>/source/      # 源码
-  <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt
+  <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt（默认用 PROMPT.md，不存在则用 task.md）
+  <remote_dir>/<task-id>/assets/      # 参考截图等任务素材
+  <remote_dir>/<task-id>/tests/       # 测试骨架（若存在）
+
+任务资产中的 rubric.json、target_states.md、README.md 等保留在本地，不上传。
 
 远程配置读取 projects/webdev-long-horizon/config.toml 中的 [remote] 段，
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
@@ -141,7 +144,7 @@ def main():
     parser.add_argument("--remote-user", default=config["user"], help="远程用户名")
     parser.add_argument("--remote-dir", default=config["remote_dir"], help="远程目标目录")
     parser.add_argument("--remote-password", default=config["password"], help="远程密码（不建议命令行传入）")
-    parser.add_argument("--prompt-file", help="本地 PROMPT.md 路径，默认 tasks/<family>/<task-id>/PROMPT.md")
+    parser.add_argument("--prompt-file", help="本地提示词文件路径，默认优先 tasks/<family>/<task-id>/PROMPT.md，不存在则用 task.md")
     args = parser.parse_args()
 
     task_id = args.task
@@ -152,7 +155,18 @@ def main():
     sources_family_dir = project_dir(project_id) / "sources" / family
     task_dir = tasks_family_dir / task_id
     source_dir = sources_family_dir / task_id
-    prompt_file = Path(args.prompt_file) if args.prompt_file else task_dir / "PROMPT.md"
+
+    if args.prompt_file:
+        prompt_file = Path(args.prompt_file)
+    else:
+        # 默认优先 PROMPT.md，不存在则用 task.md
+        if (task_dir / "PROMPT.md").exists():
+            prompt_file = task_dir / "PROMPT.md"
+        else:
+            prompt_file = task_dir / "task.md"
+
+    assets_dir = task_dir / "assets"
+    tests_dir = task_dir / "tests"
 
     if not task_dir.exists():
         print(f"错误：任务目录不存在: {task_dir}")
@@ -163,15 +177,21 @@ def main():
         sys.exit(1)
 
     if not prompt_file.exists():
-        print(f"错误：PROMPT.md 不存在: {prompt_file}")
+        print(f"错误：提示词文件不存在: {prompt_file}")
         sys.exit(1)
 
     source_tar = Path(f"{task_id}-source.tar.gz")
 
-    # 1. 打包源码（排除 node_modules 等），解压后路径为 <task-id>/source/
-    print(f"\n[1/3] 打包源码 {source_tar} ...")
+    # 1. 打包源码、assets、tests（排除 node_modules 等），解压后路径为 <task-id>/source/、<task-id>/assets/、<task-id>/tests/
+    print(f"\n[1/3] 打包源码与任务素材 {source_tar} ...")
     with tarfile.open(source_tar, "w:gz") as tar:
         tar.add(source_dir, arcname=f"{task_id}/source", filter=tar_filter)
+        if assets_dir.exists() and any(assets_dir.iterdir()):
+            tar.add(assets_dir, arcname=f"{task_id}/assets", filter=tar_filter)
+            print(f"  包含 assets/: {assets_dir}")
+        if tests_dir.exists() and any(tests_dir.iterdir()):
+            tar.add(tests_dir, arcname=f"{task_id}/tests", filter=tar_filter)
+            print(f"  包含 tests/: {tests_dir}")
 
     # 2. SSH 连接并上传
     print(f"\n[2/3] 连接远程 {args.remote_user}@{args.remote_host}:{args.remote_port} ...")
@@ -191,7 +211,7 @@ def main():
     # 上传源码包
     sftp_upload(client, source_tar, f"{remote_dir}/{source_tar.name}")
 
-    # 上传 PROMPT.md
+    # 上传 PROMPT.md（即使实际来源是 task.md，也统一命名为 PROMPT.md）
     remote_prompt_path = f"{remote_task_dir}/PROMPT.md"
     sftp_upload(client, prompt_file, remote_prompt_path)
 
@@ -211,7 +231,9 @@ def main():
     print(f"运行 codex（自动化需加 --dangerously-bypass-approvals-and-sandbox）：")
     print(f"  ssh {args.remote_user}@{args.remote_host} -p {args.remote_port}")
     print(f"  cd {remote_task_dir}/source")
-    print(f"  codex exec -m gpt-5.6-sol --dangerously-bypass-approvals-and-sandbox < {remote_task_dir}/PROMPT.md")
+    print(f"  codex exec -m gpt-5.6-sol --dangerously-bypass-approvals-and-sandbox \\")
+    print(f"    < {remote_task_dir}/PROMPT.md \\")
+    print(f"    > {remote_task_dir}/sota.log 2>&1")
 
 
 if __name__ == "__main__":

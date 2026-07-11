@@ -87,10 +87,13 @@ projects/webdev-long-horizon/
    python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
    ```
    此脚本会：
-   - 打包任务资产为 `webdev-task-01.01.tar.gz`
-   - 打包源码为 `webdev-task-01.01-source.tar.gz`
+   - 打包源码、`assets/`、`tests/` 为 `webdev-task-01.01-source.tar.gz`
    - 通过 SSH 上传到 `<remote_dir>/`
-   - 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
+   - 把提示词文件上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+   - 远程解压并整理出：
+     - `<remote_dir>/webdev-task-01.01/source/`
+     - `<remote_dir>/webdev-task-01.01/assets/`
+     - `<remote_dir>/webdev-task-01.01/tests/`
 4. 提示用户在远程运行 codex：
    ```bash
    ssh root@59.49.28.154 -p 7826
@@ -98,9 +101,11 @@ projects/webdev-long-horizon/
 
    # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
    # 若手动交互运行，可去掉该参数
+   # 建议把输出重定向到 sota.log，方便后续回收
    codex exec -m gpt-5.6-sol \
      --dangerously-bypass-approvals-and-sandbox \
-     < <remote_dir>/webdev-task-01.01/PROMPT.md
+     < <remote_dir>/webdev-task-01.01/PROMPT.md \
+     > <remote_dir>/webdev-task-01.01/sota.log 2>&1
    ```
 
 ## 远程产物回收
@@ -135,6 +140,6 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 
 ## 注意事项
 
-- 上传前确保 `PROMPT.md` 已生成，且明确告知 codex 源码位于 `./source`。
+- 上传前确保提示词文件已准备（优先 `PROMPT.md`，也可直接用 `task.md`），且明确告知 codex 源码位于 `./source`，参考截图位于同级 `assets/reference/`。
 - 若 mock 数据需要被源码读取，确保 `mock-data/` 已同时存在于任务目录和源码目录。
 - 远程运行结束后，使用 `evaluator` skill 对产物进行评估。

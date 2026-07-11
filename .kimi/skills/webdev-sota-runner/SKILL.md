@@ -74,12 +74,14 @@ cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
+# 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < <remote_dir>/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md \
+  > <remote_dir>/webdev-task-01.01/sota.log 2>&1
 ```
 
-> 如果元数据和源码是分开上传的，源码目录通常是 `<remote_dir>/webdev-task-01.01/source/`。
+> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`，运行日志建议保存到 `<remote_dir>/webdev-task-01.01/sota.log`。
 
 ## 工作流程
 
@@ -139,17 +141,11 @@ webdev-task-01.01/
 ├── rubric.json
 ├── target_states.md
 ├── sota-run.md
-├── assets/
+├── starter/           # 初始项目代码
+├── assets/            # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
 ├── mock-data/
 ├── tests/
-└── sota/
-    ├── source/          # 从远端拉下来的 agent 修改后源码
-    ├── screenshots/
-    ├── sota.log
-    ├── PROMPT.md
-    └── report/
-        ├── report.json
-        └── report.md
+└── screenshots/       # 人工验证后放置的关键状态截图（可选）
 ```
 
 打包结果：`deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz`
@@ -160,4 +156,5 @@ webdev-task-01.01/
 - 记录运行时长与估算消耗。
 - 若 agent 失败，记录失败模式。
 - 不修改原任务目录中的文件。
-- 最终交付包中的源码应使用从远端拉下来的 `sota/source/`，而不是初始 baseline。
+- 最终交付包严格遵循 Draft 附录建议结构，只包含任务资产、`starter/` 和 SOTA 最终截图。
+- `starter/` 是任务初始项目代码（来自 `projects/webdev-long-horizon/sources/<family>/<task-id>/`），需一并打包。

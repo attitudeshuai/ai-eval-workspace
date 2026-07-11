@@ -78,7 +78,9 @@ projects/webdev-long-horizon/
 5. AI 完善 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 6. AI 完善 `target_states.md` 与 `README.md`。
 7. 补充/新增 `mock-data/` 数据（如新增订单数据 `orders.json`），确保任务目录与 source 目录的 `mock-data/` 保持一致。
-8. 准备 `assets/` 参考截图（桌面端、移动端、空态、交互态等）。
+8. 准备 `assets/` 任务素材：
+   - 参考截图放 `assets/reference/`（如 `desktop.png`、`mobile.png`、`empty_state.png`、`interaction_state.png`）
+   - 如有图标、字体、示例图片等，分别放 `assets/icons/`、`assets/fonts/`、`assets/images/`
 9. 生成 `PROMPT.md`：
    - 基于 `task.md` 与项目模板 `projects/webdev-long-horizon/templates/PROMPT.md`
    - 明确告知 agent 源码位于 `./source` 或当前目录
