@@ -2,7 +2,9 @@
 
 本 Runbook 提供与 AI Agent 对话时的自然语言指令模板，用于一步一步完成从任务创建到评估的全流程。
 
-远程配置统一读取 `projects/webdev-long-horizon/config.toml` 中的 `[remote]` 段，密码读取 `projects/webdev-long-horizon/secrets.toml`（已加入 `.gitignore`，请勿提交）。
+远程配置统一读取 `projects/webdev-long-horizon/config.toml` 和 `projects/webdev-long-horizon/secrets.toml` 中的 `[remote]` 段（`secrets.toml` 已加入 `.gitignore`，请勿提交）。连接信息（host/port/user/password）集中在 `secrets.toml`，`remote_dir` 和 `secrets_file` 在 `config.toml`。
+
+下文示例中的 `<remote_dir>` 均指 `config.toml` 中 `[remote].remote_dir` 配置的值（当前默认 `/root/charles`）。若你修改了该值，请将示例中的 `<remote_dir>` 替换为实际路径。
 
 > 对应技术细节见 [OPERATIONAL_WORKFLOW.md](./OPERATIONAL_WORKFLOW.md)。
 
@@ -198,7 +200,7 @@ cp -r /path/to/your-kanban-starter/* \
 - 安装依赖并生成 lockfile
 - 实现所有功能并确保可构建、可运行
 
-`upload_to_remote.py` 会把这个空目录（以及 PROMPT.md）传到 remote，codex 会在 `/root/charles/webdev-task-02/source/` 下从零创建项目。
+`upload_to_remote.py` 会把这个空目录（以及 PROMPT.md）传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。
 
 > 注意：方式 B 对 `PROMPT.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
 
@@ -237,9 +239,9 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 此脚本会：
 
 1. 打包源码为 `webdev-task-01.01-source.tar.gz`
-2. 通过 SSH 上传到 `/root/charles/`
-3. 把 `PROMPT.md` 上传到 `/root/charles/webdev-task-01.01/PROMPT.md`
-4. 远程解压并整理出 `/root/charles/webdev-task-01.01/source/`
+2. 通过 SSH 上传到 `<remote_dir>/`
+3. 把 `PROMPT.md` 上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+4. 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
 
 任务资产（`task.md`、`rubric.json`、`assets/`、`tests/` 等）保留在本地，不上传。
 远程配置读取 `config.toml` 和 `secrets.toml`。
@@ -258,13 +260,13 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd /root/charles/webdev-task-01.01/source
+cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < /root/charles/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md
 ```
 
 > 注意：此步骤可能耗时较长。AI 会把命令给你，你可以选择自己盯着跑，或让 AI 后台运行并等待完成。
@@ -394,7 +396,7 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 帮我全流程跑一个基于 webdev-task-01 的增量任务：
 1. 创建任务并继承父源码：新增订单中心页面，标题"为本地生活平台新增订单中心页面"，medium 难度
 2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets
-3. 打包并上传到 /root/charles/ 远程目录
+3. 打包并上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol）
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
@@ -407,7 +409,7 @@ deliverables/webdev-long-horizon/webdev-task-01.01.tar.gz
 帮我全流程跑一个 Greenfield 任务：
 1. 创建无源码任务骨架：支持拖拽看板的任务管理系统，标题"支持拖拽看板的任务管理系统"，high 难度
 2. 生成/填充 task.md、PROMPT.md、rubric.json、mock-data、assets（source 目录保持为空）
-3. 把空的 source 目录和 PROMPT.md 上传到 /root/charles/ 远程目录
+3. 把空的 source 目录和 PROMPT.md 上传到 <remote_dir>/ 远程目录
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol），让 agent 从零创建完整项目
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告

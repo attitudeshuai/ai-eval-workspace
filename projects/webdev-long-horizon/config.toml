@@ -46,9 +46,7 @@ required_visual_input = true
 required_browser_tools = true
 
 [remote]
-host = "59.49.28.154"
-port = "7826"
-user = "root"
+# 连接信息（host/port/user/password）已集中到 secrets.toml（已加入 .gitignore，请勿提交）。
+# 如需覆盖，可在此声明；config.toml 中的值优先级低于 secrets.toml。
 remote_dir = "/root/charles"
-# 密码配置在 secrets.toml（已加入 .gitignore，请勿提交）。
 secrets_file = "secrets.toml"

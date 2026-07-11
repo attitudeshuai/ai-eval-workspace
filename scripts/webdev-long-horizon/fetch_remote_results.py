@@ -67,8 +67,10 @@ def load_remote_config(project_id: str) -> dict:
             if secrets_path.exists():
                 secrets = load_toml(secrets_path)
                 secrets_remote = secrets.get("remote", {})
-                if "password" in secrets_remote:
-                    defaults["password"] = secrets_remote["password"]
+                # secrets.toml 优先级最高，可覆盖 host/port/user/password
+                for key in ["host", "port", "user", "password"]:
+                    if key in secrets_remote:
+                        defaults[key] = secrets_remote[key]
         except Exception as e:
             print(f"警告：读取配置失败，使用默认配置: {e}")
 

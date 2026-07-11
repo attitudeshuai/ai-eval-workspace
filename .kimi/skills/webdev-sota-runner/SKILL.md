@@ -66,20 +66,20 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 将任务资产和源码上传到远程机器，直接运行 codex cli。此模式需配合 `webdev-task-packer` skill。
 
-远程机器示例：
+远程机器示例（`<remote_dir>` 来自 `projects/webdev-long-horizon/config.toml` 中 `[remote].remote_dir`；ssh 连接信息来自 `secrets.toml`）：
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd /root/charles/webdev-task-01.01/source
+cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < /root/charles/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md
 ```
 
-> 如果元数据和源码是分开上传的，源码目录通常是 `/root/charles/webdev-task-01.01/source/`。
+> 如果元数据和源码是分开上传的，源码目录通常是 `<remote_dir>/webdev-task-01.01/source/`。
 
 ## 工作流程
 
@@ -109,10 +109,10 @@ sessions/<session-name>/
       run.sh
 ```
 
-远程模式产物（默认在远程 `/root/charles/`）：
+远程模式产物（默认在远程 `<remote_dir>/`）：
 
 ```text
-/root/charles/webdev-task-01.01/
+<remote_dir>/webdev-task-01.01/
   source/               # codex 修改后的源码
   screenshots/          # 关键状态截图
   sota.log              # 运行日志（如果已保存）

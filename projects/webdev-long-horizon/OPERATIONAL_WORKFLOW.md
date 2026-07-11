@@ -212,21 +212,25 @@ python scripts/webdev-long-horizon/validate_project.py \
 
 ## 二、远程配置
 
-在 `projects/webdev-long-horizon/config.toml` 中配置远程机器：
+在 `projects/webdev-long-horizon/config.toml` 中配置远程工作目录：
+
+```toml
+[remote]
+# 连接信息（host/port/user/password）已集中到 secrets.toml（已加入 .gitignore，请勿提交）。
+# 如需覆盖，可在此声明；config.toml 中的值优先级低于 secrets.toml。
+remote_dir = "/root/charles"
+secrets_file = "secrets.toml"
+```
+
+> 下文示例中的 `<remote_dir>` 均指 `config.toml` 中 `[remote].remote_dir` 配置的值。若你修改了该值，请将示例中的 `<remote_dir>` 替换为实际路径。
+
+在 `projects/webdev-long-horizon/secrets.toml` 中配置远程连接信息（已加入 `.gitignore`）：
 
 ```toml
 [remote]
 host = "59.49.28.154"
 port = "7826"
 user = "root"
-remote_dir = "/root/charles"
-secrets_file = "secrets.toml"
-```
-
-在 `projects/webdev-long-horizon/secrets.toml` 中配置密码（已加入 `.gitignore`）：
-
-```toml
-[remote]
 password = "your-password"
 ```
 
@@ -245,9 +249,9 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 此脚本会：
 
 1. 打包源码为 `webdev-task-01.01-source.tar.gz`（自动排除 `node_modules`、`.git` 等）
-2. 通过 SSH 上传到 `/root/charles/`
-3. 把 `PROMPT.md` 上传到 `/root/charles/webdev-task-01.01/PROMPT.md`
-4. 远程解压并整理出 `/root/charles/webdev-task-01.01/source/`
+2. 通过 SSH 上传到 `<remote_dir>/`
+3. 把 `PROMPT.md` 上传到 `<remote_dir>/webdev-task-01.01/PROMPT.md`
+4. 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
 
 > 远程配置从 `config.toml` 和 `secrets.toml` 读取。
 > 若源码来自内置 starter，请先放到 `sources/<family>/<task-id>/` 再上传。
@@ -260,16 +264,16 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-01.01
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd /root/charles/webdev-task-01.01/source
+cd <remote_dir>/webdev-task-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < /root/charles/webdev-task-01.01/PROMPT.md
+  < <remote_dir>/webdev-task-01.01/PROMPT.md
 ```
 
-> 源码目录为 `/root/charles/webdev-task-01.01/source/`，PROMPT 文件在 `/root/charles/webdev-task-01.01/PROMPT.md`。
+> 源码目录为 `<remote_dir>/webdev-task-01.01/source/`，PROMPT 文件在 `<remote_dir>/webdev-task-01.01/PROMPT.md`。
 
 ### 4.2 使用 task.md 运行（不推荐）
 
@@ -279,7 +283,7 @@ codex exec -m gpt-5.6-sol \
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
-  < /root/charles/webdev-task-01.01/task.md
+  < <remote_dir>/webdev-task-01.01/task.md
 ```
 
 ### 4.3 Prompt 中必须包含的交付要求
@@ -301,9 +305,9 @@ codex exec -m gpt-5.6-sol \
 
 ```bash
 #!/bin/bash
-# /root/charles/batch_run_sota.sh
+# <remote_dir>/batch_run_sota.sh
 
-TASKS_DIR=/root/charles
+TASKS_DIR=<remote_dir>
 for task_dir in $TASKS_DIR/webdev-task-*; do
   task_id=$(basename $task_dir)
   echo "=== Running SOTA for $task_id ==="
@@ -312,15 +316,15 @@ for task_dir in $TASKS_DIR/webdev-task-*; do
     --dangerously-bypass-approvals-and-sandbox \
     < $task_dir/PROMPT.md \
     > $task_dir/sota.log 2>&1
-  cd /root/charles
+  cd <remote_dir>
 done
 ```
 
 执行：
 
 ```bash
-chmod +x /root/charles/batch_run_sota.sh
-/root/charles/batch_run_sota.sh
+chmod +x <remote_dir>/batch_run_sota.sh
+<remote_dir>/batch_run_sota.sh
 ```
 
 > 注意：codex cli 的具体参数可能因版本不同而略有差异，请以远程机器上实际安装的版本为准。
@@ -372,8 +376,8 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 如果脚本不可用，可手动打包拉回：
 
 ```bash
-ssh root@59.49.28.154 -p 7826 "cd /root/charles && tar czvf webdev-task-01.01-results.tar.gz webdev-task-01.01"
-scp -P 7826 root@59.49.28.154:/root/charles/webdev-task-01.01-results.tar.gz ./
+ssh root@59.49.28.154 -p 7826 "cd <remote_dir> && tar czvf webdev-task-01.01-results.tar.gz webdev-task-01.01"
+scp -P 7826 root@59.49.28.154:<remote_dir>/webdev-task-01.01-results.tar.gz ./
 tar xzvf webdev-task-01.01-results.tar.gz
 ```
 
@@ -543,7 +547,7 @@ codex --help
 | 打包任务元数据          | `tar czvf webdev-task-01.01.tar.gz -C projects/webdev-long-horizon/tasks/webdev-task-01 webdev-task-01.01`                               |
 | 打包源码                | `tar czvf webdev-task-01.01-source.tar.gz -C projects/webdev-long-horizon/sources/webdev-task-01 webdev-task-01.01`                    |
 | 打包最终交付资产        | `python scripts/webdev-long-horizon/package_deliverable.py --task webdev-task-01.01 --session <session> --agent codex`                                      |
-| 上传远程                | `scp -P 7826 webdev-task-01.01.tar.gz root@59.49.28.154:/root/charles/`                                                                  |
+| 上传远程                | `scp -P 7826 webdev-task-01.01.tar.gz root@59.49.28.154:<remote_dir>/`                                                                  |
 | 运行 SOTA               | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex`                    |
 | 运行 SOTA（指定源码）   | `python scripts/webdev-long-horizon/run_sota.py --session <session> --project webdev-long-horizon --task webdev-task-01.01 --agent codex --source-dir <path>` |
 | 回收远程产物            | `python scripts/webdev-long-horizon/fetch_remote_results.py --task webdev-task-01.01 --agent codex --session <session>`                                      |

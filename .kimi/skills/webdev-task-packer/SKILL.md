@@ -13,21 +13,27 @@ description: Pack a webdev-long-horizon task and its source code, then upload to
 
 ## 远程配置
 
-远程配置统一读取 `projects/webdev-long-horizon/config.toml` 中的 `[remote]` 段：
+远程配置统一读取 `projects/webdev-long-horizon/config.toml` 和 `secrets.toml` 中的 `[remote]` 段：
+
+`config.toml`（可提交）：
+
+```toml
+[remote]
+# 连接信息（host/port/user/password）已集中到 secrets.toml。
+# 如需覆盖，可在此声明；config.toml 中的值优先级低于 secrets.toml。
+remote_dir = "/root/charles"
+secrets_file = "secrets.toml"
+```
+
+> 下文示例中的 `<remote_dir>` 均指 `config.toml` 中 `[remote].remote_dir` 配置的值。若你修改了该值，请将示例中的 `<remote_dir>` 替换为实际路径。
+
+`secrets.toml`（已加入 `.gitignore`，请勿提交）：
 
 ```toml
 [remote]
 host = "59.49.28.154"
 port = "7826"
 user = "root"
-remote_dir = "/root/charles"
-secrets_file = "secrets.toml"
-```
-
-密码读取 `projects/webdev-long-horizon/secrets.toml`（已加入 `.gitignore`，请勿提交）：
-
-```toml
-[remote]
 password = "your-password"
 ```
 
@@ -48,7 +54,7 @@ projects/webdev-long-horizon/
 远程运行时期望的目录结构：
 
 ```text
-/root/charles/webdev-task-01.01/
+<remote_dir>/webdev-task-01.01/
 ├── source/               # 源码
 ├── PROMPT.md             # 提示词
 └── ...
@@ -83,18 +89,18 @@ projects/webdev-long-horizon/
    此脚本会：
    - 打包任务资产为 `webdev-task-01.01.tar.gz`
    - 打包源码为 `webdev-task-01.01-source.tar.gz`
-   - 通过 SSH 上传到 `/root/charles/`
-   - 远程解压并整理出 `/root/charles/webdev-task-01.01/source/`
+   - 通过 SSH 上传到 `<remote_dir>/`
+   - 远程解压并整理出 `<remote_dir>/webdev-task-01.01/source/`
 4. 提示用户在远程运行 codex：
    ```bash
    ssh root@59.49.28.154 -p 7826
-   cd /root/charles/webdev-task-01.01/source
+   cd <remote_dir>/webdev-task-01.01/source
 
    # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
    # 若手动交互运行，可去掉该参数
    codex exec -m gpt-5.6-sol \
      --dangerously-bypass-approvals-and-sandbox \
-     < /root/charles/webdev-task-01.01/PROMPT.md
+     < <remote_dir>/webdev-task-01.01/PROMPT.md
    ```
 
 ## 远程产物回收

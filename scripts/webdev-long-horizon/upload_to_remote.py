@@ -7,9 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 将 webdev-long-horizon 任务的源码和 PROMPT.md 上传到远程机器。
 
 任务资产（task.md、rubric.json、assets/、tests/ 等）保留在本地，不上传。
-远程仅保留运行 SOTA 所需的最小内容：
-  /root/charles/<task-id>/source/      # 源码
-  /root/charles/<task-id>/PROMPT.md    # SOTA prompt
+远程仅保留运行 SOTA 所需的最小内容（<remote_dir> 来自 config.toml [remote].remote_dir，默认 /root/charles）：
+  <remote_dir>/<task-id>/source/      # 源码
+  <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt
 
 远程配置读取 projects/webdev-long-horizon/config.toml 中的 [remote] 段，
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
@@ -62,8 +62,10 @@ def load_remote_config(project_id: str) -> dict:
             if secrets_path.exists():
                 secrets = load_toml(secrets_path)
                 secrets_remote = secrets.get("remote", {})
-                if "password" in secrets_remote:
-                    defaults["password"] = secrets_remote["password"]
+                # secrets.toml 优先级最高，可覆盖 host/port/user/password
+                for key in ["host", "port", "user", "password"]:
+                    if key in secrets_remote:
+                        defaults[key] = secrets_remote[key]
         except Exception as e:
             print(f"警告：读取配置失败，使用默认配置: {e}")
 
