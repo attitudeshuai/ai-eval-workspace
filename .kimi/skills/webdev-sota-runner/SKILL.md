@@ -90,7 +90,7 @@ codex exec -m gpt-5.6-sol \
    - `projects/webdev-long-horizon/sources/<family>/<task-id>/`
    - `projects/webdev-long-horizon/tasks/<family>/<task-id>/starter/`
 3. 创建会话目录：`sessions/<session-name>/`。
-4. 将源码复制到 `sessions/.../projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/`。
+4. 将源码复制到 `sessions/webdev-long-horizon/<session>/submissions/<task-id>/<task-id>/`。
 5. 运行 agent：
    - 本地模式：由 `run_sota.py` 自动调用 agent。
    - 远程模式：提示用户参考 `webdev-task-packer` skill 上传后执行 codex。

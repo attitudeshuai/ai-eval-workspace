@@ -47,7 +47,7 @@ sessions/session-sota-YYYY-MM-NNN-<agent>/
 ### 4. 准备源码
 
 按项目约定找到任务源码目录（如 `starter/`、`sources/<family>/<task-id>/` 等），复制到：
-`sessions/.../projects/<project-id>/submissions/<task-id>/<agent>/source/`
+`sessions/.../<project-id>/<session>/submissions/<task-id>/<task-id>/`
 
 ### 5. 生成 Prompt
 

@@ -87,13 +87,13 @@ def run_sota(
     agent: str,
     source_dir_override: Path | None = None,
 ) -> Path:
-    session_dir = workspace_root() / "sessions" / session_name
+    session_dir = workspace_root() / "sessions" / project_id / session_name
     if session_dir.exists():
         raise FileExistsError(f"会话已存在: {session_dir}")
 
     task_id = task_dir.name
     submission_dir = (
-        session_dir / "projects" / project_id / "submissions" / task_id / agent
+        session_dir / "submissions" / task_id / task_id
     )
     source_dir = submission_dir / "source"
     screenshots_dir = submission_dir / "screenshots"

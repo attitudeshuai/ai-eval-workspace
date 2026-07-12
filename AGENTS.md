@@ -82,8 +82,8 @@ python scripts/generate_report.py --session <name>
 
 ## 输出产物位置
 
-- SOTA 产物：`sessions/<session>/projects/<project-id>/submissions/<task-id>/<agent>/`
-- 评估报告：`sessions/<session>/projects/<project-id>/reports/<task-id>/<agent>/`
+- SOTA 产物：`sessions/<project-id>/<session>/submissions/<task-id>/<task-id>/`
+- 评估报告：`sessions/<project-id>/<session>/reports/<task-id>/<task-id>/`
 - 最终交付包：`deliverables/<project-id>/<task-id>.tar.gz`
 - 全局汇总：`benchmarks/global/`
 - 项目汇总：`benchmarks/by-project/<project-id>/`

@@ -469,7 +469,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 
 - [ ] `task.md` 完整，无泄露答案
 - [ ] `task.md` 已明确源码位置、参考素材位置与交付要求
-- [ ] `sessions/<session>/projects/webdev-long-horizon/submissions/<task-id>/<agent>/source/` 可 `npm install && npm run dev` 直接运行
+- [ ] `sessions/webdev-long-horizon/<session>/submissions/<task-id>/<task-id>/` 可 `npm install && npm run dev` 直接运行
 - [ ] `rubric.json` 包含 10-20 个叶节点，覆盖六维度
 - [ ] `assets/reference/` 包含桌面端和移动端参考截图
 - [ ] `mock-data/` 数据完整

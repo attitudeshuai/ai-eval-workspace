@@ -13,12 +13,12 @@ from utils.helpers import find_task_dir, load_json, save_json, workspace_root
 
 
 def evaluate(session_name: str, project_id: str, task_id: str, agent: str, model: str = "gpt-5.6-sol") -> Path:
-    session_dir = workspace_root() / "sessions" / session_name
+    session_dir = workspace_root() / "sessions" / project_id / session_name
     task_dir = find_task_dir(project_id, task_id)
     if task_dir is None:
         raise FileNotFoundError(f"找不到任务: {task_id}")
-    submission_dir = session_dir / "projects" / project_id / "submissions" / task_id / agent
-    report_dir = session_dir / "projects" / project_id / "reports" / task_id / agent
+    submission_dir = session_dir / "submissions" / task_id / task_id
+    report_dir = session_dir / "reports" / task_id / task_id
     evidence_dir = report_dir / "evidence"
     evidence_dir.mkdir(parents=True, exist_ok=True)
 
@@ -101,7 +101,7 @@ def update_sota_run(task_dir: Path, project_id: str, session: str, agent: str, m
 - Model: {model}
 - Date: {datetime.now().isoformat()}
 - Total Score: {total_score:.4f} / 1.00
-- Report: `sessions/{session}/projects/{project_id}/reports/{task_dir.name}/{agent}/`
+- Report: `sessions/{project_id}/{session}/reports/{task_dir.name}/{task_dir.name}/`
 
 """
 

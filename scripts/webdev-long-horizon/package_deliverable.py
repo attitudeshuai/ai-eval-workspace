@@ -47,8 +47,8 @@ def package_deliverable(
     if task_dir is None:
         raise FileNotFoundError(f"找不到任务: {task_id}")
 
-    session_dir = ws / "sessions" / session / "projects" / project_id
-    submission_dir = session_dir / "submissions" / task_id / agent
+    session_dir = ws / "sessions" / project_id / session
+    submission_dir = session_dir / "submissions" / task_id / task_id
 
     if not submission_dir.exists():
         raise FileNotFoundError(f"找不到 SOTA 产物: {submission_dir}")

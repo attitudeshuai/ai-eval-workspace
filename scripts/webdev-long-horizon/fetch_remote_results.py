@@ -158,7 +158,7 @@ def main():
         sys.exit(1)
 
     if args.session:
-        local_base = Path("sessions") / args.session / "projects" / project_id / "submissions" / task_id / agent
+        local_base = Path("sessions") / project_id / args.session / "submissions" / task_id / task_id
         local_base.mkdir(parents=True, exist_ok=True)
         local_temp = local_base
     elif args.output:

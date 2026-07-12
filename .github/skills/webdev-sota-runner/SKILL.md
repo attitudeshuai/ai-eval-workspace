@@ -122,13 +122,10 @@ python scripts/webdev-long-horizon/fetch_remote_results.py \
 **本地模式**：
 
 ```text
-sessions/<session-name>/
-  projects/webdev-long-horizon/
-    submissions/<task-id>/<agent>/
-      source/               # agent 修改后的源码
-      screenshots/          # 关键状态截图
-      PROMPT.md             # 由 run_sota.py 基于 task.md 生成
-      run.sh
+sessions/webdev-long-horizon/<session-name>/
+  submissions/<task-id>/<task-id>/
+    PROMPT.md             # 由 run_sota.py 基于 task.md 生成
+    run.sh
 ```
 
 **远程模式**（默认在远程 `<remote_dir>/`）：

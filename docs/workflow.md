@@ -67,7 +67,7 @@ python scripts/webdev-long-horizon/evaluate_task.py \
 - 使用项目自己的 Rubric
 - 使用 LLM judge 或人工 review
 
-工作台只提供评估产物的存放位置：`sessions/<session>/projects/<project-id>/reports/<agent>/`。
+工作台只提供评估产物的存放位置：`sessions/<project-id>/<session>/reports/<task-id>/`。
 
 ---
 

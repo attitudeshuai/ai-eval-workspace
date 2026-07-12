@@ -11,7 +11,7 @@
 1. 确认目标项目 ID 与任务 ID。
 2. 读取 `projects/<id>/tasks/<task-id>/rubric.json`。
 3. 读取 SOTA 产物：
-   - 本地运行：`sessions/.../projects/<id>/submissions/<task-id>/<agent>/`
+   - 本地运行：`sessions/<project-id>/<session>/submissions/<task-id>/<task-id>/`
    - 远程运行：需先将 `<remote_dir>/<task-id>/` 产物拉回本地，并放入标准 session 目录，或使用 `webdev-task-packer` skill 回收产物。（`<remote_dir>` 来自项目 `config.toml` 中 `[remote].remote_dir`，默认 `/root/charles`）
 4. 对每个 Rubric 叶节点收集证据：
    - `playwright_assertion`：运行 Playwright 测试
@@ -21,7 +21,7 @@
    - `llm_judge`：使用 LLM 评估视觉/交互质量
    - `manual_review`：人工 review
 5. 计算加权得分，生成 `report.json` 与 `report.md`。
-6. 将证据保存到 `sessions/.../projects/<id>/reports/<task-id>/<agent>/evidence/`。
+6. 将证据保存到 `sessions/<project-id>/<session>/reports/<task-id>/<task-id>/evidence/`。
 
 ## 评分规则
 
