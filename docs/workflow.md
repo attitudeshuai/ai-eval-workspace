@@ -71,9 +71,9 @@ python scripts/webdev-long-horizon/evaluate_task.py \
 
 ---
 
-## 阶段五：打包交付（可选）
+## 阶段五：打包交付
 
-部分项目需要把任务资产与 SOTA 产物打包为最终交付包：
+部分项目需要把任务资产与 SOTA 产物整理为交付文件夹：
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
@@ -82,9 +82,11 @@ python scripts/webdev-long-horizon/package_deliverable.py \
   --agent codex
 ```
 
-输出：`deliverables/<project-id>/<task-id>.tar.gz`
+输出：`deliverables/<project-id>/<task-id>/`
 
-> 具体交付格式由项目自定义；`package_deliverable.py` 目前主要用于 `webdev-long-horizon` 项目。
+交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节。
+
+> `package_deliverable.py` 目前主要用于 `webdev-long-horizon` 项目。
 
 ## 阶段六：汇总
 

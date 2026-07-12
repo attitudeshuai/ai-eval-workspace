@@ -18,7 +18,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     ├── assets/              # 参考截图与素材
     ├── mock-data/           # mock 数据
     ├── tests/               # Playwright / 单元测试骨架
-    └── screenshots/         # 人工验证后放置的关键状态截图（可选）
+    └── screenshots/         # 关键状态截图
+
+输出为文件夹 `deliverables/<project-id>/<task-id>/`，不再打包 tar.gz。
+
+交付前需确保 README.md 包含「已知限制」章节。
 
 用法：
     python scripts/webdev-long-horizon/package_deliverable.py \
@@ -105,18 +109,7 @@ def package_deliverable(
         # 保留空目录占位，方便 tar 打包
         (starter_dir / ".gitkeep").write_text("", encoding="utf-8")
 
-    # 3. 打包
-    tar_path = project_output_dir / f"{task_id}.tar.gz"
-    if tar_path.exists():
-        tar_path.unlink()
-
-    with tarfile.open(tar_path, "w:gz") as tar:
-        tar.add(deliverable_dir, arcname=task_id)
-
-    # 4. 仅保留 tar.gz，删除中间解压目录
-    shutil.rmtree(deliverable_dir)
-
-    return tar_path
+    return deliverable_dir
 
 
 def main():
@@ -128,14 +121,14 @@ def main():
     parser.add_argument("--output", default="deliverables", help="输出目录，默认 deliverables/")
     args = parser.parse_args()
 
-    tar_path = package_deliverable(
+    deliverable_dir = package_deliverable(
         args.task,
         args.session,
         args.agent,
         args.project,
         args.output,
     )
-    print(f"交付包已生成: {tar_path}")
+    print(f"交付文件夹已生成: {deliverable_dir}")
 
 
 if __name__ == "__main__":

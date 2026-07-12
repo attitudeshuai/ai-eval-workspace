@@ -118,9 +118,9 @@ sessions/webdev-long-horizon/<session-name>/
   sota-run.md          # 运行记录（含完整日志）
 ```
 
-## 最终交付打包
+## 最终交付
 
-SOTA 运行、回收产物并生成评估报告后，使用 `package_deliverable.py` 一键打包最终交付资产：
+SOTA 运行、回收产物并生成评估报告后，使用 `package_deliverable.py` 生成交付文件夹：
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
@@ -129,25 +129,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
   --agent codex
 ```
 
-交付包结构（tar.gz 解压后）：
-
-```text
-{prefix}-01.01/
-├── task.md
-├── metadata.json
-├── README.md
-├── rubric.json
-├── target_states.md
-├── sota-run.md
-├── sota-run.md        # 运行记录（含完整日志）
-├── starter/           # 初始项目代码
-├── assets/            # 任务素材
-├── mock-data/
-├── tests/
-└── screenshots/       # 关键状态截图
-```
-
-打包结果：`deliverables/webdev-long-horizon/{prefix}-01.01.tar.gz`
+交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节。输出为文件夹 `deliverables/webdev-long-horizon/{prefix}-01.01/`。
 
 ## 注意事项
 
@@ -155,5 +137,4 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 - 记录运行时长与估算消耗。
 - 若 agent 失败，记录失败模式。
 - 不修改原任务目录中的文件。
-- 最终交付包严格遵循 Draft 附录建议结构，只包含任务资产、`starter/` 和 SOTA 最终截图。
-- `starter/` 是任务初始项目代码（来自 `projects/webdev-long-horizon/sources/<family>/<task-id>/`），需一并打包。
+- 交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节，输出为文件夹。

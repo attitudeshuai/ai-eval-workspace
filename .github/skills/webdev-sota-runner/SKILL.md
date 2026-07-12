@@ -140,9 +140,9 @@ sessions/webdev-long-horizon/<session-name>/
   sota-run.md               # 运行记录（含完整日志）
 ```
 
-## 最终交付打包
+## 最终交付
 
-SOTA 运行完成并生成评估报告后，打包最终交付资产：
+SOTA 运行完成并生成评估报告后，生成交付文件夹：
 
 ```bash
 python scripts/webdev-long-horizon/package_deliverable.py \
@@ -151,25 +151,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
   --agent <agent>
 ```
 
-交付包结构（tar.gz 解压后）：
-
-```text
-<task-id>/
-├── task.md
-├── metadata.json
-├── README.md
-├── rubric.json
-├── target_states.md
-├── sota-run.md
-├── sota-run.md            # 运行记录（含完整日志）
-├── starter/               # 初始项目代码
-├── assets/                # 任务素材
-├── mock-data/
-├── tests/
-└── screenshots/           # 关键状态截图
-```
-
-打包结果：`deliverables/webdev-long-horizon/<task-id>.tar.gz`
+交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节。输出为文件夹 `deliverables/webdev-long-horizon/<task-id>/`。
 
 ## 注意事项
 
@@ -177,7 +159,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 - 记录运行时长与估算消耗
 - 若 agent 失败，记录失败模式
 - 不修改原任务目录中的文件
-- 最终交付包只包含任务资产、`starter/` 和 SOTA 最终截图
+- 最终交付文件夹只包含任务资产、`starter/` 和 SOTA 最终截图
 
 ## 与其他 Skill 的关系
 
