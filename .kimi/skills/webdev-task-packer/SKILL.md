@@ -89,17 +89,16 @@ projects/webdev-long-horizon/
    - 通过 SSH 上传到 `<remote_dir>/`
    - 把提示词文件上传到 `<remote_dir>/{prefix}-01.01/PROMPT.md`
    - 远程解压并整理出：
-     - `<remote_dir>/{prefix}-01.01/`（源码）
+     - `<remote_dir>/{prefix}-01.01/{prefix}-01.01/`（源码）
      - `<remote_dir>/{prefix}-01.01/assets/`
      - `<remote_dir>/{prefix}-01.01/tests/`
+     - `<remote_dir>/{prefix}-01.01/mock-data/`
 4. 提示用户在远程运行 codex：
    ```bash
    ssh root@59.49.28.154 -p 7826
-   cd <remote_dir>/{prefix}-01.01/source
+   cd <remote_dir>/{prefix}-01.01/{prefix}-01.01
 
    # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
-   # 若手动交互运行，可去掉该参数
-   # 建议把输出重定向到 sota.log，方便后续回收
    codex exec -m gpt-5.6-sol \
      --dangerously-bypass-approvals-and-sandbox \
      < <remote_dir>/{prefix}-01.01/PROMPT.md \

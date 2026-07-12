@@ -96,10 +96,9 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task <task-id>
 
 ```bash
 ssh <host> -p <port>
-cd <remote_dir>/<task-id>
+cd <remote_dir>/<task-id>/<task-id>
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
-# 若手动交互运行，可去掉该参数
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/<task-id>/PROMPT.md \

@@ -70,18 +70,16 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/{prefix}-01.01
+cd <remote_dir>/{prefix}-01.01/{prefix}-01.01
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
-# 若手动交互运行，可去掉该参数
-# 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/{prefix}-01.01/PROMPT.md \
   > <remote_dir>/{prefix}-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/{prefix}-01.01/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/{prefix}-01.01/{prefix}-01.01/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`，运行日志保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
 
 ## 工作流程
 
@@ -102,22 +100,22 @@ codex exec -m gpt-5.6-sol \
 本地模式产物：
 
 ```text
-sessions/<session-name>/
-  projects/webdev-long-horizon/
-    submissions/<task-id>/<agent>/
-      source/
-      screenshots/
-      PROMPT.md           # 由 run_sota.py 基于 task.md 生成
-      run.sh
+sessions/webdev-long-horizon/<session-name>/
+  submissions/<task-id>/<task-id>/
+    PROMPT.md           # 由 run_sota.py 基于 task.md 生成
+    run.sh
 ```
 
 远程模式产物（默认在远程 `<remote_dir>/`）：
 
 ```text
 <remote_dir>/{prefix}-01.01/
-  source/               # codex 修改后的源码
-  screenshots/          # 关键状态截图
-  sota.log              # 运行日志（如果已保存）
+  {prefix}-01.01/       # codex 修改后的源码
+  PROMPT.md             # 提示词
+  assets/               # 任务素材
+  tests/                # 测试骨架
+  mock-data/            # mock 数据
+  sota.log              # 运行日志
 ```
 
 ## 最终交付打包
@@ -141,11 +139,12 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 ├── rubric.json
 ├── target_states.md
 ├── sota-run.md
+├── sota.log           # 运行日志
 ├── starter/           # 初始项目代码
-├── assets/            # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
+├── assets/            # 任务素材
 ├── mock-data/
 ├── tests/
-└── screenshots/       # 人工验证后放置的关键状态截图（可选）
+└── screenshots/       # 关键状态截图
 ```
 
 打包结果：`deliverables/webdev-long-horizon/{prefix}-01.01.tar.gz`

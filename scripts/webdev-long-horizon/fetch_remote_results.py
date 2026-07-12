@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 """
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -158,7 +159,7 @@ def main():
         sys.exit(1)
 
     if args.session:
-        local_base = Path("sessions") / project_id / args.session / "submissions"
+        local_base = Path("sessions") / project_id / args.session / "submissions" / task_id
         local_base.mkdir(parents=True, exist_ok=True)
         local_temp = local_base
     elif args.output:
@@ -203,13 +204,21 @@ def main():
     extracted_dir = local_temp / task_id
     if args.session:
         print(f"\n[4/4] 整理到 session 目录 {local_base} ...")
-        # 源码已在 extracted_dir 中，清理 tar 内残留的 assets/tests/PROMPT.md（原始任务素材）
-        for junk in ["assets", "tests", "PROMPT.md", "run.sh"]:
-            p = extracted_dir / junk
-            if p.is_dir():
-                shutil.rmtree(p, ignore_errors=True)
-            elif p.exists():
-                p.unlink()
+        if extracted_dir.exists():
+            # tar 解压可能产生 {task_id}/{task_id}/ 嵌套，把内层提上来
+            nested_src = extracted_dir / task_id
+            if nested_src.is_dir():
+                tmp = local_temp / f"_tmp_{task_id}"
+                shutil.move(str(nested_src), str(tmp))
+                shutil.rmtree(str(extracted_dir))
+                os.rename(str(tmp), str(extracted_dir))
+            # 清理 tar 内残留的 assets/tests/PROMPT.md（原始任务素材）
+            for junk in ["assets", "tests", "PROMPT.md", "run.sh"]:
+                p = extracted_dir / junk
+                if p.is_dir():
+                    shutil.rmtree(p, ignore_errors=True)
+                elif p.exists():
+                    p.unlink()
         # 删除 tar.gz
         if local_tar.exists():
             local_tar.unlink()

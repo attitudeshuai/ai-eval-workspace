@@ -161,6 +161,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 ├── rubric.json
 ├── target_states.md
 ├── sota-run.md
+├── sota.log               # 运行日志
 ├── starter/               # 初始项目代码
 ├── assets/                # 任务素材
 ├── mock-data/
