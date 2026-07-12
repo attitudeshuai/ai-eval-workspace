@@ -359,27 +359,50 @@ python scripts/webdev-long-horizon/package_deliverable.py \
   --agent codex
 ```
 
-交付包结构（tar.gz 解压后）：
+交付前需确保 README.md 包含「启动方式、测试方式、目录结构、已知限制」章节。输出为文件夹：
 
 ```text
-webdev-task-sxw-01.01/
-├── task.md              # 任务需求
-├── metadata.json        # 任务元数据
-├── README.md            # 启动与测试说明
-├── rubric.json          # 验收标准
-├── target_states.md     # 关键状态说明
-├── sota-run.md          # SOTA 运行记录
-├── starter/             # 初始项目代码
-├── assets/              # 任务素材（参考截图放 assets/reference/，其他按类型分子目录）
-├── mock-data/           # mock 数据
-├── tests/               # Playwright / 单元测试骨架
-└── screenshots/         # 人工验证后放置的关键状态截图（可选）
+deliverables/webdev-long-horizon/webdev-task-sxw-01.01/
 ```
 
-打包结果：
+---
+
+## 第 9 步：发布到 GitHub
+
+将交付文件夹初始化为 git 仓库并推送到 GitHub 公开仓库。
+
+**前置**：在 `projects/webdev-long-horizon/secrets.toml` 中配置 GitHub 凭据：
+
+```toml
+[github]
+username = "your-username"
+token = "ghp_xxx"
+```
+
+### 指令模板
 
 ```text
-deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
+把 deliverables/webdev-long-horizon/webdev-task-sxw-01.01 发布到 GitHub
+```
+
+### AI 会执行
+
+```bash
+python scripts/webdev-long-horizon/publish_to_github.py \
+  --task webdev-task-sxw-01.01 \
+  --deliverable deliverables/webdev-long-horizon/webdev-task-sxw-01.01
+```
+
+脚本自动完成：
+1. git init + 生成 .gitignore
+2. 提交所有文件
+3. 通过 GitHub API 创建公开仓库
+4. 推送 master 分支
+
+发布结果：
+
+```text
+https://github.com/<username>/webdev-task-sxw-01.01
 ```
 
 ---
@@ -398,7 +421,8 @@ deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol）
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
-7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
+7. 把任务资产、starter/ 和 SOTA 最终截图整理为交付文件夹 deliverables/webdev-long-horizon/webdev-task-sxw-01.01/
+8. 发布交付文件夹到 GitHub 公开仓库 https://github.com/<username>/webdev-task-sxw-01.01
 ```
 
 ### Greenfield 任务（无源码）
@@ -411,5 +435,6 @@ deliverables/webdev-long-horizon/webdev-task-sxw-01.01.tar.gz
 4. 在 remote 上用 codex-cli 运行（模型 gpt-5.6-sol），让 agent 从零创建完整项目
 5. 运行完成后把产物拉回本地，整理到标准 session 目录
 6. 基于 rubric.json 生成评估报告
-7. 把任务资产、starter/ 和 SOTA 最终截图打包成最终交付包 deliverables/webdev-long-horizon/webdev-task-02.tar.gz
+7. 把任务资产、starter/ 和 SOTA 最终截图整理为交付文件夹 deliverables/webdev-long-horizon/webdev-task-02/
+8. 发布交付文件夹到 GitHub 公开仓库 https://github.com/<username>/webdev-task-02
 ```

@@ -153,6 +153,18 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 
 交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节。输出为文件夹 `deliverables/webdev-long-horizon/<task-id>/`。
 
+## 发布到 GitHub
+
+将交付文件夹发布为 GitHub 公开仓库：
+
+```bash
+python scripts/webdev-long-horizon/publish_to_github.py \
+  --task <task-id> \
+  --deliverable deliverables/webdev-long-horizon/<task-id>
+```
+
+GitHub 凭据配置在 `projects/webdev-long-horizon/secrets.toml` 的 `[github]` 段。
+
 ## 注意事项
 
 - 推荐将源码放到 `sources/<family>/<task-id>/`，目录名与任务 ID 一致，无需传 `--source-dir`

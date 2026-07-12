@@ -53,3 +53,7 @@ required_browser_tools = true
 # 如需覆盖，可在此声明；config.toml 中的值优先级低于 secrets.toml。
 remote_dir = "/root/charles"
 secrets_file = "secrets.toml"
+
+[github]
+# GitHub 用户名和 PAT 在 secrets.toml 中配置
+secrets_file = "secrets.toml"

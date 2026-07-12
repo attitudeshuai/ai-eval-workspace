@@ -18,7 +18,8 @@
 4. **运行 SOTA**：使用 `scripts/run_sota.py` 为指定项目创建隔离会话，或按项目自己的方式运行 agent。
 5. **评估**：使用 `scripts/evaluate_task.py` 或项目自己的评估方式生成报告。
 6. **打包交付**：使用 `scripts/package_deliverable.py` 将任务资产与 SOTA 产物整理为交付文件夹。交付前需更新 README.md 添加「启动方式、测试方式、目录结构、已知限制」章节。
-7. **汇总**：使用 `scripts/generate_report.py` 更新基准。
+7. **发布到 GitHub**：使用 `scripts/publish_to_github.py` 将交付文件夹推送为 GitHub 公开仓库。
+8. **汇总**：使用 `scripts/generate_report.py` 更新基准。
 
 ## 你不能做什么
 
@@ -85,5 +86,6 @@ python scripts/generate_report.py --session <name>
 - SOTA 产物：`sessions/<project-id>/<session>/submissions/<task-id>/`
 - 评估报告：`sessions/<project-id>/<session>/reports/<task-id>/`
 - 最终交付：`deliverables/<project-id>/<task-id>/`
+- GitHub 仓库：`https://github.com/<username>/<task-id>`
 - 全局汇总：`benchmarks/global/`
 - 项目汇总：`benchmarks/by-project/<project-id>/`
