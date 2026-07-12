@@ -39,7 +39,7 @@ Rubric 覆盖六维度：
 ### 2. 定位 SOTA 产物
 
 产物位置：
-- **本地运行**：`sessions/<project-id>/<session>/submissions/<task-id>/<task-id>/`
+- **本地运行**：`sessions/<project-id>/<session>/submissions/<task-id>/`
 - **远程运行**：需先用 `webdev-task-packer` skill 回收，或使用 `fetch_remote_results.py` 拉回
 
 ### 3. 逐项收集证据
@@ -74,7 +74,7 @@ python scripts/webdev-long-horizon/evaluate_task.py \
 ### 6. 生成报告
 
 保存 `report.json` 与 `report.md` 到：
-`sessions/<project-id>/<session>/reports/<task-id>/<task-id>/`
+`sessions/<project-id>/<session>/reports/<task-id>/`
 
 证据保存到同级 `evidence/` 目录。
 

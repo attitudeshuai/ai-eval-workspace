@@ -93,9 +93,9 @@ def run_sota(
 
     task_id = task_dir.name
     submission_dir = (
-        session_dir / "submissions" / task_id / task_id
+        session_dir / "submissions"
     )
-    source_dir = submission_dir / "source"
+    source_dir = submission_dir / task_id
     screenshots_dir = submission_dir / "screenshots"
 
     submission_dir.mkdir(parents=True, exist_ok=True)

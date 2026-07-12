@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 将 webdev-long-horizon 任务的源码、task.md 和必要任务素材上传到远程机器。
 
 SOTA 运行时需要看到参考截图和测试骨架，因此除源码外，还会上传：
-  <remote_dir>/<task-id>/source/      # 源码
+  <remote_dir>/<task-id>/              # 源码
   <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt（由 task.md 上传后重命名，可通过 --prompt-file 指定其他文件）
   <remote_dir>/<task-id>/assets/      # 参考截图等任务素材
   <remote_dir>/<task-id>/tests/       # 测试骨架（若存在）
@@ -181,12 +181,19 @@ def main():
 
     source_tar = Path(f"{task_id}-source.tar.gz")
 
-    # 1. 打包（如有源码则包含，assets 和 tests 始终包含）
+    # 1. 打包（源码放在 {task-id}/{task-id}/，assets/tests 放在 {task-id}/assets/、{task-id}/tests/）
     print(f"\n[1/3] 打包任务素材 {source_tar} ...")
     with tarfile.open(source_tar, "w:gz") as tar:
         if has_source:
-            tar.add(source_dir, arcname=f"{task_id}/source", filter=tar_filter)
-            print(f"  包含 source/: {source_dir}")
+            tar.add(source_dir, arcname=f"{task_id}/{task_id}", filter=tar_filter)
+            print(f"  包含 {task_id}/{task_id}/: {source_dir}")
+        else:
+            # Greenfield: 创建空的 {task-id}/{task-id}/ 目录占位
+            import io
+            empty_dir = tarfile.TarInfo(name=f"{task_id}/{task_id}/")
+            empty_dir.type = tarfile.DIRTYPE
+            tar.addfile(empty_dir)
+            print(f"  创建空目录 {task_id}/{task_id}/ (Greenfield)")
         if assets_dir.exists() and any(assets_dir.iterdir()):
             tar.add(assets_dir, arcname=f"{task_id}/assets", filter=tar_filter)
             print(f"  包含 assets/: {assets_dir}")
@@ -231,7 +238,7 @@ def main():
     print(f"\n完成。远程目录：{remote_task_dir}/")
     print(f"运行 codex（自动化需加 --dangerously-bypass-approvals-and-sandbox）：")
     print(f"  ssh {args.remote_user}@{args.remote_host} -p {args.remote_port}")
-    print(f"  cd {remote_task_dir}/source")
+    print(f"  cd {remote_task_dir}/{task_id}")
     print(f"  codex exec -m gpt-5.6-sol --dangerously-bypass-approvals-and-sandbox \\")
     print(f"    < {remote_task_dir}/PROMPT.md \\")
     print(f"    > {remote_task_dir}/sota.log 2>&1")

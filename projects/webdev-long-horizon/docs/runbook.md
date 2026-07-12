@@ -198,7 +198,7 @@ cp -r /path/to/your-starter/* projects/webdev-long-horizon/sources/webdev-task-s
 
 - 实现所有功能并确保可构建、可运行
 
-`upload_to_remote.py` 会把这个空目录、提示词文件、`assets/`、`tests/` 传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。
+`upload_to_remote.py` 会把这个空目录、提示词文件、`assets/`、`tests/` 传到 remote，codex 会在 `<remote_dir>/webdev-task-02/` 下从零创建项目。
 
 > 注意：方式 B 对 `task.md` 要求更高，必须包含“从零创建项目”的明确指令和验收标准。
 
@@ -240,7 +240,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01
 2. 通过 SSH 上传到 `<remote_dir>/`
 3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`
 4. 远程解压并整理出：
-   - `<remote_dir>/webdev-task-sxw-01.01/source/`
+   - `<remote_dir>/webdev-task-sxw-01.01/`（源码）
    - `<remote_dir>/webdev-task-sxw-01.01/assets/`
    - `<remote_dir>/webdev-task-sxw-01.01/tests/`
 

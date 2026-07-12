@@ -252,7 +252,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01
 2. 通过 SSH 上传到 `<remote_dir>/`
 3. 把 `task.md` 作为提示词上传到 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`
 4. 远程解压并整理出：
-   - `<remote_dir>/webdev-task-sxw-01.01/source/`
+   - `<remote_dir>/webdev-task-sxw-01.01/`（源码）
    - `<remote_dir>/webdev-task-sxw-01.01/assets/`
    - `<remote_dir>/webdev-task-sxw-01.01/tests/`
 
@@ -267,7 +267,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task webdev-task-sxw-01
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/webdev-task-sxw-01.01/source
+cd <remote_dir>/webdev-task-sxw-01.01
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
@@ -278,20 +278,20 @@ codex exec -m gpt-5.6-sol \
   > <remote_dir>/webdev-task-sxw-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/webdev-task-sxw-01.01/source/`，提示词文件在 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议重定向到 `<remote_dir>/webdev-task-sxw-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/webdev-task-sxw-01.01/`，提示词文件在 `<remote_dir>/webdev-task-sxw-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议重定向到 `<remote_dir>/webdev-task-sxw-01.01/sota.log`。
 
 ### 4.2 Prompt 中必须包含的交付要求
 
 `task.md` 作为提示词时，要明确告诉 codex：
 
-1. 项目代码在 `./source` 或当前目录
+1. 项目代码在当前目录
 2. 先执行 `npm install && npm run dev`
 3. 按需求完成所有功能
 4. 保存关键状态截图到 `./screenshots/`
 5. 运行测试并保存结果
 6. 不修改任务原始目录中的文件
 
-> 使用外部 source 时，`run_sota.py` 会自动将 `projects/webdev-long-horizon/sources/<task-id>/` 复制到 session 的 `./source/` 下。
+> 使用外部 source 时，`run_sota.py` 会自动将 `projects/webdev-long-horizon/sources/<task-id>/` 复制到 session 的 `submissions/<task-id>/` 下。
 
 ### 4.3 批量运行 SOTA
 
@@ -305,7 +305,7 @@ TASKS_DIR=<remote_dir>
 for task_dir in $TASKS_DIR/webdev-task-*; do
   task_id=$(basename $task_dir)
   echo "=== Running SOTA for $task_id ==="
-  cd $task_dir/source
+  cd $task_dir
   codex exec -m gpt-5.6-sol \
     --dangerously-bypass-approvals-and-sandbox \
     < $task_dir/PROMPT.md \

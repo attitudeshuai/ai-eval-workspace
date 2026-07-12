@@ -89,7 +89,7 @@ projects/webdev-long-horizon/
    - 通过 SSH 上传到 `<remote_dir>/`
    - 把提示词文件上传到 `<remote_dir>/{prefix}-01.01/PROMPT.md`
    - 远程解压并整理出：
-     - `<remote_dir>/{prefix}-01.01/source/`
+     - `<remote_dir>/{prefix}-01.01/`（源码）
      - `<remote_dir>/{prefix}-01.01/assets/`
      - `<remote_dir>/{prefix}-01.01/tests/`
 4. 提示用户在远程运行 codex：

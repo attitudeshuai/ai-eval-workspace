@@ -75,7 +75,7 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 此命令会自动：
 - 创建隔离会话目录 `sessions/<session-name>/`
-- 复制源码到 `sessions/.../submissions/<task-id>/<agent>/source/`
+- 复制源码到 `sessions/.../submissions/<task-id>/<agent>/<task-id>/`
 - 基于 `task.md` 生成标准 PROMPT.md
 - 调用指定 agent 运行任务
 
@@ -87,7 +87,7 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 ```bash
 ssh <host> -p <port>
-cd <remote_dir>/<task-id>/source
+cd <remote_dir>/<task-id>/<task-id>
 
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
@@ -132,8 +132,11 @@ sessions/webdev-long-horizon/<session-name>/
 
 ```text
 <remote_dir>/<task-id>/
-  source/                   # codex 修改后的源码
-  screenshots/              # 关键状态截图
+  <task-id>/                # codex 修改后的源码
+  PROMPT.md                 # 提示词
+  assets/                   # 任务素材
+  tests/                    # 测试骨架
+  mock-data/                # mock 数据
   sota.log                  # 运行日志
 ```
 

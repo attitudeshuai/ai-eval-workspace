@@ -42,7 +42,7 @@ description: Run a SOTA Agent for a specified project task and collect artifacts
 ...
 
 ## 起始项目
-项目已位于 ./source，请先阅读 README.md 和项目结构。
+项目已位于当前目录，请先阅读 README.md 和项目结构。
 
 ## 交付物
 - 可运行的完整代码

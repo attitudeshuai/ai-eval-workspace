@@ -96,7 +96,7 @@ python scripts/webdev-long-horizon/upload_to_remote.py --task <task-id>
 
 ```bash
 ssh <host> -p <port>
-cd <remote_dir>/<task-id>/source
+cd <remote_dir>/<task-id>
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数

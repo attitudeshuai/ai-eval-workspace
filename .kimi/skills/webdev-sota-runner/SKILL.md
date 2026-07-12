@@ -70,7 +70,7 @@ python scripts/webdev-long-horizon/run_sota.py \
 
 ```bash
 ssh root@59.49.28.154 -p 7826
-cd <remote_dir>/{prefix}-01.01/source
+cd <remote_dir>/{prefix}-01.01
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
@@ -81,7 +81,7 @@ codex exec -m gpt-5.6-sol \
   > <remote_dir>/{prefix}-01.01/sota.log 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/{prefix}-01.01/source/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/{prefix}-01.01/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`（由 `task.md` 上传后重命名），运行日志建议保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
 
 ## 工作流程
 

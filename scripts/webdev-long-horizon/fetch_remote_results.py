@@ -158,7 +158,7 @@ def main():
         sys.exit(1)
 
     if args.session:
-        local_base = Path("sessions") / project_id / args.session / "submissions" / task_id / task_id
+        local_base = Path("sessions") / project_id / args.session / "submissions"
         local_base.mkdir(parents=True, exist_ok=True)
         local_temp = local_base
     elif args.output:
@@ -203,35 +203,19 @@ def main():
     extracted_dir = local_temp / task_id
     if args.session:
         print(f"\n[4/4] 整理到 session 目录 {local_base} ...")
-        if extracted_dir.exists():
-            source_dir = extracted_dir / "source"
-            if source_dir.exists():
-                target_source = local_base / "source"
-                if target_source.exists():
-                    shutil.rmtree(target_source)
-                shutil.move(str(source_dir), str(target_source))
-
-            screenshots_dir = extracted_dir / "screenshots"
-            if screenshots_dir.exists():
-                target_screenshots = local_base / "screenshots"
-                if target_screenshots.exists():
-                    shutil.rmtree(target_screenshots)
-                shutil.move(str(screenshots_dir), str(target_screenshots))
-
-            for name in ["sota.log", "PROMPT.md", "task.md"]:
-                src = extracted_dir / name
-                if src.exists():
-                    dst = local_base / name
-                    if dst.exists():
-                        dst.unlink()
-                    shutil.move(str(src), str(dst))
-
-            shutil.rmtree(extracted_dir)
+        # 源码已在 extracted_dir 中，清理 tar 内残留的 assets/tests/PROMPT.md（原始任务素材）
+        for junk in ["assets", "tests", "PROMPT.md", "run.sh"]:
+            p = extracted_dir / junk
+            if p.is_dir():
+                shutil.rmtree(p, ignore_errors=True)
+            elif p.exists():
+                p.unlink()
+        # 删除 tar.gz
+        if local_tar.exists():
             local_tar.unlink()
         print(f"产物已整理到：{local_base}")
-    else:
-        print(f"\n[4/4] 产物已解压到：{extracted_dir}")
-        print(f"tar 包保留在：{local_tar}")
+        print(f"  源码: {local_base / task_id}")
+        print(f"  日志: {local_base / 'sota.log'}")
 
     client.close()
     print("\n完成。")
