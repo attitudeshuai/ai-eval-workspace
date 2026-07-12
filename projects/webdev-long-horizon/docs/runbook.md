@@ -90,59 +90,65 @@ projects/webdev-long-horizon/
 
 ---
 
-## 第 1B 步：创建 Greenfield 任务骨架（无源码）
+## 第 1B 步：准备 Greenfield 任务材料（用户手动）
 
-用于 agent 需要**从零开始实现完整项目**的场景，没有父任务、也没有现成源码。
+用于 agent 需要**从零开始实现完整项目**的场景。**不需要运行 `create_task.py`**，只需手动准备材料。
+
+### 你（用户）需要做的
+
+在任务目录下放置两个文件：
+
+```text
+tasks/webdev-task-sxw-02/webdev-task-sxw-02/
+├── README.md      # 项目说明（必填）
+└── assets/        # 任务素材（必填）
+    ├── reference/     # 参考截图
+    ├── screenshots/   # 示例截图
+    ├── icons/         # 图标（可选）
+    └── images/        # 图片（可选）
+```
+
+**README.md 最低要求**：
+
+```markdown
+# 项目名称
+
+## 技术栈
+- Frontend: Vue 3 + Vite + Tailwind CSS
+- Backend: Java Spring Boot + MyBatis（如无可省略）
+- DB: MySQL 8.0（如无可省略）
+
+## 快速启动
+1. docker compose up --build
+2. 访问 http://localhost:3000
+
+## 功能介绍
+- 功能 A
+- 功能 B
+- ...
+
+## 项目结构
+PetAdoption/
+├── frontend/
+├── backend/
+└── docker-compose.yml
+```
 
 ### 指令模板
 
-```text
-创建一个从零开始的 Greenfield 任务骨架。
-- 标题：支持拖拽看板的任务管理系统
-- 类别：交互型应用：可视化 / 数据看板
-- 难度：high
-- arena tags：ui,visualize,drag-drop
-- prompt type：前端
-- 不需要父任务，不需要 starter 源码
-```
-
-### AI 会执行
-
-```bash
-python scripts/webdev-long-horizon/create_task.py \
-  --project webdev-long-horizon \
-  --title "支持拖拽看板的任务管理系统" \
-  --category "交互型应用：可视化 / 数据看板" \
-  --difficulty "high" \
-  --arena-tags "ui,visualize,drag-drop" \
-  --prompt-type "前端" \
-  --skip-starter
-```
-
-此命令会创建任务目录，但**不会生成/继承源码**：
+把材料放好后，只需告诉 AI：
 
 ```text
-projects/webdev-long-horizon/
-├── tasks/webdev-task-02/webdev-task-02/
-│   ├── task.md
-│   ├── metadata.json
-│   ├── rubric.json
-│   ├── README.md
-│   ├── target_states.md
-│   ├── assets/
-│   │   └── reference/
-│   ├── mock-data/
-│   └── screenshots/
-└── sources/webdev-task-02/webdev-task-02/   # 初始为空，等待 agent 生成
+webdev-task-sxw-02 的材料已准备好，帮我生成任务资产。
 ```
 
-> 如果任务属于某个家族（例如 `webdev-task-02` 家族的第一个任务），目录结构仍为 `tasks/webdev-task-02/webdev-task-02/`。若后续有增量子任务，再放到 `tasks/webdev-task-02/webdev-task-02.01/`。
+AI 会读取 `README.md` 和 `assets/`，自动生成 `task.md`、`metadata.json`、`rubric.json`、`target_states.md` 和 `tests/`。
 
 ---
 
 ## 第 2 步：生成任务资产
 
-### 指令模板
+### 增量任务
 
 ```text
 为 webdev-task-sxw-01.01 生成完整任务资产。
@@ -154,50 +160,42 @@ projects/webdev-long-horizon/
 - 生成 assets/reference/ 参考截图
 ```
 
-### AI 会执行
-
-分析需求与 `sources/<family>/<task-id>/` 源码（增量任务已从父任务继承；Greenfield 任务 source 可能为空），然后：
-
-- 填充 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/task.md`（直接作为 SOTA 提示词）
-- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/rubric.json`
-- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/target_states.md`
-- 完善 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/README.md`
-- 补充 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/mock-data/orders.json`
-- 生成 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/tests/playwright.spec.ts`
-- 准备 `tasks/webdev-task-sxw-01/webdev-task-sxw-01.01/assets/reference/` 参考截图
-
-并将新增的 mock-data 同步复制到源码目录：
+### Greenfield 任务
 
 ```text
-sources/webdev-task-sxw-01/webdev-task-sxw-01.01/mock-data/
+webdev-task-sxw-02 的材料已准备好，帮我生成任务资产。
 ```
+
+AI 会读取用户提供的 `README.md` 和 `assets/`，自动生成：
+
+### AI 会执行
+
+| 增量               | Greenfield                         | 文件                                 |
+| ------------------ | ---------------------------------- | ------------------------------------ |
+| 基于父任务源码分析 | 基于 README.md 提取技术栈/功能     | `task.md`                          |
+| 10-20 叶节点       | 10-20 叶节点                       | `rubric.json`                      |
+| 4+ 关键状态        | 4+ 关键状态                        | `target_states.md`                 |
+| 补充导航链接       | 补充快速导航和验收标准             | `README.md`                        |
+| 补充新数据         | 基于 README 功能生成 mock 数据     | `mock-data/`                       |
+| 11 个验收用例      | 基于功能列表生成验收用例           | `tests/playwright.spec.ts`         |
+| —                 | 基于 README 技术栈描述生成 starter | `sources/{prefix}-02/{prefix}-02/` |
 
 ---
 
-## 第 2.5 步：准备源码 baseline（仅 Greenfield 需要）
+## 第 2.5 步：准备源码 baseline（Greenfield 专用）
 
-增量任务因为已经继承了父任务源码，**可跳过此步**。
+增量任务已继承父任务源码，**可跳过此步**。
 
-Greenfield 任务没有现成源码，进入 SOTA 前需要决定源码如何处理：
-
-### 方式 A：你提供初始 starter
-
-如果有可用的项目模板或脚手架，把它放到外部 source 目录：
+Greenfield 任务在"第 2 步：生成任务资产"时，AI 会基于 README 中的技术栈描述自动生成 starter 到 `sources/{prefix}-XX/{prefix}-XX/`。如果你有自己的 starter 源码，也可以手动放入该目录。
 
 ```bash
-cp -r /path/to/your-kanban-starter/* \
-  projects/webdev-long-horizon/sources/webdev-task-02/webdev-task-02/
+# 方式 A：AI 自动生成（推荐）
+# 无需手动操作，AI 在第 2 步完成后自动生成
+
+# 方式 B：手动放入
+cp -r /path/to/your-starter/* projects/webdev-long-horizon/sources/webdev-task-sxw-02/webdev-task-sxw-02/
 ```
 
-然后在该目录执行 `npm install` 生成 lockfile，再进入第 3 步校验（此时 source 非空，仍可加 `--allow-no-starter` 通过校验）。
-
-### 方式 B：完全由 agent 从零生成
-
-保持 `sources/webdev-task-02/webdev-task-02/` 为空（或仅放 `.gitkeep`）。在 `task.md` 中明确要求 agent：
-
-- 选择合适的框架/技术栈
-- 初始化项目结构（`package.json`、入口文件、目录结构等）
-- 安装依赖并生成 lockfile
 - 实现所有功能并确保可构建、可运行
 
 `upload_to_remote.py` 会把这个空目录、提示词文件、`assets/`、`tests/` 传到 remote，codex 会在 `<remote_dir>/webdev-task-02/source/` 下从零创建项目。

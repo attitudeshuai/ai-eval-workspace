@@ -8,85 +8,47 @@ description: Create a greenfield development task for the webdev-long-horizon pr
 
 ## 触发条件
 
-当用户在 `webdev-long-horizon` 项目中要求创建新任务，且只有自然语言需求、需要 agent 从零实现完整项目时调用本技能。
+当用户在 `webdev-long-horizon` 项目中要求创建新任务，且用户已提供 README.md 和 assets/ 材料时调用本技能。
+
+## 用户提供的材料
+
+对于 0→1（greenfield）项目，用户会在任务目录中提前放置：
+
+```
+tasks/{prefix}-XX/{prefix}-XX/
+├── README.md      # 项目说明（技术栈、启动方式、功能列表、项目结构）
+└── assets/        # 任务素材（reference/、screenshots/、icons/ 等）
+```
+
+`README.md` 包含技术栈、启动命令、测试账号、功能列表、项目结构。AI 基于此生成完整任务资产。
 
 ## 输入信息
 
 调用前需要确认：
 
-- 任务标题
 - 任务类别（参考 `projects/webdev-long-horizon/categories.json` 中的 `label`）
 - 难度（high / medium / low）
-- Arena tags（参考 `projects/webdev-long-horizon/categories.json` 中的 `arena_tags`）
-- 详细需求描述
-- 源码提供方式（用户提供 / AI 生成 starter）
-
-## 目录结构约定
-
-本项目采用层级目录结构：
-
-```text
-projects/webdev-long-horizon/
-├── tasks/
-│   └── webdev-task-02/
-│       └── webdev-task-02/          # 顶层从零开发任务
-└── sources/
-    └── webdev-task-02/
-        └── webdev-task-02/          # 顶层任务源码
-```
-
-顶层任务 ID：`{prefix}-01`, `{prefix}-02`, ...（`{prefix}` 为 `config.toml` 的 `task_prefix`，默认 `webdev-task-sxw`）
+- Arena tags（参考 `categories.json` 中的 `arena_tags`）
 
 ## 工作流程
 
-1. 读取 `projects/webdev-long-horizon/categories.json` 确认类别 label 与 arena tags。
-2. 调用 `create_task.py --skip-starter` 生成顶层任务骨架：
-   ```bash
-   python scripts/webdev-long-horizon/create_task.py \
-     --project webdev-long-horizon \
-     --title "<title>" \
-     --category "<category-label>" \
-     --difficulty "<difficulty>" \
-     --arena-tags "<tags>" \
-     --prompt-type "前端" \
-     --skip-starter
-   ```
-
-   > `--category` 请使用 `categories.json` 中的中文 `label`。
-   > 不传 `--parent` 时，会生成顶层任务 ID，例如 `webdev-task-02`。
-   >
-3. 生成完整项目需求的 `task.md`：背景、目标、功能、交互、视觉、约束、交付标准。
-4. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
-5. 生成 `target_states.md` 与 `README.md`。
-6. 准备 `assets/` 任务素材与 `mock-data/` 数据：
-   - 参考截图放 `assets/reference/`
-   - 图标、字体、示例图片等按需放 `assets/icons/`、`assets/fonts/`、`assets/images/`
-7. 处理源码：
-   - **用户提供 starter**：放到 `projects/webdev-long-horizon/sources/<task-id>/<task-id>/`。
-   - **AI 生成 starter**：基于 `projects/webdev-long-horizon/templates/starter/` 生成初始项目，放到 `projects/webdev-long-horizon/tasks/<task-id>/<task-id>/starter/`。
-8. 确保 `task.md` 可直接作为 SOTA 提示词：
-   - 明确告知 agent 源码位于 `./source` 或当前目录
-   - 包含完整交付要求
-   - 不需要单独维护 `PROMPT.md`；`upload_to_remote.py` 会在上传时把 `task.md` 重命名为 `PROMPT.md`
-9. 运行校验：
-   - 外部 source：
-     ```bash
-     python scripts/webdev-long-horizon/validate_task.py \
-       --allow-no-starter \
-       webdev-task-02
-     ```
-   - 内置 starter：
-     ```bash
-     python scripts/webdev-long-horizon/validate_task.py \
-       webdev-task-02
-     ```
-10. （推荐）本地验证源码可启动：
+1. 确认用户已在 `tasks/{prefix}-XX/{prefix}-XX/` 下放置 `README.md` 和 `assets/`。
+2. 读取 `README.md`，提取技术栈、功能列表、启动方式、项目结构。
+3. 读取 `categories.json` 确认类别 label 与 arena tags。
+4. 任务目录名即为 task_id（如 `{prefix}-02`），无需运行 `create_task.py`。
+5. 生成 `metadata.json`（task_id、title、category_tags、difficulty 等）。
+6. 生成 `task.md`（基于 README 扩展为完整 SOTA 提示词，含起始项目、功能模块、交互视觉要求、约束、交付标准）。
+7. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
+8. 生成 `target_states.md`（至少 4 类关键状态，与 assets/reference/ 截图对应）。
+9. 在用户提供的 README.md 基础上补充快速导航和验收标准引用。
+10. 源码处理：
+    - **用户提供源码**：放到 `sources/<task-id>/<task-id>/`
+    - **AI 生成 starter**：基于 README 技术栈描述生成初始项目
+11. 校验：
     ```bash
-    cd projects/webdev-long-horizon/sources/webdev-task-02/webdev-task-02
-    # 或 cd projects/webdev-long-horizon/tasks/webdev-task-02/webdev-task-02/starter
-    npm install
-    npm run dev
+    python scripts/webdev-long-horizon/validate_task.py --allow-no-starter {prefix}-02
     ```
+12. 按 README 启动命令验证项目可运行。
 
 ## 输出规范
 
