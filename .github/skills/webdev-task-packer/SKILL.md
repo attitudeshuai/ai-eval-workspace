@@ -18,6 +18,7 @@ description: 'Pack webdev-long-horizon task assets and source code, upload to re
 调用前需确认：
 - **任务 ID**（如 `{prefix}-01.01`，其中 `{prefix}` 为 `config.toml` 中 `task_prefix` 的值）
 - 远程机器配置已写入 `config.toml` 和 `secrets.toml`
+- 任务类型：增量任务需 `sources/` 下有源码，Greenfield 任务无需源码
 
 ## 远程配置
 

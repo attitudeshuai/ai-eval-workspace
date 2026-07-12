@@ -41,9 +41,7 @@ tasks/{prefix}-XX/{prefix}-XX/
 7. 生成 `rubric.json`（10-20 个叶节点，覆盖六维度）。
 8. 生成 `target_states.md`（至少 4 类关键状态，与 assets/reference/ 截图对应）。
 9. 在用户提供的 README.md 基础上补充快速导航和验收标准引用。
-10. 源码处理：
-    - **用户提供源码**：放到 `sources/<task-id>/<task-id>/`
-    - **AI 生成 starter**：基于 README 技术栈描述生成初始项目
+10. 源码处理：Greenfield 任务**无需本地源码**。codex 会在远端从零构建整个项目。`upload_to_remote.py` 已支持无 source 目录的场景，仅上传 task.md + assets + tests。
 11. 校验：
     ```bash
     python scripts/webdev-long-horizon/validate_task.py --allow-no-starter {prefix}-02
