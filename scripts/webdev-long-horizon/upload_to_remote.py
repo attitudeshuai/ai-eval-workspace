@@ -170,8 +170,10 @@ def main():
         sys.exit(1)
 
     if not source_dir.exists():
-        print(f"错误：源码目录不存在: {source_dir}")
-        sys.exit(1)
+        print(f"注意：源码目录不存在 ({source_dir})，Greenfield 任务将仅上传 task.md + assets + tests")
+        has_source = False
+    else:
+        has_source = True
 
     if not prompt_file.exists():
         print(f"错误：提示词文件不存在: {prompt_file}")
@@ -179,10 +181,12 @@ def main():
 
     source_tar = Path(f"{task_id}-source.tar.gz")
 
-    # 1. 打包源码、assets、tests（排除 node_modules 等），解压后路径为 <task-id>/source/、<task-id>/assets/、<task-id>/tests/
-    print(f"\n[1/3] 打包源码与任务素材 {source_tar} ...")
+    # 1. 打包（如有源码则包含，assets 和 tests 始终包含）
+    print(f"\n[1/3] 打包任务素材 {source_tar} ...")
     with tarfile.open(source_tar, "w:gz") as tar:
-        tar.add(source_dir, arcname=f"{task_id}/source", filter=tar_filter)
+        if has_source:
+            tar.add(source_dir, arcname=f"{task_id}/source", filter=tar_filter)
+            print(f"  包含 source/: {source_dir}")
         if assets_dir.exists() and any(assets_dir.iterdir()):
             tar.add(assets_dir, arcname=f"{task_id}/assets", filter=tar_filter)
             print(f"  包含 assets/: {assets_dir}")

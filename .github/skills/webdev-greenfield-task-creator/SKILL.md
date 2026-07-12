@@ -136,9 +136,7 @@ projects/webdev-long-horizon/
 
 ### 10. 处理源码
 
-源码按约定放到 `sources/{prefix}-XX/{prefix}-XX/`：
-- **用户提供源码**：复制到该位置
-- **AI 生成 starter**：基于 README 描述的技术栈，从 `templates/starter/` 或从零生成初始项目
+Greenfield 任务**无需本地源码**。codex 会在远端从零构建整个项目。`upload_to_remote.py` 已支持无 source 目录的场景，仅上传 task.md + assets + tests。
 
 ### 11. 校验
 
