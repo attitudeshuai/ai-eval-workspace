@@ -13,8 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     ├── README.md            # 启动与测试说明
     ├── rubric.json          # 验收标准
     ├── target_states.md     # 关键状态说明
-    ├── sota-run.md          # SOTA 运行记录
-    ├── sota.log             # 运行日志
+    ├── sota-run.md          # SOTA 运行记录（含完整运行日志）
     ├── starter/             # 初始项目代码
     ├── assets/              # 参考截图与素材
     ├── mock-data/           # mock 数据
@@ -84,10 +83,15 @@ def package_deliverable(
                 shutil.rmtree(dst)
             shutil.copytree(src, dst)
 
-    # 2. 复制 sota.log（运行日志，在 task 级别）
+    # 2. 将 sota.log 内容追加到 sota-run.md
     sota_log = session_dir / "submissions" / task_id / "sota.log"
-    if sota_log.exists():
-        shutil.copy2(sota_log, deliverable_dir / "sota.log")
+    sota_run_md = deliverable_dir / "sota-run.md"
+    if sota_log.exists() and sota_run_md.exists():
+        with open(sota_run_md, "a", encoding="utf-8") as out:
+            out.write("\n\n## Log\n\n```\n")
+            with open(sota_log, "r", encoding="utf-8", errors="replace") as f:
+                out.write(f.read())
+            out.write("\n```\n")
 
     # 3. 复制初始源码 baseline 到 starter/
     #    对于增量任务，这是从父任务继承的 source；对于 Greenfield，这是空目录。

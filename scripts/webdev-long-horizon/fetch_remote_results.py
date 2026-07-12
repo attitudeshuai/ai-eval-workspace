@@ -179,7 +179,7 @@ def main():
         "password": args.remote_password,
     })
 
-    # 2. 远程打包（排除 node_modules 等；sota.log 单独下载保留）
+    # 2. 远程打包（排除 node_modules 等；sota-run.md 单独下载保留）
     print(f"\n[2/4] 在远程打包 {remote_dir}/{task_id} ...")
     remote_tar_path = remote_tar(client, remote_dir, task_id)
 
@@ -187,13 +187,13 @@ def main():
     local_tar = local_temp / f"{task_id}-results.tar.gz"
     sftp_download(client, remote_tar_path, local_tar)
 
-    # 单独下载 sota.log（tar 包中排除了 *.log）
-    remote_log = f"{remote_dir}/{task_id}/sota.log"
-    local_log = local_temp / "sota.log"
+    # 单独下载 sota-run.md（tar 包中排除了 *.md 可能不匹配，显式下载）
+    remote_log = f"{remote_dir}/{task_id}/sota-run.md"
+    local_log = local_temp / "sota-run.md"
     try:
         sftp_download(client, remote_log, local_log)
     except Exception as e:
-        print(f"警告：无法下载 sota.log: {e}")
+        print(f"警告：无法下载 sota-run.md: {e}")
 
     # 4. 本地解压
     print(f"\n[3/4] 解压 {local_tar} ...")
@@ -224,7 +224,7 @@ def main():
             local_tar.unlink()
         print(f"产物已整理到：{local_base}")
         print(f"  源码: {local_base / task_id}")
-        print(f"  日志: {local_base / 'sota.log'}")
+        print(f"  日志: {local_base / 'sota-run.md'}")
 
     client.close()
     print("\n完成。")

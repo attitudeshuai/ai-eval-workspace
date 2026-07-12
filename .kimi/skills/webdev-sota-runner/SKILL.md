@@ -76,10 +76,10 @@ cd <remote_dir>/{prefix}-01.01/{prefix}-01.01
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/{prefix}-01.01/PROMPT.md \
-  > <remote_dir>/{prefix}-01.01/sota.log 2>&1
+  > <remote_dir>/{prefix}-01.01/sota-run.md 2>&1
 ```
 
-> 源码目录为 `<remote_dir>/{prefix}-01.01/{prefix}-01.01/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`，运行日志保存到 `<remote_dir>/{prefix}-01.01/sota.log`。
+> 源码目录为 `<remote_dir>/{prefix}-01.01/{prefix}-01.01/`，提示词文件在 `<remote_dir>/{prefix}-01.01/PROMPT.md`，运行日志保存到 `<remote_dir>/{prefix}-01.01/sota-run.md`。
 
 ## 工作流程
 
@@ -115,7 +115,7 @@ sessions/webdev-long-horizon/<session-name>/
   assets/               # 任务素材
   tests/                # 测试骨架
   mock-data/            # mock 数据
-  sota.log              # 运行日志
+  sota-run.md          # 运行记录（含完整日志）
 ```
 
 ## 最终交付打包
@@ -139,7 +139,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 ├── rubric.json
 ├── target_states.md
 ├── sota-run.md
-├── sota.log           # 运行日志
+├── sota-run.md        # 运行记录（含完整日志）
 ├── starter/           # 初始项目代码
 ├── assets/            # 任务素材
 ├── mock-data/

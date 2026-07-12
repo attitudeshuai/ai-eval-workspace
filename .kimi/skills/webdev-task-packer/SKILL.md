@@ -102,7 +102,7 @@ projects/webdev-long-horizon/
    codex exec -m gpt-5.6-sol \
      --dangerously-bypass-approvals-and-sandbox \
      < <remote_dir>/{prefix}-01.01/PROMPT.md \
-     > <remote_dir>/{prefix}-01.01/sota.log 2>&1
+     > <remote_dir>/{prefix}-01.01/sota-run.md 2>&1
    ```
 
 ## 远程产物回收
@@ -124,7 +124,7 @@ sessions/session-sota-YYYY-MM-NNN-codex/
     submissions/{prefix}-01.01/codex/
       source/               # codex 修改后的源码
       screenshots/          # 关键状态截图
-      sota.log              # 运行日志（如果已保存）
+      sota-run.md          # 运行记录（含完整日志）
 ```
 
 也可以只拉回到当前目录：

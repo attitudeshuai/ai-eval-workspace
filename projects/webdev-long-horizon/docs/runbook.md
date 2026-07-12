@@ -265,11 +265,11 @@ cd <remote_dir>/webdev-task-sxw-01.01/source
 
 # 自动化运行需要 --dangerously-bypass-approvals-and-sandbox
 # 若手动交互运行，可去掉该参数
-# 建议把输出重定向到 <remote_dir>/<task-id>/sota.log，方便后续回收
+# 建议把输出重定向到 <remote_dir>/<task-id>/sota-run.md，方便后续回收
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/webdev-task-sxw-01.01/PROMPT.md \
-  > <remote_dir>/webdev-task-sxw-01.01/sota.log 2>&1
+  > <remote_dir>/webdev-task-sxw-01.01/sota-run.md 2>&1
 ```
 
 > 注意：此步骤可能耗时较长。AI 会把命令给你，你可以选择自己盯着跑，或让 AI 后台运行并等待完成。

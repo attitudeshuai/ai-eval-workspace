@@ -92,7 +92,7 @@ cd <remote_dir>/<task-id>/<task-id>
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/<task-id>/PROMPT.md \
-  > <remote_dir>/<task-id>/sota.log 2>&1
+  > <remote_dir>/<task-id>/sota-run.md 2>&1
 ```
 
 ### 4. 收集产物
@@ -137,7 +137,7 @@ sessions/webdev-long-horizon/<session-name>/
   assets/                   # 任务素材
   tests/                    # 测试骨架
   mock-data/                # mock 数据
-  sota.log                  # 运行日志
+  sota-run.md               # 运行记录（含完整日志）
 ```
 
 ## 最终交付打包
@@ -161,7 +161,7 @@ python scripts/webdev-long-horizon/package_deliverable.py \
 ├── rubric.json
 ├── target_states.md
 ├── sota-run.md
-├── sota.log               # 运行日志
+├── sota-run.md            # 运行记录（含完整日志）
 ├── starter/               # 初始项目代码
 ├── assets/                # 任务素材
 ├── mock-data/

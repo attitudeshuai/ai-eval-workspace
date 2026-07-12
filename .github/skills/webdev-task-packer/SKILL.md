@@ -102,7 +102,7 @@ cd <remote_dir>/<task-id>/<task-id>
 codex exec -m gpt-5.6-sol \
   --dangerously-bypass-approvals-and-sandbox \
   < <remote_dir>/<task-id>/PROMPT.md \
-  > <remote_dir>/<task-id>/sota.log 2>&1
+  > <remote_dir>/<task-id>/sota-run.md 2>&1
 ```
 
 ### 4. 回收远程产物
@@ -124,7 +124,7 @@ sessions/<session-name>/
     submissions/<task-id>/codex/
       source/               # codex 修改后的源码
       screenshots/          # 关键状态截图
-      sota.log              # 运行日志
+      sota-run.md          # 运行记录（含完整日志）
 ```
 
 也可以只拉回到当前目录：

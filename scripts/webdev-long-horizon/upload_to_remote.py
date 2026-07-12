@@ -241,7 +241,7 @@ def main():
     print(f"  cd {remote_task_dir}/{task_id}")
     print(f"  codex exec -m gpt-5.6-sol --dangerously-bypass-approvals-and-sandbox \\")
     print(f"    < {remote_task_dir}/PROMPT.md \\")
-    print(f"    > {remote_task_dir}/sota.log 2>&1")
+    print(f"    > {remote_task_dir}/sota-run.md 2>&1")
 
 
 if __name__ == "__main__":
