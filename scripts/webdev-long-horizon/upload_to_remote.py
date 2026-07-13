@@ -11,8 +11,9 @@ SOTA 运行时需要看到参考截图和测试骨架，因此除源码外，还
   <remote_dir>/<task-id>/PROMPT.md    # SOTA prompt（由 task.md 上传后重命名，可通过 --prompt-file 指定其他文件）
   <remote_dir>/<task-id>/assets/      # 参考截图等任务素材
   <remote_dir>/<task-id>/tests/       # 测试骨架（若存在）
+  <remote_dir>/<task-id>/mock-data/   # Mock 数据（若存在）
 
-任务资产中的 rubric.json、target_states.md、README.md 等保留在本地，不上传。
+任务资产中的 rubric.json、metadata.json、target_states.md、README.md 等保留在本地，不上传。
 
 远程配置读取 projects/webdev-long-horizon/config.toml 中的 [remote] 段，
 密码读取 projects/webdev-long-horizon/secrets.toml（已加入 .gitignore）。
@@ -164,13 +165,14 @@ def main():
 
     assets_dir = task_dir / "assets"
     tests_dir = task_dir / "tests"
+    mock_data_dir = task_dir / "mock-data"
 
     if not task_dir.exists():
         print(f"错误：任务目录不存在: {task_dir}")
         sys.exit(1)
 
     if not source_dir.exists():
-        print(f"注意：源码目录不存在 ({source_dir})，Greenfield 任务将仅上传 task.md + assets + tests")
+        print(f"注意：源码目录不存在 ({source_dir})，Greenfield 任务将仅上传 task.md + assets + tests + mock-data")
         has_source = False
     else:
         has_source = True
@@ -181,7 +183,7 @@ def main():
 
     source_tar = Path(f"{task_id}-source.tar.gz")
 
-    # 1. 打包（源码放在 {task-id}/{task-id}/，assets/tests 放在 {task-id}/assets/、{task-id}/tests/）
+    # 1. 打包（源码放在 {task-id}/{task-id}/，素材放在 {task-id}/assets/、{task-id}/tests/、{task-id}/mock-data/）
     print(f"\n[1/3] 打包任务素材 {source_tar} ...")
     with tarfile.open(source_tar, "w:gz") as tar:
         if has_source:
@@ -200,6 +202,9 @@ def main():
         if tests_dir.exists() and any(tests_dir.iterdir()):
             tar.add(tests_dir, arcname=f"{task_id}/tests", filter=tar_filter)
             print(f"  包含 tests/: {tests_dir}")
+        if mock_data_dir.exists() and any(mock_data_dir.iterdir()):
+            tar.add(mock_data_dir, arcname=f"{task_id}/mock-data", filter=tar_filter)
+            print(f"  包含 mock-data/: {mock_data_dir}")
 
     # 2. SSH 连接并上传
     print(f"\n[2/3] 连接远程 {args.remote_user}@{args.remote_host}:{args.remote_port} ...")
