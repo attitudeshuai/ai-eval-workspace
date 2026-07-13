@@ -128,6 +128,37 @@ def sftp_download(client, remote_path: str, local_path: Path):
     sftp.close()
 
 
+def _fetch_trajectories(client, task_id: str, trajectory_dir: Path):
+    """从远端 /root/.codex/sessions/ 搜索并下载匹配的 rollout JSONL 文件。"""
+
+    # 搜索所有 rollout 文件，按 cwd 匹配 task_id
+    # 用 cwd 精确匹配（如 "cwd":"/root/charles/webdev-task-sxw-02/..."），避免 grep task_id 误匹配
+    stdin, stdout, stderr = client.exec_command(
+        f"grep -l 'cwd.*{task_id}' /root/.codex/sessions/2026/*/*/rollout*.jsonl 2>/dev/null || true"
+    )
+    matches = stdout.read().decode().strip().split('\n')
+    matches = [m for m in matches if m.strip()]
+
+    if not matches:
+        print(f"  未找到匹配的 rollout 文件")
+        return
+
+    sftp = client.open_sftp()
+    for remote_path in matches:
+        name = os.path.basename(remote_path)
+        local_path = trajectory_dir / name
+        if local_path.exists():
+            continue
+        try:
+            sftp.get(remote_path, str(local_path))
+            size = local_path.stat().st_size
+            print(f"  {name} ({size/1024:.0f} KB)")
+        except Exception as e:
+            print(f"  {name}: 下载失败 - {e}")
+    sftp.close()
+    print(f"  共 {len(matches)} 个轨迹文件 -> {trajectory_dir}")
+
+
 def main():
     # 先解析 project，再读取配置
     pre_parser = argparse.ArgumentParser(add_help=False)
@@ -225,6 +256,12 @@ def main():
         print(f"产物已整理到：{local_base}")
         print(f"  源码: {local_base / task_id}")
         print(f"  日志: {local_base / 'sota-run.md'}")
+
+    # 6. 下载对应的 rollout 轨迹文件
+    print(f"\n[5/5] 下载 codex rollout 轨迹 ...")
+    trajectory_dir = local_base.parent.parent / "trajectory" if args.session else local_base / "trajectory"
+    trajectory_dir.mkdir(parents=True, exist_ok=True)
+    _fetch_trajectories(client, task_id, trajectory_dir)
 
     client.close()
     print("\n完成。")

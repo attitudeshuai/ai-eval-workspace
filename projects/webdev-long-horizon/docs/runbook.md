@@ -340,14 +340,37 @@ sessions/session-sota-2026-07-01.01-codex/
 
 ## 第 8 步：整理最终交付资产
 
+### 交付结构
+
+交付文件夹必须包含以下结构，缺一不可：
+
+```text
+webdev-task-0001/
+├── task.md              # 任务需求
+├── metadata.json        # 任务元数据
+├── README.md            # 启动/测试/目录结构/已知限制
+├── .ignore              # 忽略规则
+├── starter/             # 初始项目代码（Greenfield 含 .gitkeep）
+├── assets/              # 参考截图与素材
+├── mock-data/           # mock 数据
+├── tests/               # Playwright / 单元测试骨架
+├── rubric.json          # 验收标准
+├── target_states.md     # 关键状态说明
+├── trajectory.jsonl     # codex rollout 轨迹（最新的单次运行）
+└── screenshots/         # SOTA 生成的关键状态截图
+```
+
+### README.md 必须包含
+
+- 启动方式（Docker / 本地开发）
+- 测试方式（如何运行 Playwright）
+- 目录结构（项目文件组织）
+- 已知限制（列出所有已知问题）
+
 ### 指令模板
 
 ```text
-把 webdev-task-sxw-01.01 的最终交付资产打包好：
-- 任务资产（task.md、metadata.json、rubric.json、assets、mock-data、tests 等）
-- starter/：初始项目代码
-- screenshots/：人工验证后放置的关键状态截图（可选）
-- 输出到 deliverables/webdev-task-sxw-01.01.tar.gz
+把 webdev-task-sxw-01.01 的最终交付资产打包好。
 ```
 
 ### AI 会执行

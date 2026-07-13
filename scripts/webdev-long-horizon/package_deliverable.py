@@ -6,23 +6,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 """
 打包 Web Dev 任务的最终交付资产。
 
-交付包结构（严格遵循高难度 Web Dev 长程任务数据采购需求 Draft 的附录建议）：
-    deliverables/<task-id>/
+交付包结构：
+    deliverables/<project-id>/<task-id>/
     ├── task.md              # 任务需求
     ├── metadata.json        # 任务元数据
-    ├── README.md            # 启动与测试说明
-    ├── rubric.json          # 验收标准
-    ├── target_states.md     # 关键状态说明
-    ├── sota-run.md          # SOTA 运行记录（含完整运行日志）
-    ├── starter/             # 初始项目代码
+    ├── README.md            # 启动与测试说明（含已知限制章节）
+    ├── .ignore              # 忽略规则
+    ├── starter/             # 初始项目代码（Greenfield 含 .gitkeep）
     ├── assets/              # 参考截图与素材
     ├── mock-data/           # mock 数据
     ├── tests/               # Playwright / 单元测试骨架
+    ├── rubric.json          # 验收标准
+    ├── target_states.md     # 关键状态说明
+    ├── trajectory.jsonl     # codex rollout 轨迹（最新的单次运行）
     └── screenshots/         # 关键状态截图
 
-输出为文件夹 `deliverables/<project-id>/<task-id>/`，不再打包 tar.gz。
-
-交付前需确保 README.md 包含「已知限制」章节。
+输出为文件夹，不再打包 tar.gz。
 
 用法：
     python scripts/webdev-long-horizon/package_deliverable.py \
@@ -32,11 +31,40 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 """
 
 import argparse
+import os
 import shutil
-import tarfile
 from pathlib import Path
 
 from utils.helpers import find_task_dir, project_dir, workspace_root
+
+IGNORE_CONTENT = """# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+"""
 
 
 def package_deliverable(
@@ -52,7 +80,7 @@ def package_deliverable(
         raise FileNotFoundError(f"找不到任务: {task_id}")
 
     session_dir = ws / "sessions" / project_id / session
-    submission_dir = session_dir / "submissions" / task_id / task_id
+    submission_dir = session_dir / "submissions" / task_id
 
     if not submission_dir.exists():
         raise FileNotFoundError(f"找不到 SOTA 产物: {submission_dir}")
@@ -65,21 +93,20 @@ def package_deliverable(
         shutil.rmtree(deliverable_dir)
     deliverable_dir.mkdir(parents=True, exist_ok=False)
 
-    # 1. 复制任务资产
+    # 1. 复制任务资产（不含 sota-run.md）
     task_assets = [
         "task.md",
         "metadata.json",
         "README.md",
         "rubric.json",
         "target_states.md",
-        "sota-run.md",
     ]
     for name in task_assets:
         src = task_dir / name
         if src.exists():
             shutil.copy2(src, deliverable_dir / name)
 
-    for name in ["assets", "mock-data", "tests", "screenshots"]:
+    for name in ["assets", "mock-data", "tests"]:
         src = task_dir / name
         if src.exists() and any(src.iterdir()):
             dst = deliverable_dir / name
@@ -87,18 +114,28 @@ def package_deliverable(
                 shutil.rmtree(dst)
             shutil.copytree(src, dst)
 
-    # 2. 将 sota.log 内容追加到 sota-run.md
-    sota_log = session_dir / "submissions" / task_id / "sota.log"
-    sota_run_md = deliverable_dir / "sota-run.md"
-    if sota_log.exists() and sota_run_md.exists():
-        with open(sota_run_md, "a", encoding="utf-8") as out:
-            out.write("\n\n## Log\n\n```\n")
-            with open(sota_log, "r", encoding="utf-8", errors="replace") as f:
-                out.write(f.read())
-            out.write("\n```\n")
+    # 2. 复制 SOTA 截图
+    sota_screenshots = submission_dir / "screenshots"
+    dst_screenshots = deliverable_dir / "screenshots"
+    if sota_screenshots.exists() and any(sota_screenshots.iterdir()):
+        if dst_screenshots.exists():
+            shutil.rmtree(dst_screenshots)
+        shutil.copytree(sota_screenshots, dst_screenshots)
+    else:
+        dst_screenshots.mkdir(parents=True, exist_ok=True)
 
-    # 3. 复制初始源码 baseline 到 starter/
-    #    对于增量任务，这是从父任务继承的 source；对于 Greenfield，这是空目录。
+    # 3. 复制最新的 trajectory rollout 文件
+    trajectory_dir = session_dir / "trajectory"
+    if trajectory_dir.exists():
+        rollout_files = sorted(trajectory_dir.glob("rollout*.jsonl"))
+        if rollout_files:
+            shutil.copy2(rollout_files[-1], deliverable_dir / "trajectory.jsonl")
+        else:
+            print(f"  注意：未找到 rollout 文件 ({trajectory_dir})")
+    else:
+        print(f"  注意：未找到 trajectory 目录 ({trajectory_dir})")
+
+    # 4. 初始源码 baseline 到 starter/
     family = task_dir.parent.name
     baseline_dir = project_dir(project_id) / "sources" / family / task_id
     starter_dir = deliverable_dir / "starter"
@@ -106,8 +143,10 @@ def package_deliverable(
         shutil.copytree(baseline_dir, starter_dir)
     else:
         starter_dir.mkdir(parents=True, exist_ok=True)
-        # 保留空目录占位，方便 tar 打包
         (starter_dir / ".gitkeep").write_text("", encoding="utf-8")
+
+    # 5. 生成 .ignore 文件
+    (deliverable_dir / ".ignore").write_text(IGNORE_CONTENT, encoding="utf-8")
 
     return deliverable_dir
 
