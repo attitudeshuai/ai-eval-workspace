@@ -56,9 +56,11 @@ sessions/**/logs/*.log
 # tasks/**/*.mp4
 
 # webdev-long-horizon task assets: kept locally, delivered as archives, not tracked in git
-projects/webdev-long-horizon/tasks/
+projects/webdev-long-horizon/tasks/*
+!projects/webdev-long-horizon/tasks/webdev-task-sxw-simple/
 
 projects/webdev-long-horizon/sources/*
+!projects/webdev-long-horizon/sources/webdev-task-sxw-simple/
 
 # Secrets
 projects/webdev-long-horizon/secrets.toml
