@@ -1,0 +1,35 @@
+[project]
+id = "pairwise-gsb"
+name = "生图 Pairwise GSB 标注"
+description = "评估 AI 生图模型在指令遵循、一致性、视觉效果三个维度的成对对比质量"
+owner = "ai-evaluation-workspace"
+created_at = "2026-07-25T00:00:00Z"
+task_prefix = "gsb-task-sxw"
+legacy_task_prefixes = ["gsb-task"]
+
+[paths]
+tasks_dir = "tasks"
+templates_dir = "templates"
+docs_dir = "docs"
+rubrics_dir = "rubrics"
+sources_dir = "sources"
+task_metadata = "metadata.json"
+task_readme = "README.md"
+task_description = "task.md"
+task_rubric = "rubric.json"
+task_data = "data"
+task_images = "images"
+task_output = "output"
+task_scripts = "scripts"
+
+[annotation]
+# GSB 三个维度
+dimensions = ["指令遵循", "一致性", "视觉效果"]
+# 允许的任务类型
+task_types = ["T2I", "图片编辑", "参考生成"]
+# GSB 可选值
+gsb_values = ["图片1更好", "图片2更好", "无法区分"]
+# 输入 Excel 列定义
+input_columns = ["序号", "prompt_cn", "prompt_en", "输入图1", "输入图2", "图片1", "图片2", "难度（仅作参考）", "本题难点（仅作参考）"]
+# 输出 Excel 列定义
+output_columns = ["整体gsb结果", "分维度gsb/指令遵循", "分维度gsb/指令遵循归因标签", "分维度gsb/一致性", "分维度gsb/一致性归因标签", "分维度gsb/视觉效果", "分维度gsb/视觉效果归因标签", "reason", "评测人"]
