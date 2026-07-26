@@ -70,3 +70,7 @@ projects/webdev-long-horizon/config.toml
 
 /sessions/*
 /deliverables/*
+
+*.png
+*.xlsx
+\projects\pairwise-gsb\extracted_images

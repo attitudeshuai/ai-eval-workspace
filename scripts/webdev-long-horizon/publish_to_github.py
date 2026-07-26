@@ -101,8 +101,8 @@ def publish(task_id: str, deliverable_dir: str, project_id: str = "webdev-long-h
         else:
             raise RuntimeError(f"创建仓库失败: {e.code} {body}")
 
-    # 5. 添加 remote 并推送
-    remote_url = f"git@github.com:{username}/{repo_name}.git"
+    # 5. 添加 remote 并推送（使用 token 认证的 HTTPS 方式，避免 SSH key 不匹配）
+    remote_url = f"https://{username}:{token}@github.com/{username}/{repo_name}.git"
     subprocess.run(
         ["git", "remote", "remove", "origin"],
         cwd=deliverable_path, capture_output=True
@@ -121,7 +121,7 @@ def publish(task_id: str, deliverable_dir: str, project_id: str = "webdev-long-h
 
     subprocess.run(
         ["git", "push", "-u", "origin", branch, "--force"],
-        cwd=deliverable_path, capture_output=True, check=True
+        cwd=deliverable_path, check=True
     )
 
     repo_url = f"https://github.com/{username}/{repo_name}"
