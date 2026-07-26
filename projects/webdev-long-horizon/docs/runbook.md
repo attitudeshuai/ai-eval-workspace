@@ -1,4 +1,4 @@
-# Web Dev 长程任务逐步执行 Runbook
+﻿# Web Dev 长程任务逐步执行 Runbook
 
 本 Runbook 提供与 AI Agent 对话时的自然语言指令模板，用于一步一步完成从任务创建到评估的全流程。
 
@@ -6,7 +6,7 @@
 
 下文示例中的 `<remote_dir>` 均指 `config.toml` 中 `[remote].remote_dir` 配置的值（当前默认 `/root/charles`）。若你修改了该值，请将示例中的 `<remote_dir>` 替换为实际路径。
 
-> 对应技术细节见 [OPERATIONAL_WORKFLOW.md](./OPERATIONAL_WORKFLOW.md)。
+> 对应技术细节见 [SKILL.md](./SKILL.md)。
 
 ---
 

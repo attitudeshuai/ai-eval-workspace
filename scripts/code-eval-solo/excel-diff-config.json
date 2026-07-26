@@ -1,0 +1,6 @@
+{
+  "file_a": "03.output-files\\csv list\\csv-solo-0601-app12-15-prompt-export.xlsx",
+  "file_b": "03.output-files\\csv list\\csv-solo-0601-app12-15-export.xlsx",
+  "column": "Trae Session ID",
+  "output": "03.output-files\\csv list\\csv-solo-0601-app12-15-diff.xlsx"
+}

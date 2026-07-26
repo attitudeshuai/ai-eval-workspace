@@ -20,6 +20,10 @@ pnpm-debug.log*
 .env.local
 .env.*.local
 
+# Secrets & credentials (DO NOT COMMIT real secrets)
+# 仅忽略名为 secrets.toml 的文件；secrets-simple.toml / secrets.example.toml 等模板可提交
+**/secrets.toml
+
 # IDE
 .vscode/
 .idea/
@@ -50,6 +54,16 @@ sessions/**/reports/**/evidence/*.png
 sessions/**/reports/**/evidence/*.jpg
 sessions/**/logs/*.log
 
+# Solo/GSB 工作数据（source code, ai-model-result）不提交
+sessions/code-eval-solo/*/source code/
+sessions/code-eval-solo/*/ai-model-result/
+sessions/code-eval-gsb/*/source code/
+sessions/code-eval-gsb/*/ai-model-result/
+
+# Demo 任务例外
+!sessions/code-eval-solo/solo-demo/
+!sessions/code-eval-gsb/session-gsb1v1/
+
 # Large binary assets in tasks (uncomment if needed)
 # tasks/**/*.png
 # tasks/**/*.jpg
@@ -69,7 +83,21 @@ projects/webdev-long-horizon/secrets.toml
 projects/webdev-long-horizon/config.toml
 
 /sessions/*
+!/sessions/code-eval-solo/
+!/sessions/code-eval-gsb/
 /deliverables/*
+!/deliverables/code-eval-solo/
+!/deliverables/code-eval-gsb/
+
+# Demo 任务例外
+!/sessions/code-eval-solo/solo-demo/
+!/sessions/code-eval-solo/solo-demo/source code/
+!/sessions/code-eval-solo/solo-demo/ai-model-result/
+!/sessions/code-eval-gsb/session-gsb1v1/
+!/sessions/code-eval-gsb/session-gsb1v1/source code/
+!/sessions/code-eval-gsb/session-gsb1v1/ai-model-result/
+!/deliverables/code-eval-solo/solo-demo/
+!/deliverables/code-eval-gsb/session-gsb1v1/
 
 *.png
 *.xlsx

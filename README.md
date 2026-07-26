@@ -15,40 +15,49 @@
 
 ---
 
+## 当前项目
+
+| 项目 ID | 类型 | 说明 |
+|---------|------|------|
+| `webdev-long-horizon` | Web 开发评估 | 高难度 Web Dev 长程任务 |
+| `pairwise-gsb` | 生图标注 | AI 生图 Pairwise GSB 标注 |
+| `code-eval-solo` | 代码评估 | 单模型代码能力批量评估 |
+| `code-eval-gsb` | 代码评估 | 多模型代码对比评估（GSB） |
+
 ## 目录结构
 
 ```text
 .
-├── README.md                 # 本文件
-├── AGENTS.md                 # 给 AI Agent 的工作台使用说明
+├── README.md
+├── AGENTS.md                     # 给 AI Agent 的工作台使用说明
 ├── .gitignore
-├── config/                   # 工作台级通用配置（不绑定任何项目）
-│   └── workspace.toml
-├── .kimi/skills/             # 全局技能：项目接入、任务评估、SOTA 运行等
-├── .claude/agents/           # Claude Agent 定义
-├── docs/                     # 工作台级文档：流程、规范、接入指南
-├── templates/                # 新项目 onboarding 模板（可选）
-│   └── project/
-├── scripts/                  # 通用自动化脚本
-│   ├── create_project.py     # onboard 新项目（最小化）
-│   ├── create_task.py        # 在项目中创建新任务（依赖项目模板）
-│   ├── validate_project.py   # 校验项目配置与任务结构
-│   ├── validate_task.py      # 校验单个任务结构
-│   ├── run_sota.py           # 为指定任务运行 SOTA
-│   ├── evaluate_task.py      # 基于 Rubric 生成评估报告
-│   └── generate_report.py    # 基准汇总
-├── projects/                 # 所有评估项目（完全自治）
-│   └── webdev-long-horizon/  # 示例项目
-│       ├── config.toml
-│       ├── README.md
-│       ├── docs/             # 项目专属文档
-│       ├── templates/        # 项目专属模板
-│       ├── rubrics/          # 项目专属 rubric
-│       └── tasks/            # 项目专属任务
-├── sessions/                 # 跨项目评估会话产物
-└── benchmarks/               # 汇总基准
-    ├── global/
-    └── by-project/
+├── skills/                       # 共享技能 Agent
+│   ├── implementation-reviewer/  #   代码评价（6维度）
+│   ├── humanizer-zh/             #   去 AI 写作痕迹
+│   ├── prompt-architect/         #   提示词生成
+│   └── excel-diff/               #   Excel/CSV 差异对比
+├── scripts/                      # 自动化脚本（按项目分目录）
+│   ├── webdev-long-horizon/
+│   ├── code-eval-solo/
+│   └── code-eval-gsb/
+├── projects/                     # 所有评估项目（完全自治）
+│   ├── webdev-long-horizon/
+│   ├── pairwise-gsb/
+│   ├── code-eval-solo/           #   单模型代码评估
+│   │   ├── config.toml
+│   │   ├── SKILL.md
+│   │   ├── skills/               #   项目专属 skill
+│   │   ├── docs/runbook.md
+│   │   └── templates/
+│   └── code-eval-gsb/            #   多模型代码对比
+├── sessions/                     # 工作数据 + 评估会话
+│   ├── code-eval-solo/           #   solo 源码 + 提示词 + 评价
+│   ├── code-eval-gsb/            #   gsb 源码 + 提示词 + 评价
+│   └── webdev-long-horizon/
+├── deliverables/                 # 导出产物
+│   ├── code-eval-solo/
+│   └── webdev-long-horizon/
+└── benchmarks/
 ```
 
 ---

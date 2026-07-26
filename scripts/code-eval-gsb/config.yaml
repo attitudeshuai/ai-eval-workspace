@@ -1,0 +1,229 @@
+# GSB (Good/Same/Bad) 多模型对比评测配置文件
+# 换期或换项目时只改这个文件，所有脚本和 skill 均从此处读取。
+
+# === 基础路径配置 ===
+# 工作区根目录（绝对路径或相对于本项目根目录）
+workspace_root: "D:\\charles\\program\\ai\\apps"
+
+# 当前 session 名称
+session_name: "session-gsb0723"
+
+# 项目名前缀（如 label-、gsb0723- 等）
+project_prefix: "gsb0723-"
+
+# 本地主分支源码根目录（相对于 workspace_root）
+# 实际主分支路径为：{local_main_branch_base}/<项目名>/<项目名>/
+local_main_branch_base: "02.work session/session-gsb0723/source code"
+
+# 模型结果文件根目录（相对于 workspace_root）
+# 实际结果路径为：{result_base}/<项目名>/<项目名>-<类型>/
+result_base: "02.work session/session-gsb0723/ai-model-result"
+
+# === GitHub 配置 ===
+github_username: "attitudeshuai"
+github_pat: "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"
+
+# === 模型配置 ===
+# models 列表：可灵活配置任意数量模型
+# 每个模型包含：
+#   - name: 模型原始名称（展示用）
+#   - slug: 模型标识（用于分支名、文件名后缀，自动小写+替换空格为-）
+#   - display_name: 表单中的显示名称（可选，默认使用 name）
+models:
+  - name: "Charmander"
+    slug: "charmander"
+    display_name: "Charmander"
+  - name: "Squirtle"
+    slug: "squirtle"
+    display_name: "Squirtle"
+  - name: "Bulbasaur"
+    slug: "bulbasaur"
+    display_name: "Bulbasaur"
+
+# === 对比组合配置 ===
+# comparisons 列表：可灵活配置任意数量对比
+# 每个对比包含：
+#   - name: 对比名称（如 AvsB）
+#   - pair: [模型A索引, 模型B索引]，对应 models 列表中的下标（从0开始）
+#   - required: 是否必选（true/false）
+comparisons:
+  - name: "Charmander vs Squirtle"
+    pair: [0, 1]
+    required: true
+  - name: "Charmander vs Bulbasaur"
+    pair: [0, 2]
+    required: true
+  - name: "Squirtle vs Bulbasaur"
+    pair: [1, 2]
+    required: true
+
+# === 任务类型配置 ===
+# 本期任务类型占比要求（供出题与汇总参考，允许上下浮动 2%）
+task_type_distribution:
+  - type: "Feature 迭代"
+    ratio: 0.30
+    desc: "在已有功能基础上的平滑扩展"
+  - type: "Bug 修复"
+    ratio: 0.25
+    desc: "逻辑修复、报错排查、安全漏洞修补"
+  - type: "0-1 代码生成"
+    ratio: 0.15
+    desc: "基于 PRD 或自然语言描述的新项目/完整模块构建"
+  - type: "代码重构"
+    ratio: 0.15
+    desc: "性能优化、可读性提升、解耦"
+  - type: "代码理解"
+    ratio: 0.05
+    desc: "解释逻辑、寻找潜在风险、回答技术细节"
+  - type: "工程化"
+    ratio: 0.05
+    desc: "环境配置、依赖管理、CI/CD 相关"
+  - type: "代码测试"
+    ratio: 0.05
+    desc: "单测、集成测试等"
+
+# 向后兼容：纯列表形式的任务类型
+task_types:
+  - "Bug 修复"
+  - "0-1 代码生成"
+  - "Feature 迭代"
+  - "代码理解"
+  - "工程化"
+  - "代码重构"
+  - "代码测试"
+
+# === 业务领域配置 ===
+# 本期业务领域分布要求（供出题与汇总参考，允许上下浮动 2%）
+business_domains:
+  - "纯后端 API 服务"
+  - "Web 前端"
+  - "全栈 Web 应用"
+  - "游戏开发（含 UI/渲染）"
+  - "数据分析与可视化（如 Dash/Streamlit）"
+  - "3D/交互可视化"
+  - "AI/ML 应用"
+  - "科学计算"
+  - "命令行工具"
+  - "桌面应用（含 GUI）"
+  - "自动化与工具脚本"
+
+# === 修改范围配置 ===
+# 以客观的"代码蔓延范围"定义复杂度，代码理解类任务映射为"代码理解范围"
+modification_scopes:
+  - name: "单文件"
+    desc: "局部逻辑修改"
+  - name: "模块内多文件"
+    desc: "涉及同一模块内的接口定义与实现协同"
+  - name: "跨模块多文件"
+    desc: "涉及多个逻辑单元的调用链修改"
+  - name: "跨系统多模块"
+    desc: "涉及前后端联调、跨服务调用、或数据库-后端的垂直改动"
+
+# === 评测流程配置 ===
+# 最大追问轮次（含首轮共 N 次）。
+# 常规任务按此上限控制；长上下文/超长上下文任务可依据评测需要适当突破。
+max_rounds: 3
+
+# 每轮评价维度
+review_dimensions:
+  - "提示词理解准确度"
+  - "技术深度"
+  - "回答完整性"
+
+# === 汇总表单评分维度 ===
+# 本期共 8 个维度：5 个基础维度 + 3 个 Add-on 维度
+summary_dimensions:
+  - "交付完整性"
+  - "指令遵循"
+  - "任务规划"
+  - "推理能力"
+  - "边界感"
+  - "长上下文保持能力"
+  - "思考效率"
+  - "工具调用效率"
+
+# === 约束类型配置 ===
+# 每个 prompt 必须包含全部 5 种约束类型
+constraint_types:
+  - "技术栈或依赖约束"
+  - "架构或模式约束"
+  - "代码风格或规范约束"
+  - "非代码回复约束"
+  - "业务逻辑约束"
+
+# === 约束标签数量分布配置 ===
+# 本期要求专家在 prompt 中刻意注入约束条件，并按下述占比分布
+constraint_tag_distribution:
+  - tags: 0
+    ratio: 0.05
+    desc: "考察宽泛意图下模型直觉泛化与默认审美"
+  - tags: 1
+    ratio: 0.10
+    desc: "基础对齐能力测试"
+  - tags: 2
+    ratio: 0.35
+    desc: "组合约束测试"
+  - tags: 3
+    ratio: 0.35
+    desc: "组合约束测试"
+  - tags: ">=4"
+    ratio: 0.15
+    desc: "压力测试"
+
+# === 上下文窗口分布配置 ===
+# 按 1M 窗口给出的占比建议（不做强制要求）
+context_window_distribution:
+  - range: "日常短窗口"
+    target: "<=256k（<=25% of 1M）"
+    ratio: 0.30
+  - range: "长上下文"
+    target: "256k-600k（25%-60% of 1M）"
+    ratio: 0.30
+  - range: "超长上下文（1M）"
+    target: ">600k（>60% of 1M）"
+    ratio: 0.40
+
+# === Max 模式分布配置 ===
+# 本期要求 70% 任务开启 Max（1M 上下文窗口），30% 不开启
+max_mode_distribution:
+  - enabled: true
+    ratio: 0.70
+  - enabled: false
+    ratio: 0.30
+
+# === Add-on 维度问题选项配置 ===
+# 用于汇总表单"出现的问题"多选字段
+long_context_issue_options:
+  - "前文约束遗忘"
+  - "已改代码回退/重复劳动"
+  - "路径幻觉（引用不存在文件等）"
+  - "lost-in-the-middle（遗漏中段）"
+  - "前后自相矛盾"
+  - "其他"
+  - "未出现显著问题"
+
+thinking_efficiency_issue_options:
+  - "简单题过度思考"
+  - "思考发散跑题"
+  - "反复自我否定绕圈"
+  - "思考不足直接猜"
+  - "思考陷入死循环"
+  - "其他"
+  - "未出现显著问题"
+
+toolcall_efficiency_issue_options:
+  - "重复读取同一文件"
+  - "文件间反复横跳"
+  - "无效探索或无关调用"
+  - "失败调用未能自行纠正"
+  - "该用工具时不用 靠瞎猜"
+  - "其他"
+  - "未出现显著问题"
+
+# === 文件命名配置 ===
+# 对话内容文件后缀
+dialogue_suffix: "对话内容"
+# 评价结果文件后缀
+review_suffix: "评价结果"
+# 汇总文件后缀
+summary_suffix: "评价汇总"

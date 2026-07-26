@@ -1,4 +1,4 @@
-# 高难度 Web Dev 长程任务
+﻿# 高难度 Web Dev 长程任务
 
 评估 AI agent 在复杂 Web 前端开发场景下的真实工程能力。
 
@@ -9,10 +9,12 @@ projects/webdev-long-horizon/
 ├── config.toml                 # 项目配置（task_prefix、评估参数、质量闸门）
 ├── categories.json             # 任务分类树与 Arena 标签
 ├── README.md                   # 本文件
-├── OPERATIONAL_WORKFLOW.md     # 完整实操流程（创建→SOTA→评估→交付）
-├── secrets.toml                # 远程机器 / API 密钥（gitignore）
-│
-├── docs/                       # 项目文档
+├── SKILL.md                    # 主入口（完整实操流程）
+├── skills/                     # 详细技能文件
+│   ├── task-creator/
+│   ├── sota-runner/
+│   ├── evaluator/
+│   └── ...
 │   ├── annotation-guidelines.md
 │   ├── runbook.md
 │   ├── task-template-guide.md
@@ -76,7 +78,7 @@ python scripts/webdev-long-horizon/create_task.py \
 
 生成目录：`tasks/webdev-task-sxw-04/webdev-task-sxw-04/`（自动编号）。
 
-> 详细流程见 [OPERATIONAL_WORKFLOW.md](./OPERATIONAL_WORKFLOW.md)。
+> 详细流程见 [SKILL.md](./SKILL.md)。
 
 ## 运行 SOTA & 评估
 

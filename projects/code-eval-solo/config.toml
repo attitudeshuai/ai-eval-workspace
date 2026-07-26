@@ -1,0 +1,81 @@
+[project]
+id = "code-eval-solo"
+name = "单模型代码评估"
+description = "评估单个 AI 模型在代码生成、Bug 修复、Feature 迭代等场景下的代码能力。批量生成提示词，收集模型回答并分析评估。"
+owner = "ai-evaluation-workspace"
+created_at = "2026-07-26T00:00:00Z"
+
+# ============================================================
+# 项目模式说明
+# ============================================================
+#   1. 项目源码放在 {work_root}/{SESSION_NAME}/{repo_base_path}/ 下，已 git init
+#   2. 批量生成提示词 → 在主仓注入 bug → 推送
+#   3. 所有提示词在主仓 main 分支依次执行
+#   4. 分析时通过 git 获取 commit 变更
+#   5. 分析结果经双重验证（verify_commit_id + verify_review）
+# ============================================================
+
+[paths]
+# ---- 所有路径以 ai-eval-workspace 为基准（工作台内闭环，不引用外部） ----
+# work_root: session 工作数据根目录，拼接为 work_root/{SESSION_NAME}/
+work_root = "sessions/code-eval-solo"
+# repo_base_path: 项目源码子路径，拼接为 work_root/{SESSION_NAME}/{repo_base_path}/
+repo_base_path = "source code"
+# 结果目录名（拼接在 work_root/{SESSION_NAME}/ 下）
+result_dir = "ai-model-result"
+
+# 提示词文件模板名
+prompt_template = "prompt-file.md"
+
+[task_types]
+# 支持的 7 种任务类型
+types = [
+    "Bug修复",
+    "0-1代码生成",
+    "Feature迭代",
+    "代码理解",
+    "工程化",
+    "代码重构",
+    "代码测试"
+]
+
+# 类型别名映射（用户输入简写 → 标准名称）
+# 提示词文件/目录以别名命名，CSV 导出仍用源类型名
+aliases = { "bugfix" = "Bug修复", "codegen" = "0-1代码生成", "feature" = "Feature迭代", "understand" = "代码理解", "engineering" = "工程化", "refactor" = "代码重构", "test" = "代码测试" }
+
+# 默认每个类型的提示词数量配额（可在具体 session 中覆盖）
+default_quotas = { "Bug修复" = 5, "0-1代码生成" = 5, "Feature迭代" = 5, "代码理解" = 1, "工程化" = 1, "代码重构" = 1, "代码测试" = 1 }
+
+[github]
+# GitHub 推送配置（预留）
+username = "attitudeshuai"
+
+[sessions]
+# 当前活跃的 session 名称，切换时只需改这一行
+active = "solo-demo"
+
+[prompt]
+# 提示词文件格式配置
+# 最大对话轮次（提示词文件模板预留 5 轮字段）
+max_rounds = 5
+# 是否需要去 AI 化处理
+use_humanizer = true
+# 0-1代码生成 / Feature迭代 的最低文件改动数要求
+min_files_changed = 2
+
+[analysis]
+# 分析维度
+dimensions = ["交付完整性", "用户体验", "指令遵循", "任务规划", "推理能力", "边界感"]
+# 评分范围
+score_min = 1
+score_max = 5
+# 过程分析维度数量
+process_dimensions = 10
+# 长程任务判定：修改文件数 ≥ N
+long_task_min_files = 5
+
+[secrets]
+# 敏感配置集中管理文件（已加入 .gitignore，不提交）
+# 首次使用请复制 secrets-simple.toml → secrets.toml 并填入真实值
+file = "secrets.toml"
+template = "secrets-simple.toml"

@@ -1,0 +1,133 @@
+[project]
+id = "code-eval-gsb"
+name = "多模型代码对比评估（GSB）"
+description = "评估多个 AI 模型在相同代码任务下的相对表现，支持 1v1、2v1、三模型对比等模式。通过 GitHub 分支隔离各模型代码，按维度打分并输出 GSB 对比结论。"
+owner = "ai-evaluation-workspace"
+created_at = "2026-07-26T00:00:00Z"
+
+# ============================================================
+# 项目模式说明
+# ============================================================
+#   1. 源码放置 → GitHub 推送 → 创建模型分支
+#   2. 生成统一提示词供所有模型共享
+#   3. 用户在 Trae 中各模型分支分别执行
+#   4. 逐轮评价 → 汇总 GSB 对比结论
+#
+# ============================================================
+
+[paths]
+# ---- 所有路径以 ai-eval-workspace 为基准（工作台内闭环，不引用外部） ----
+work_root = "sessions/code-eval-gsb"
+# 源码子目录（拼接为 work_root/{SESSION_NAME}/{source_dir}/）
+source_dir = "source code"
+# 结果目录名（拼接在 work_root/{SESSION_NAME}/ 下）
+result_dir = "ai-model-result"
+
+[task_types]
+# 支持的 7 种任务类型（与 code-eval-solo 一致）
+types = [
+    "Bug修复",
+    "0-1代码生成",
+    "Feature迭代",
+    "代码理解",
+    "工程化",
+    "代码重构",
+    "代码测试"
+]
+
+# 类型别名映射（用户输入简写 → 标准名称）
+# 文件/目录以别名命名，CSV 导出仍用源类型名
+aliases = { "bugfix" = "Bug修复", "codegen" = "0-1代码生成", "feature" = "Feature迭代", "understand" = "代码理解", "engineering" = "工程化", "refactor" = "代码重构", "test" = "代码测试" }
+
+[github]
+# GitHub 推送配置
+username = "attitudeshuai"
+prefer_ssh = true
+
+# ============================================================
+# 模型配置
+# ============================================================
+# 列出所有参与评测的模型，slug 用于分支名和文件名后缀
+# 换期或换模型时只改这里，skill 自动适配
+
+[[models]]
+name = "Spring"
+slug = "spring"
+display_name = "Spring"
+
+[[models]]
+name = "Summer"
+slug = "summer"
+display_name = "Summer"
+
+[[models]]
+name = "Autumn"
+slug = "autumn"
+display_name = "Autumn"
+
+[[models]]
+name = "Winter"
+slug = "winter"
+display_name = "Winter"
+
+# ============================================================
+# 对比组合（四模型相互对比，共 6 组）
+# ============================================================
+
+[[comparisons]]
+name = "Spring vs Summer"
+pair = [0, 1]
+required = true
+
+[[comparisons]]
+name = "Spring vs Autumn"
+pair = [0, 2]
+required = true
+
+[[comparisons]]
+name = "Spring vs Winter"
+pair = [0, 3]
+required = true
+
+[[comparisons]]
+name = "Summer vs Autumn"
+pair = [1, 2]
+required = true
+
+[[comparisons]]
+name = "Summer vs Winter"
+pair = [1, 3]
+required = true
+
+[[comparisons]]
+name = "Autumn vs Winter"
+pair = [2, 3]
+required = true
+
+[review]
+# 轮次评价配置
+# 最大追问轮次（含首轮共 N 次）
+max_rounds = 3
+# 单项目单次仅生成 1 条提示词（GSB 模式固定单条）
+prompts_per_project = 1
+
+[analysis]
+# 分析维度：5 基础 + 3 Add-on = 8 维度
+dimensions = ["交付完整性", "指令遵循", "任务规划", "推理能力", "边界感"]
+addon_dimensions = ["长上下文保持能力", "思考效率", "ToolCall效率"]
+score_min = 1
+score_max = 5
+# 是否需要 humanizer-zh 去 AI 化
+use_humanizer = true
+# 长程任务判定：修改文件数 ≥ N
+long_task_min_files = 5
+
+[sessions]
+# 当前活跃 session（各开发者在 secrets.toml 中覆盖）
+active = "session-demo"
+
+[secrets]
+# 敏感配置集中管理文件（已加入 .gitignore，不提交）
+# 首次使用请复制 secrets-simple.toml → secrets.toml 并填入真实值
+file = "secrets.toml"
+template = "secrets-simple.toml"
