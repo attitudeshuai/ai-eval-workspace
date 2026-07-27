@@ -1,0 +1,15 @@
+# 工作数据（运行时生成，勿提交）
+sessions/
+deliverables/
+# Excel 数据文件
+*.xlsx
+*.xls
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+# 日志
+*.log
+# 临时文件
+*.tmp
+~$*

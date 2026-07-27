@@ -1,0 +1,16 @@
+{
+  "batch_dir": "sessions/pairwise-gsb/demo/2026-07-27/batch-02/",
+  "xlsx_path": "sessions/pairwise-gsb/demo/2026-07-27/batch-02/output\\annotated_行12-15.xlsx",
+  "total_rows": 4,
+  "error_rows": 0,
+  "warning_rows": 0,
+  "error_rate": 0.0,
+  "gsb_distribution": {
+    "图片2更好": 1,
+    "无法区分": 2,
+    "图片1更好": 1
+  },
+  "undecided_ratio": 0.5,
+  "warnings": {},
+  "passed": true
+}

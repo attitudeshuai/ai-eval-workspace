@@ -1,4 +1,4 @@
-﻿# AI Agent 使用说明
+# AI Agent 使用说明
 
 本文件面向在此仓库中工作的 AI Agent。
 
@@ -13,7 +13,7 @@
 | 项目 ID | 类型 | 入口 Skill | 说明 |
 |---------|------|-----------|------|
 | `webdev-long-horizon` | Web 开发评估 | `SKILL.md` | 高难度 Web Dev 长程任务 |
-| `pairwise-gsb` | 生图标注 | `SKILL.md` | AI 生图 Pairwise GSB 标注 |
+| `pairwise-gsb` | 生图标注 | `skills/gsb-annotator/SKILL.md` | AI 生图 Pairwise GSB 标注 |
 | `code-eval-solo` | 代码评估 | `SKILL.md` | 单模型代码能力批量评估 |
 | `code-eval-gsb` | 代码评估 | `SKILL.md` | 多模型代码对比评估（GSB） |
 

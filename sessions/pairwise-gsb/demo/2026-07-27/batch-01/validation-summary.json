@@ -1,0 +1,23 @@
+{
+  "batch_dir": "sessions/pairwise-gsb/demo/2026-07-27/batch-01/",
+  "xlsx_path": "sessions/pairwise-gsb/demo/2026-07-27/batch-01/output\\annotated_行2-11.xlsx",
+  "total_rows": 10,
+  "error_rows": 0,
+  "warning_rows": 2,
+  "error_rate": 0.0,
+  "gsb_distribution": {
+    "图片1更好": 4,
+    "图片2更好": 2,
+    "无法区分": 4
+  },
+  "undecided_ratio": 0.4,
+  "warnings": {
+    "2": [
+      "[标签] 使用了'指令响应--其他内容响应差'，请确认无更具体标签可用"
+    ],
+    "11": [
+      "[标签] 使用了'指令响应--其他内容响应差'，请确认无更具体标签可用"
+    ]
+  },
+  "passed": true
+}

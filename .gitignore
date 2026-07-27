@@ -102,3 +102,17 @@ projects/webdev-long-horizon/config.toml
 *.png
 *.xlsx
 \projects\pairwise-gsb\extracted_images
+
+# pairwise-gsb demo 例外：仅 demo 目录纳入 git，其余 session 数据仍忽略
+!/sessions/pairwise-gsb/
+/sessions/pairwise-gsb/*
+!/sessions/pairwise-gsb/demo/
+!sessions/pairwise-gsb/demo/**/*.xlsx
+# 原始数据备份（>100MB）不提交
+sessions/pairwise-gsb/demo/**/original.xlsx
+!/deliverables/pairwise-gsb/
+/deliverables/pairwise-gsb/*
+!/deliverables/pairwise-gsb/demo/
+!deliverables/pairwise-gsb/demo/**/*.xlsx
+# Excel 锁文件任何情况都不提交
+~$*

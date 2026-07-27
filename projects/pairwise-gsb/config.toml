@@ -4,32 +4,91 @@ name = "生图 Pairwise GSB 标注"
 description = "评估 AI 生图模型在指令遵循、一致性、视觉效果三个维度的成对对比质量"
 owner = "ai-evaluation-workspace"
 created_at = "2026-07-25T00:00:00Z"
-task_prefix = "gsb-task-sxw"
-legacy_task_prefixes = ["gsb-task"]
 
 [paths]
-tasks_dir = "tasks"
-templates_dir = "templates"
 docs_dir = "docs"
-rubrics_dir = "rubrics"
-sources_dir = "sources"
-task_metadata = "metadata.json"
-task_readme = "README.md"
-task_description = "task.md"
-task_rubric = "rubric.json"
-task_data = "data"
-task_images = "images"
-task_output = "output"
-task_scripts = "scripts"
+scripts_dir = "scripts"
+# session/日期/批次 三层隔离
+sessions_dir = "sessions/pairwise-gsb"
+deliverables_dir = "deliverables/pairwise-gsb"
+default_session = "0724"
+# 批次内子目录
+batch_input_dir = "input"
+batch_output_dir = "output"
+batch_images_dir = "images"
+# 批次文件命名模式（{row_start}/{row_end} 为原始 Excel 行号）
+batch_input_file = "items_行{row_start}-{row_end}.xlsx"
+batch_output_file = "annotated_行{row_start}-{row_end}.xlsx"
+batch_error_file = "errors.txt"
+original_file = "original.xlsx"
+image_manifest = "manifest.json"
+# 图片命名模式：row_{批次内行号}_{列名}.png
+image_file_pattern = "row_{row:03d}_{col_type}"
+# 交付全量文件命名模式
+full_output_file = "annotated-full_行{row_start}-{row_end}.xlsx"
+# 交付时保留的输入列（其余输入列不进入交付文件）
+deliver_keep_input_columns = ["序号", "prompt_cn", "prompt_en"]
+# 疑难 case 与复核
+difficult_cases_file = "difficult-cases.xlsx"
+difficult_cases_log = "difficult-cases-log.md"
+reviewed_dir = "reviewed"
 
 [annotation]
-# GSB 三个维度
 dimensions = ["指令遵循", "一致性", "视觉效果"]
-# 允许的任务类型
 task_types = ["T2I", "图片编辑", "参考生成"]
-# GSB 可选值
 gsb_values = ["图片1更好", "图片2更好", "无法区分"]
-# 输入 Excel 列定义
+consistency_values = ["图片1更好", "图片2更好", "无法区分", "不涉及"]
+# 归因标签多选分隔符（交付多维表格按英文逗号拆分为多个选项）
+tag_separator = ","
+# 输入列（原始 Excel 表头）
 input_columns = ["序号", "prompt_cn", "prompt_en", "输入图1", "输入图2", "图片1", "图片2", "难度（仅作参考）", "本题难点（仅作参考）"]
-# 输出 Excel 列定义
+# 图片相关列（用于提取/下载）
+image_columns = ["输入图1", "输入图2", "图片1", "图片2"]
+# 输出列（标注结果）
 output_columns = ["整体gsb结果", "分维度gsb/指令遵循", "分维度gsb/指令遵循归因标签", "分维度gsb/一致性", "分维度gsb/一致性归因标签", "分维度gsb/视觉效果", "分维度gsb/视觉效果归因标签", "reason", "评测人"]
+
+[batch]
+batch_size = 10
+batch_prefix = "batch-"
+batch_num_width = 2
+
+[quality]
+validate_script = "scripts/validate_annotations.py"
+max_error_rate = 0.0
+undecided_warn_threshold = 0.6
+audit_sample_rate = 0.1
+
+[tags.instruction]
+labels = [
+  "世界/专业知识--新概念/流行的/专有的新名词响应错误",
+  "世界/专业知识--名人不像（非给定图，仅用于 T2I）",
+  "世界/专业知识--场景类型错误",
+  "指令响应--完全未响应",
+  "指令响应--人像相关元素响应差",
+  "指令响应--物体/图像等具象元素响应差",
+  "指令响应--风格/色彩等抽象元素响应差",
+  "指令响应--实体数量响应差",
+  "指令响应--实体位置响应差",
+  "指令响应--其他内容响应差"
+]
+
+[tags.consistency]
+labels = [
+  "一致性--知名IP保持差",
+  "一致性--真人-人物保持差",
+  "一致性--非真实人物-人物保持差",
+  "一致性--风格/色调保持差",
+  "一致性--其他元素保持差"
+]
+
+[tags.visual]
+labels = [
+  "视觉效果-存在明显的结构崩坏",
+  "视觉效果-结构无崩坏但违反物理规律",
+  "视觉效果-自然真实-生成效果不自然（假）",
+  "视觉效果-自然真实-AI感",
+  "视觉效果-自然真实-负向信息带入",
+  "视觉效果-画质差",
+  "视觉效果-基础美感差",
+  "视觉效果-设计场景中设计感差"
+]
