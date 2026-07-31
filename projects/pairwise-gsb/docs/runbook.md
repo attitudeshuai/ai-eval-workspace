@@ -33,6 +33,7 @@ AI 会自动识别文件、使用当天日期、默认从 batch-01 开始。
 ```
 
 AI 会执行：
+
 1. 备份原始 Excel → `sessions/pairwise-gsb/<session>/<日期>/original.xlsx`
 2. 切分为批次（每批 15 行）→ `batch-01/` ~ `batch-NN/`
 3. 对指定批次提取嵌入图片 → `batch-NN/images/`
@@ -45,6 +46,7 @@ AI 会执行：
 ```
 
 AI 会按 `skills/annotate-batch/SKILL.md` 的 9 步协议逐行标注：
+
 1. 读 prompt 列约束清单
 2. 判定任务类型（T2I / 图片编辑 / 参考生成）
 3. 逐图检查（指令遵循 → 一致性 → 视觉效果）
@@ -70,6 +72,7 @@ python projects/pairwise-gsb/scripts/validate_annotations.py sessions/pairwise-g
 ```
 
 校验项：
+
 - 字段值合法性（GSB、标签范围）
 - T2I 一致性字段是否正确
 - reason 是否包含四段结构
@@ -93,6 +96,7 @@ python projects/pairwise-gsb/scripts/validate_annotations.py sessions/pairwise-g
 ```
 
 AI 会执行：
+
 1. 合并所有已完成批次的 `annotated.xlsx`
 2. 统计 GSB 分布
 3. 输出到 `deliverables/pairwise-gsb/<session>/<日期>/`
@@ -101,15 +105,15 @@ AI 会执行：
 
 ## 常用对话指令
 
-| 你说的 | AI 做的 |
-|--------|---------|
-| `把这个 Excel 标注了` | 切分→提取→标注 batch-01→校验 |
-| `继续下一批` | 标注 batch-02 |
-| `标注全部批次` | 从 batch-01 做到最后一批 |
-| `校验 batch-03` | 只校验不标注 |
-| `导出今天的` | 合并所有批次到 deliverables |
-| `重新标注 batch-02` | 覆盖 batch-02 的标注结果 |
-| `batch-01 有几条错了，帮我修` | 读 errors.txt 逐条修正→重校验 |
+| 你说的                          | AI 做的                         |
+| ------------------------------- | ------------------------------- |
+| `把这个 Excel 标注了`         | 切分→提取→标注 batch-01→校验 |
+| `继续下一批`                  | 标注 batch-02                   |
+| `标注全部批次`                | 从 batch-01 做到最后一批        |
+| `校验 batch-03`               | 只校验不标注                    |
+| `导出今天的`                  | 合并所有批次到 deliverables     |
+| `重新标注 batch-02`           | 覆盖 batch-02 的标注结果        |
+| `batch-01 有几条错了，帮我修` | 读 errors.txt 逐条修正→重校验  |
 
 ---
 
@@ -143,23 +147,23 @@ python projects/pairwise-gsb/scripts/merge_batches.py \
 
 ## 目录速查
 
-| 路径 | 用途 |
-|------|------|
-| `sessions/pairwise-gsb/<session>/<日期>/original.xlsx` | 原始备份 |
-| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/input/items_行{起}-{止}.xlsx` | 批次输入（默认 10 行） |
-| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/images/` | 提取的图片（`row_{原始行号}_{列名}.png`） |
-| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/output/annotated_行{起}-{止}.xlsx` | 标注结果 |
-| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/errors.txt` | 校验报告（有错误时生成） |
-| `deliverables/pairwise-gsb/<session>/<日期>/annotated-full_行{起}-{止}.xlsx` | 最终交付（仅 序号/prompt/输出列） |
+| 路径                                                                                  | 用途                                        |
+| ------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `sessions/pairwise-gsb/<session>/<日期>/original.xlsx`                              | 原始备份                                    |
+| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/input/items_行{起}-{止}.xlsx`      | 批次输入（默认 10 行）                      |
+| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/images/`                           | 提取的图片（`row_{原始行号}_{列名}.png`） |
+| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/output/annotated_行{起}-{止}.xlsx` | 标注结果                                    |
+| `sessions/pairwise-gsb/<session>/<日期>/batch-NN/errors.txt`                        | 校验报告（有错误时生成）                    |
+| `deliverables/pairwise-gsb/<session>/<日期>/annotated-full_行{起}-{止}.xlsx`        | 最终交付（仅 序号/prompt/输出列）           |
 
 ---
 
 ## 故障排查
 
-| 问题 | 处理 |
-|------|------|
-| 切分后批次数不对 | 检查 Excel 是否有多余空行；可用 `--batch-size` 调整 |
-| 图片提取为空 | Excel 中图片是嵌入的还是链接？链接图片需手动下载 |
-| 校验报字段错误 | 检查列名是否和 config.toml 中 `input_columns`/`output_columns` 一致 |
-| "无法区分"超过 60% | AI 会提醒复查，逐条确认是否确实无差异 |
-| 某批想重做 | 删除 `batch-NN/output/`，重新标注即可 |
+| 问题               | 处理                                                                   |
+| ------------------ | ---------------------------------------------------------------------- |
+| 切分后批次数不对   | 检查 Excel 是否有多余空行；可用`--batch-size` 调整                   |
+| 图片提取为空       | Excel 中图片是嵌入的还是链接？链接图片需手动下载                       |
+| 校验报字段错误     | 检查列名是否和 config.toml 中`input_columns`/`output_columns` 一致 |
+| "无法区分"超过 60% | AI 会提醒复查，逐条确认是否确实无差异                                  |
+| 某批想重做         | 删除`batch-NN/output/`，重新标注即可                                 |

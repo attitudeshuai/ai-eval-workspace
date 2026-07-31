@@ -5,7 +5,7 @@ description = "评估 agent 在复杂前端工程、长程任务、视觉还原�
 owner = "ai-evaluation-workspace"
 created_at = "2026-07-10T00:00:00Z"
 # 任务 ID 前缀，新任务将按 {prefix}-{序号} 自动编号，如 webdev-task-sxw-01
-task_prefix = "webdev-task-sxw"
+task_prefix = "webdev-task-charles"
 # 旧任务前缀列表，用于向后兼容查找已有任务（不修改现有目录名）
 legacy_task_prefixes = ["webdev-task"]
 
@@ -51,7 +51,7 @@ required_browser_tools = true
 [remote]
 # 连接信息（host/port/user/password）已集中到 secrets.toml（已加入 .gitignore，请勿提交）。
 # 如需覆盖，可在此声明；config.toml 中的值优先级低于 secrets.toml。
-remote_dir = "/root/charles"
+remote_dir = "/root/demo-c"
 secrets_file = "secrets.toml"
 
 [github]

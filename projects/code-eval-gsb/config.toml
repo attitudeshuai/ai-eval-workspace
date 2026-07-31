@@ -39,77 +39,87 @@ types = [
 # 文件/目录以别名命名，CSV 导出仍用源类型名
 aliases = { "bugfix" = "Bug修复", "codegen" = "0-1代码生成", "feature" = "Feature迭代", "understand" = "代码理解", "engineering" = "工程化", "refactor" = "代码重构", "test" = "代码测试" }
 
+# 0731 期出题分布（允许上下浮动 2%）
+[task_types.distribution]
+"Feature迭代" = 30
+"Bug修复" = 25
+"0-1代码生成" = 15
+"代码重构" = 15
+"代码理解" = 5
+"工程化" = 5
+"代码测试" = 5
+
 [github]
 # GitHub 推送配置
 username = "attitudeshuai"
 prefer_ssh = true
 
 # ============================================================
-# 模型配置
+# 模型配置（0731 期）
 # ============================================================
 # 列出所有参与评测的模型，slug 用于分支名和文件名后缀
 # 换期或换模型时只改这里，skill 自动适配
+# 本期 anchor：Steve（index 0）
 
 [[models]]
-name = "Spring"
-slug = "spring"
-display_name = "Spring"
+name = "Steve"
+slug = "steve"
+display_name = "Steve"
+role = "anchor"
 
 [[models]]
-name = "Summer"
-slug = "summer"
-display_name = "Summer"
+name = "Natasha"
+slug = "natasha"
+display_name = "Natasha"
 
 [[models]]
-name = "Autumn"
-slug = "autumn"
-display_name = "Autumn"
+name = "Thor"
+slug = "thor"
+display_name = "Thor"
 
 [[models]]
-name = "Winter"
-slug = "winter"
-display_name = "Winter"
+name = "Tony"
+slug = "tony"
+display_name = "Tony"
 
 # ============================================================
-# 对比组合（四模型相互对比，共 6 组）
+# 对比组合（0731 期：Anchor-based，固定 Steve 为 anchor，共 3 组）
 # ============================================================
+# 本期 GSB 不提供 Same 选项，必须二选一
 
 [[comparisons]]
-name = "Spring vs Summer"
+name = "Steve vs Natasha"
 pair = [0, 1]
 required = true
 
 [[comparisons]]
-name = "Spring vs Autumn"
+name = "Steve vs Thor"
 pair = [0, 2]
 required = true
 
 [[comparisons]]
-name = "Spring vs Winter"
+name = "Steve vs Tony"
 pair = [0, 3]
 required = true
 
-[[comparisons]]
-name = "Summer vs Autumn"
-pair = [1, 2]
-required = true
-
-[[comparisons]]
-name = "Summer vs Winter"
-pair = [1, 3]
-required = true
-
-[[comparisons]]
-name = "Autumn vs Winter"
-pair = [2, 3]
-required = true
-
 [review]
-# 轮次评价配置
-# 最大追问轮次（含首轮共 N 次）
-max_rounds = 3
+# 轮次评价配置（0731 期：3 ≤ 轮次 ≤ 6）
+# 最少轮次：题目需设计成 3 轮以上才能完成（第 2、3 轮刻意加入跨轮次依赖，堆长上下文）
+min_rounds = 3
+# 最大轮次（含首轮共 N 次）：控制评测成本，达到即停止
+max_rounds = 6
 # 单项目单次仅生成 1 条提示词（GSB 模式固定单条）
 prompts_per_project = 1
+
+[execution]
+# 0731 期执行环境要求
+# 全部任务必须开启 Max（1M 上下文窗口），底部应显示 "X% of 1000K"，否则 Max 未生效需重测
+require_max_mode = true
+# 客户端：Trae CN + SOLO Agent 模式（关闭 Auto，选择内部策略模型）
+trae_mode = "SOLO Agent"
+# PPE 配置（写入 settings.json）
+ppe_env = "ppe"
+ppe_name = "ppe_trae_seed_code_dogfood"
 
 [analysis]
 # 分析维度：5 基础 + 3 Add-on = 8 维度
@@ -117,6 +127,11 @@ dimensions = ["交付完整性", "指令遵循", "任务规划", "推理能力",
 addon_dimensions = ["长上下文保持能力", "思考效率", "ToolCall效率"]
 score_min = 1
 score_max = 5
+# 长上下文保持能力打分阈值：仅 context ≥ 200K（≥20% of 1000K）的样本打分，
+# 未达阈值：评分与问题标签留空，打分理由填 N/A
+long_context_threshold_k = 200
+# GSB 结论：本期不提供 Same 选项，必须二选一
+gsb_allow_same = false
 # 是否需要 humanizer-zh 去 AI 化
 use_humanizer = true
 # 长程任务判定：修改文件数 ≥ N

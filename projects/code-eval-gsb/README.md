@@ -61,7 +61,7 @@ AI 将完成：源码推送 GitHub → 创建分支 → 生成提示词。
 
 每轮对话后在 AI Agent 中执行：
 ```
-使用 code-eval-gsb 技能，review demo-hello bugfix spring 第1轮
+使用 code-eval-gsb 技能，review demo-hello bugfix steve 第1轮
 ```
 
 ### 4. 汇总分析
