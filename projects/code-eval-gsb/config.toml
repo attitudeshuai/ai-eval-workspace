@@ -139,7 +139,7 @@ long_task_min_files = 5
 
 [sessions]
 # 当前活跃 session（各开发者在 secrets.toml 中覆盖）
-active = "session-demo"
+active = "session-0731"
 
 [secrets]
 # 敏感配置集中管理文件（已加入 .gitignore，不提交）

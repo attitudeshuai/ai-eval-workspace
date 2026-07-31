@@ -122,7 +122,7 @@ TraeCN用户ID：<ID>
 | Natasha和Steve谁更好 | GSB「Steve vs Natasha」的胜出模型名 |
 | Thor和Steve谁更好 | GSB「Steve vs Thor」的胜出模型名 |
 | Tony和Steve谁更好 | GSB「Steve vs Tony」的胜出模型名 |
-| 评价模型Natasha / 评价模型Thor / 评价模型Steve / 评价模型Tony | 表单「评价模型」段，每题必填 4 条 |
+| 评价模型Natasha / 评价模型Thor / 评价模型Steve / 评价模型Tony | 表单「评价模型」段，每题必填 4 条。固定格式：首行 Bad Pattern 概括（无则「无明显Bad Pattern 。」），随后按编号逐个对比其余每个模型（「N、与X对比：更好/差一点，理由」） |
 | 其它信息 | 表单「其它信息备注」（含美观度，如有） |
 | TraeCN用户ID | 用户输入 |
 
