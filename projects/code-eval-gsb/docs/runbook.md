@@ -32,7 +32,9 @@ github_pat = "your-github-pat"
 
 ### 放置项目源码
 
-将项目源码放到 `{work_root}/{SESSION_NAME}/source code/{项目名}-origin/`，确保已 `git init`。
+将项目源码放到 `{work_root}/{SESSION_NAME}/source code/{项目名}/{项目名}-origin/`，确保已 `git init`。
+
+**0-1 代码生成项目**：origin 仓只需放一个标准命名的 `README.md`（完整需求规格书：技术栈 + 功能模块 + 约束），仓内不放任何代码。项目名 = 需求 md 文件名（如 `projects/code-eval-gsb/docs/gsb0731_00001.md` → 项目名 `gsb0731_00001`），把该 md 原样复制为 `{项目名}-origin/README.md` 即可。
 
 ---
 
@@ -42,15 +44,18 @@ github_pat = "your-github-pat"
 
 ```text
 gsb demo-hello setup
+
+# 0-1 代码生成（项目名 = docs 下需求 md 文件名）
+gsb gsb0731_00001 setup
 ```
 
 ### AI 会执行
 
-1. 扫描项目结构，展示摘要，请用户确认任务类型（7选1）
-2. Bug 修复类型：注入 bug → commit
+1. 扫描项目结构，展示摘要，请用户确认任务类型（7选1；0-1 项目生成指令自带「0-1代码生成」类型，无需确认）
+2. Bug 修复类型：注入 bug → commit；0-1 代码生成：origin 仓只含 README.md 需求规格书，保持原样
 3. 推送 GitHub 仓库
 4. 创建各模型对比分支并 clone 到本地
-5. 调用 `prompt-architect` → `humanizer-zh` 生成去 AI 化提示词
+5. 调用 `prompt-architect` → `humanizer-zh` 生成去 AI 化提示词（0-1 代码生成首轮固定为"通读 README、按文档开发整套系统"口径，后续轮次按模型交付与 README 的差距在轮次分析阶段生成）
 6. 写入对话内容文件和评价结果文件（每模型各一份）
 
 ### 产物

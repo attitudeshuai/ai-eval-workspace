@@ -72,3 +72,38 @@ sessions/code-eval-gsb/
 └── session-gsb0608/          # 第3批
     └── ...
 ```
+
+---
+
+## 0-1 代码生成示例
+
+> 以 **session=session-0731**、**项目 gsb0731_00001**、**类型 0-1代码生成（ALIAS=codegen）** 为例。
+
+0-1 任务的 origin 仓只含一个标准命名的 `README.md`（完整需求规格书），**项目名 = 需求 md 文件名**：
+
+```
+sessions/code-eval-gsb/session-0731/
+│
+├── source code/gsb0731_00001/
+│   ├── gsb0731_00001-origin/      # 仅 README.md（需求规格书，无代码）
+│   ├── gsb0731_00001-steve/
+│   ├── gsb0731_00001-natasha/
+│   ├── gsb0731_00001-thor/
+│   └── gsb0731_00001-tony/
+│
+└── ai-model-result/gsb0731_00001/gsb0731_00001-codegen/
+    ├── gsb0731_00001-codegen-steve-对话内容.md
+    ├── gsb0731_00001-codegen-steve-评价结果.md
+    ├── gsb0731_00001-codegen-natasha-对话内容.md
+    ├── gsb0731_00001-codegen-natasha-评价结果.md
+    ├── ...（thor / tony 同构）
+    └── gsb0731_00001-codegen-评价汇总.md
+```
+
+建仓流程：
+
+1. 把 `projects/code-eval-gsb/docs/gsb0731_00001.md` 原样复制为 `source code/gsb0731_00001/gsb0731_00001-origin/README.md`
+2. `git init` + 首次 commit → 创建 GitHub public 仓 → push main
+3. 从 main 建各模型分支（steve / natasha / thor / tony）→ 分别 clone 回本地
+
+首轮提示词固定口径：项目主题一句话 + "需求都写在仓库的 README 里，通读后按文档把整套系统开发出来"；第 2 轮起按模型交付与 README 的差距追问。
