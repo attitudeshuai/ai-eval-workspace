@@ -6,7 +6,7 @@
 - 表头中不存在的 key 直接报错（防止拼写错误静默丢数据）
 - 未提供的列留空，并在输出中列出，便于人工核对
 - 默认按「Github Repo」列查重，重复时需 --force 才允许追加
-- 「提交时间」缺省时自动填入当前时间
+- 「提交时间」按约定留空，不自动填充
 
 用法：
     python3 append_delivery.py --xlsx <交付表.xlsx> --json <记录.json> [--dry-run] [--force]
@@ -17,7 +17,6 @@
 import argparse
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 try:
@@ -75,10 +74,7 @@ def main():
                 print("如确认要重复追加，请加 --force。")
                 sys.exit(1)
 
-    # 3) 提交时间缺省自动填充
-    record.setdefault("提交时间", datetime.now().strftime("%Y-%m-%d %H:%M"))
-
-    # 4) 汇总留空列
+    # 3) 汇总留空列
     empty = [h for h in headers if h and not str(record.get(h, "")).strip()]
     print(f"将写入 {len(headers) - len(empty)}/{len(headers)} 列，以下 {len(empty)} 列留空：")
     for h in empty:
@@ -88,7 +84,7 @@ def main():
         print("\n[dry-run] 校验通过，未写入文件。")
         return
 
-    # 5) 追加行
+    # 4) 追加行
     row_values = [record.get(h, "") if h else "" for h in headers]
     ws.append(row_values)
     wb.save(xlsx_path)
