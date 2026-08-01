@@ -161,7 +161,7 @@ gsb demo-hello analyze init bugfix
 
 ---
 
-## 第 5 步：交付导出（追加到交付 Excel）
+## 第 5 步：交付导出（追加到飞书多维表格）
 
 汇总表单人工核对定稿后执行：
 
@@ -174,12 +174,12 @@ gsb demo-hello export bugfix 提交人:张三 TraeCN用户ID:zhangsan001
 ### AI 会执行
 
 1. 读取 `demo-hello-bugfix-评价汇总.md`，检查无 `【待用户填写】`/`【参考值，请确认】` 残留
-2. 按交付表 104 列生成记录 JSON（模型区块顺序：Natasha → Thor → Steve → Tony）
-3. 调用 `scripts/code-eval-gsb/append_delivery.py` 先 `--dry-run` 校验，再正式追加到 `projects/code-eval-gsb/docs/【成都】GSB0731.xlsx`
-4. 输出追加行号 + 留空列清单
+2. 按交付表字段生成记录 JSON（模型区块顺序：Natasha → Thor → Steve → Tony）
+3. 调用 `scripts/code-eval-gsb/append_delivery_feishu.py` 先 `--dry-run` 校验，再正式追加到飞书多维表格（地址见 `config.toml [feishu]`）
+4. 输出追加的 record_id + 留空字段清单
 
 ### 产物
 
-交付 Excel「数据表」新增一行（含 4 模型评分、3 组 GSB、4 条模型评价）。脚本按 Github Repo 查重，重复追加需人工确认。
+飞书多维表格「数据表」新增一条记录（含 4 模型评分、3 组 GSB、4 条模型评价）。脚本按 Github Repo 查重，重复追加需人工确认后加 `--force`。单选/多选字段只能写入已有选项，脚本会校验并列出合法选项。
 
-> 技术细节见 `skills/04-export-delivery.md`。首次使用需 `python3 -m venv .venv && .venv/bin/pip install openpyxl`。
+> 技术细节见 `skills/04-export-delivery.md`。飞书凭证在 `secrets.toml [feishu]`；首次使用需在飞书开发者后台为应用开通 `bitable:app` 权限，并把应用添加为多维表格协作者。
