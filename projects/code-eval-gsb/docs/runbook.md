@@ -14,7 +14,7 @@
 gsb {项目ID} {操作}
 ```
 
-如：`gsb demo-hello setup`、`gsb demo-hello review bugfix steve 第1轮`
+如：`gsb demo-hello setup`、`gsb demo-hello review bugfix odysseus 第1轮`
 
 ---
 
@@ -26,7 +26,7 @@ gsb {项目ID} {操作}
 
 ```toml
 work_root = "sessions/code-eval-gsb"
-active_session = "session-gsb1v1"
+active_session = "session-0825"
 github_pat = "your-github-pat"
 ```
 
@@ -34,7 +34,7 @@ github_pat = "your-github-pat"
 
 将项目源码放到 `{work_root}/{SESSION_NAME}/source code/{项目名}/{项目名}-origin/`，确保已 `git init`。
 
-**0-1 代码生成项目**：origin 仓只需放一个标准命名的 `README.md`（完整需求规格书：技术栈 + 功能模块 + 约束），仓内不放任何代码。项目名 = 需求 md 文件名（如 `projects/code-eval-gsb/docs/gsb0731_00001.md` → 项目名 `gsb0731_00001`），把该 md 原样复制为 `{项目名}-origin/README.md` 即可。
+**0-1 代码生成项目**：origin 仓只需放一个标准命名的 `README.md`（完整需求规格书：技术栈 + 功能模块 + 约束），仓内不放任何代码。项目名 = 需求 md 文件名（如 `projects/code-eval-gsb/docs/gsb0825_00001.md` → 项目名 `gsb0825_00001`），把该 md 原样复制为 `{项目名}-origin/README.md` 即可。
 
 ---
 
@@ -46,7 +46,7 @@ github_pat = "your-github-pat"
 gsb demo-hello setup
 
 # 0-1 代码生成（项目名 = docs 下需求 md 文件名）
-gsb gsb0731_00001 setup
+gsb gsb0825_00001 setup
 ```
 
 ### AI 会执行
@@ -63,14 +63,17 @@ gsb gsb0731_00001 setup
 ```text
 {work_root}/{session}/source code/demo-hello/
 ├── demo-hello-origin/
-├── demo-hello-TestM_1/
-└── demo-hello-TestM_2/
+├── demo-hello-odysseus/
+├── demo-hello-athena/
+├── demo-hello-poseidon/
+└── demo-hello-cyclops/
 
 {work_root}/{session}/ai-model-result/demo-hello/demo-hello-{ALIAS}/
-├── demo-hello-{ALIAS}-TestM_1-对话内容.md
-├── demo-hello-{ALIAS}-TestM_1-评价结果.md
-├── demo-hello-{ALIAS}-TestM_2-对话内容.md
-└── demo-hello-{ALIAS}-TestM_2-评价结果.md
+├── demo-hello-{ALIAS}-odysseus-对话内容.md
+├── demo-hello-{ALIAS}-odysseus-评价结果.md
+├── demo-hello-{ALIAS}-athena-对话内容.md
+├── demo-hello-{ALIAS}-athena-评价结果.md
+├── ...（poseidon / cyclops 同构）
 ```
 
 ---
@@ -79,18 +82,18 @@ gsb gsb0731_00001 setup
 
 用户在各模型分支仓库中分别执行相同的提示词：
 
-1. 进入 `demo-hello-steve/`，复制首轮提示词到 Trae
+1. 进入 `demo-hello-odysseus/`，复制首轮提示词到 Trae
 2. 模型完成后，将回答贴回 `-对话内容.md` 的「模型第一次回答内容」+ 填写 session id
-3. 在其他模型分支（`demo-hello-natasha/`、`demo-hello-thor/`、`demo-hello-tony/`）中重复同样操作
+3. 在其他模型分支（`demo-hello-athena/`、`demo-hello-poseidon/`、`demo-hello-cyclops/`）中重复同样操作
 4. 如需追问，使用 review 生成的追问提示词继续
 
-### 0731 期 Trae 环境要求
+### 0825 期 Trae 环境要求
 
 - **Trae CN 客户端**（非字节员工账户登录，更新至最新版本），**SOLO Agent** 模式，关闭 Auto，选择内部策略模型
 - **每一道题打开新的任务窗口**测试
 - `settings.json` 写入 PPE 配置：`"ai_assistant.request.env": "ppe"` + `"ai_assistant.request.ppe": "ppe_trae_seed_code_dogfood"`，然后 Reload Window
-- **所有任务开启 Max（1M 上下文）**：对话底部应显示 `X% of 1000K`；若显示 `of 186K` / `of 224K` 等小窗口，说明 Max 未生效，检查配置后重测本题
-- 详细配置步骤见 [Seed模型 GSB 众测方案（0731）.md](Seed模型%20GSB%20众测方案（0731）.md) 第二节
+- **Max 模式 60/40 分布**：60% 任务开启 Max（更复杂/更长程任务），40% 不开启；同一任务窗口内保持一致不可中途切换，同一任务所有横评模型必须一致；开启时自检对话底部显示 `X% of 1000K`
+- 详细配置步骤见 [Seed模型GSB众测方案-0825.md](Seed模型GSB众测方案-0825.md) 第二节
 
 ---
 
@@ -99,7 +102,7 @@ gsb gsb0731_00001 setup
 ### 指令模板
 
 ```text
-gsb demo-hello review bugfix steve 第1轮
+gsb demo-hello review bugfix odysseus 第1轮
 ```
 
 ### AI 会执行
@@ -107,19 +110,19 @@ gsb demo-hello review bugfix steve 第1轮
 1. 读取该模型的对话内容
 2. 调用 `implementation-reviewer` 评估
 3. 判断满意/不满意
-4. 不满意且未达第 6 轮 → 生成追问提示词，写入对话内容文件
+4. 不满意且未达第 3 轮 → 生成追问提示词，写入对话内容文件
 5. 追加评价到 `-评价结果.md`
 
-### 多轮追问（0731 期：3 ≤ 轮次 ≤ 6）
+### 多轮追问（0825 期：轮次 ≤ 3）
 
-每轮对话结束后可重复执行 review。**本期要求每题至少 3 轮、最多 6 轮**：出题时已把题目设计成需 3 轮以上完成（第 2、3 轮含跨轮次依赖），即使回答满意，未满 3 轮也应继续预设的下一轮任务。各模型独立 review。
+每轮对话结束后可重复执行 review。**本期每题交互轮次不超过 3 轮**（无最低轮数）：首轮未完成可继续引导，总轮次不得超过 3。打断后重新给指令等价于新开一轮，计入 3 轮上限（工程故障如网络波动/请求失败除外）。各模型独立 review。
 
 ```text
-# 第2轮（按预设多轮任务继续，或第1轮不满意时追问）
-gsb demo-hello review bugfix steve 第2轮
+# 第2轮（第1轮不满意时追问）
+gsb demo-hello review bugfix odysseus 第2轮
 
-# natasha / thor / tony 同理
-gsb demo-hello review bugfix natasha 第1轮
+# athena / poseidon / cyclops 同理
+gsb demo-hello review bugfix athena 第1轮
 ```
 
 ---
@@ -136,7 +139,7 @@ gsb demo-hello analyze bugfix
 
 1. 加载所有模型的 `-对话内容.md`
 2. 对各分支执行 `git diff main`
-3. 调用 `implementation-reviewer` 逐模型 8 维度打分（5 基础 + 3 Add-on）+ GSB 对比
+3. 调用 `implementation-reviewer` 逐模型打分：5 基础维度（1-5）+ 4 Add-on 维度（Bad Pattern + 描述）+ GSB 对比
 4. 调用 `humanizer-zh` 去 AI 化
 5. 生成 `demo-hello-bugfix-评价汇总.md`
 
@@ -174,12 +177,12 @@ gsb demo-hello export bugfix 提交人:张三 TraeCN用户ID:zhangsan001
 ### AI 会执行
 
 1. 读取 `demo-hello-bugfix-评价汇总.md`，检查无 `【待用户填写】`/`【参考值，请确认】` 残留
-2. 按交付表字段生成记录 JSON（模型区块顺序：Natasha → Thor → Steve → Tony）
+2. 按交付表字段生成记录 JSON（含 4 模型 5 基础维度评分、4 Add-on 维度、打断字段、3 组 GSB、4 条模型评价）
 3. 调用 `scripts/code-eval-gsb/append_delivery_feishu.py` 先 `--dry-run` 校验，再正式追加到飞书多维表格（地址见 `config.toml [feishu]`）
 4. 输出追加的 record_id + 留空字段清单
 
 ### 产物
 
-飞书多维表格「数据表」新增一条记录（含 4 模型评分、3 组 GSB、4 条模型评价）。脚本按 Github Repo 查重，重复追加需人工确认后加 `--force`。单选/多选字段只能写入已有选项，脚本会校验并列出合法选项。
+飞书多维表格「数据表」新增一条记录（含 4 模型 5 基础维度评分、4 Add-on 维度、打断字段、3 组 GSB、4 条模型评价）。脚本按 Github Repo 查重，重复追加需人工确认后加 `--force`。单选/多选字段只能写入已有选项，脚本会校验并列出合法选项。
 
 > 技术细节见 `skills/04-export-delivery.md`。飞书凭证在 `secrets.toml [feishu]`；首次使用需在飞书开发者后台为应用开通 `bitable:app` 权限，并把应用添加为多维表格协作者。

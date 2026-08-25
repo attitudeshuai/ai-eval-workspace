@@ -25,8 +25,21 @@
 | 去 AI 化 Agent | `skills/humanizer-zh/SKILL.md` | 去除 AI 写作痕迹 |
 | 提示词生成 Agent | `skills/prompt-architect/SKILL.md` | 基于源码批量出题 |
 | Excel 对比 | `skills/excel-diff/compare_excel.py` | CSV/Excel 列对比 |
+| 识图 Agent | `skills/vision/SKILL.md` | 无视觉模型识图（vision.js 调千问/OpenAI 兼容 API） |
 | 项目接入指南 | `docs/project-onboarding.md` | 新项目最小接入 |
 | 工作台配置 | `config/workspace.toml` | 工作台级元数据 |
+
+## 识图能力
+
+如果底层模型不具备原生识图能力，遇到图片**不要用 Read 工具**，改用：
+
+```bash
+node skills/vision/vision.js "<图片路径>" "用中文描述这张图片"
+```
+
+网络图片用 `--url` 参数。触发场景：用户分享图片路径（本地或网络 URL）、消息中出现 "Saved attachments:" 并列出图片、用户要求分析/描述/识别图片内容。对每张图片依次执行，拿到所有文字描述后再回复。
+
+配置（Key、模型名）在 `skills/vision/.env`，详见 `skills/vision/SKILL.md`。
 
 ## 各项目典型工作流
 

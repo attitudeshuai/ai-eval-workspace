@@ -6,20 +6,29 @@
 
 ```
 sessions/code-eval-gsb/
-└── {session-name}/               # 如 session-gsb1v1
-    ├── gitlab source/            # GitLab clone + GitHub 分支（gitignore）
-    │   └── label-01035/
-    │       ├── label-01035-origin/
-    │       ├── label-01035-TestM_1/
-    │       └── label-01035-TestM_2/
+└── {session-name}/               # 如 session-0825
+    ├── source code/              # 源码 + 模型分支（gitignore）
+    │   └── demo-hello/
+    │       ├── demo-hello-origin/
+    │       ├── demo-hello-odysseus/
+    │       ├── demo-hello-athena/
+    │       ├── demo-hello-poseidon/
+    │       └── demo-hello-cyclops/
     └── ai-model-result/          # 提示词 + 评价（gitignore）
-        └── label-01035/
-            └── label-01035-Bug修复/
-                ├── A-label-01035-Bug修复-TestM_1-对话内容.md
-                ├── A-label-01035-Bug修复-TestM_1-评价结果.md
-                ├── A-label-01035-Bug修复-TestM_2-对话内容.md
-                ├── A-label-01035-Bug修复-TestM_2-评价结果.md
-                └── A-label-01035-Bug修复-评价汇总.md
+        └── demo-hello/
+            └── demo-hello-bugfix/
+                ├── demo-hello-bugfix-odysseus-对话内容.md
+                ├── demo-hello-bugfix-odysseus-评价结果.md
+                ├── ...（athena / poseidon / cyclops 同构）
+                └── demo-hello-bugfix-评价汇总.md
 ```
 
-> `gitlab source/` 和 `ai-model-result/` 默认被 `.gitignore` 排除。
+## 当前 session
+
+| session | 期次 | anchor |
+|---------|------|--------|
+| `session-0825` | 0825 期 | Odysseus |
+| `session-0731` | 0731 期（上一期） | Steve |
+| `session-gsb1v1` | demo 示例 | — |
+
+> `source code/` 和 `ai-model-result/` 默认被 `.gitignore` 排除，不提交到 Git。

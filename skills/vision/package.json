@@ -1,0 +1,8 @@
+{
+  "name": "vision-skill",
+  "private": true,
+  "description": "识图脚本依赖（dotenv 用于加载 .env 配置）",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  }
+}

@@ -116,3 +116,5 @@ sessions/pairwise-gsb/demo/**/original.xlsx
 !deliverables/pairwise-gsb/demo/**/*.xlsx
 # Excel 锁文件任何情况都不提交
 ~$*
+
+/.tmp
