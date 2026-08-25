@@ -9,6 +9,7 @@
 | `webdev-long-horizon/` | Web 开发评估会话产物 |
 | `code-eval-solo/` | 单模型代码评估报告 |
 | `code-eval-gsb/` | 多模型代码对比评估报告 |
+| `repo-pool/` | 开源仓库池（拉取的源码素材，本地不提交） |
 
 > **注意**：`code-eval-solo` 和 `code-eval-gsb` 的源码、提示词文件等实际工作数据存放在各开发者本地的 `{work_root}/{session}/` 目录中（不在本仓库内），仅评估报告归档到此目录。
 

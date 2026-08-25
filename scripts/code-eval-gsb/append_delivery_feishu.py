@@ -7,7 +7,7 @@
 - 单选/多选字段的值必须是已有选项，否则报错并列出全部合法选项
 - 多选字段值用顿号（、）或逗号分隔多个选项
 - 未提供的字段留空，并在输出中列出，便于人工核对
-- 默认按「Github Repo」查重，重复时需 --force 才允许追加
+- 默认按「Repo URL」查重，重复时需 --force 才允许追加
 
 配置：
 - 非敏感配置在 projects/code-eval-gsb/config.toml 的 [feishu] 段（app_token / table_id）
@@ -127,10 +127,10 @@ def check_duplicate(token, app_token, table_id, repo_val):
         "filter": {
             "conjunction": "and",
             "conditions": [
-                {"field_name": "Github Repo", "operator": "is", "value": [repo_val]}
+                {"field_name": "Repo URL", "operator": "is", "value": [repo_val]}
             ],
         },
-        "field_names": ["Github Repo"],
+        "field_names": ["Repo URL"],
         "page_size": 5,
     }
     data = http("POST", url, token, body)
@@ -224,12 +224,12 @@ def main():
             print(f"  - {k}")
         sys.exit(1)
 
-    # 3) 查重（Github Repo）
-    repo_val = str(record.get("Github Repo", "")).strip()
+    # 3) 查重（Repo URL）
+    repo_val = str(record.get("Repo URL", "")).strip()
     if repo_val and check_duplicate(token, app_token, table_id, repo_val):
         if not args.force:
-            fail(f"Github Repo 已存在：{repo_val}\n如确认要重复追加，请加 --force。")
-        print(f"警告：Github Repo 已存在，--force 强制追加：{repo_val}")
+            fail(f"Repo URL 已存在：{repo_val}\n如确认要重复追加，请加 --force。")
+        print(f"警告：Repo URL 已存在，--force 强制追加：{repo_val}")
 
     # 4) 类型转换（含单选/多选选项校验）
     payload, _, empty = convert_record(record, fields)

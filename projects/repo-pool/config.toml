@@ -1,0 +1,47 @@
+[project]
+id = "repo-pool"
+name = "开源仓库池（GitHub Repo Pool）"
+description = "按标准从 GitHub 搜索、拉取、去重开源仓库，作为评估项目（code-eval-gsb 等）的出题源码素材池。"
+owner = "ai-evaluation-workspace"
+created_at = "2026-08-25T00:00:00Z"
+
+[paths]
+# 仓库池根目录（拉下来的仓库落点，默认 gitignore）
+pool_root = "sessions/repo-pool/repos"
+# 去重清单文件（本地，不纳入 git）
+manifest = "sessions/repo-pool/repos-manifest.json"
+
+[criteria]
+# ---- 拉取标准：什么样的仓库可以进池 ----
+languages         = ["Java", "C#", "Python"]   # 后端技术栈限定
+min_stars         = 200                         # 过滤玩具仓库
+max_inactive_days = 365                         # 最近活跃门槛（按 pushed 时间）
+# 严禁关键词（对齐 0825 众测方案附录「严禁出题清单」，命中即过滤）
+forbidden_keywords = [
+    "商城", "购物车", "订单", "RBAC", "权限管理", "博客", "CMS",
+    "考勤", "OA", "图书借阅", "医院挂号", "问诊", "外卖", "点餐",
+    "CRM", "私信", "IM", "拍卖", "停车场", "工单", "客服",
+    "预约系统", "积分商城", "报表统计", "CSV看板", "记账",
+    "健康健身", "菜谱", "天气", "番茄钟", "习惯打卡", "音乐播放器",
+    "旅行日记", "观影记录", "贪吃蛇", "打砖块", "俄罗斯方块",
+    "五子棋", "2048", "扫雷", "打地鼠", "命令行工具", "代码片段管理器",
+    "批量重命名", "截图标注", "文件管理", "密码管理器",
+]
+
+[criteria.distribution]
+# 领域分布建议（对齐 0825 3.2 出题分布；供出题参考，脚本不做强制过滤）
+"全栈Web应用"   = 50
+"纯后端API"     = 30
+"AI/ML应用"     = 10
+"数据分析可视化" = 10
+
+[criteria.search]
+# GitHub Search API 参数
+per_page  = 30
+max_pages = 3      # list 每语言最多翻几页（控制 API 额度）
+sort      = "stars"
+order     = "desc"
+
+[secrets]
+file     = "secrets.toml"
+template = "secrets-simple.toml"

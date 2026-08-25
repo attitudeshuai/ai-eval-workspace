@@ -60,6 +60,10 @@ sessions/code-eval-solo/*/ai-model-result/
 sessions/code-eval-gsb/*/source code/
 sessions/code-eval-gsb/*/ai-model-result/
 
+# repo-pool 工作数据（仓库池 + 去重清单）不提交
+sessions/repo-pool/repos/
+sessions/repo-pool/repos-manifest.json
+
 # Demo 任务例外
 !sessions/code-eval-solo/solo-demo/
 !sessions/code-eval-gsb/session-gsb1v1/

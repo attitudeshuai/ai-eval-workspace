@@ -148,12 +148,12 @@ template = "secrets-simple.toml"
 # ============================================================
 # 飞书多维表格（交付导出目标，替代原 Excel 追加）
 # ============================================================
-# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/AhWHbSG0AaSo9Ds2JOGcfu8GnTf?table=tbljOaDBiOpgmwN5&view=vewRJz9XLG
+# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/W9GpbG7JYawz71s2pODcIVtEnUc?table=tbl8EaIevVMG1xO7&view=vewmoYZ5q5
 # app_id / app_secret 属敏感信息，放在 secrets.toml [feishu] 段
 # 前置要求：
 #   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
 #   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
 [feishu]
-app_token = "AhWHbSG0AaSo9Ds2JOGcfu8GnTf"
-table_id = "tbljOaDBiOpgmwN5"
-view_id = "vewRJz9XLG"
+app_token = "W9GpbG7JYawz71s2pODcIVtEnUc"
+table_id = "tbl8EaIevVMG1xO7"
+view_id = "vewmoYZ5q5"
