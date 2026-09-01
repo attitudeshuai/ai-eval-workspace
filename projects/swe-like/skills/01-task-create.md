@@ -1,0 +1,110 @@
+---
+name: swe-task-create
+description: "SWE 题目创建：选择熟悉的开源 Repo、固定版本，基于真实使用场景独立出题，写 Verify Rubric 并生成任务目录。Use when: SWE 出题, 选 repo, 写需求, Verify Rubric。"
+---
+
+# SWE 题目创建（Task Create）
+
+> 配置从 `../config.toml` 读取，`secrets.toml` 中可覆盖。
+> 依赖 agent：无（需求独立提出，不调用 prompt-architect）
+
+SWE-like 流水线的第一步，也是核心。目标：产出一道**真实且有难度**的 SWE 题——选对 Repo、锁对版本、写出可观察、可验收的需求与 Rubric。
+
+## 功能概述
+
+这个技能负责：
+
+- 选择自己熟悉的开源 Repo，记录 Repo URL 与固定版本（Commit 或 Tag）
+- 基于对项目真实使用场景和代码结构的理解，**独立提出**需求
+- 撰写真实性与难度说明、可能涉及模块
+- 撰写 Verify Rubric（可观察行为 + 输入条件 + 预期结果）
+- 生成标准任务目录（`task.md` / `meta.json` / `verify-rubric.md`）
+
+这个技能不负责：
+
+- 从 Issues、热门讨论或既有题目照抄需求（**严禁**）
+- 预先指定单元测试、实现模块或技术方案（不写死实现）
+- 运行模型或记录回答（由 `02-run-record.md` 负责）
+
+## 命令
+
+| 命令 | 说明 |
+|------|------|
+| create | 默认命令。选 Repo + 锁版本 → 独立出题 → 写 Rubric → 生成任务目录 |
+
+## 执行流程
+
+1. **选择 Repo**：用户提供熟悉的开源 Repo（URL），确认固定版本（Commit 或 Tag，取最新）。支持从 `repo-pool` 素材池选择。
+2. **锁定版本**：把 Commit/版本写入 `meta.json`。出题与运行必须基于同一版本，保证可复现。
+3. **类型与语言**：根据 Repo 主语言与需求性质，从 `config.toml [task]` 中选任务类型（功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 / 问题修复）与主要语言。
+4. **独立出题**：撰写需求 Prompt（`task.md`）。要求：
+   - 明确目标、适用场景及**可观察的预期行为**，避免仅描述抽象方向
+   - 需求描述长度不限
+   - 不直接照抄 Top Open Issues、热门讨论或既有题目
+   - 不预先指定单元测试、实现模块或技术方案（但可描述涉及的模块范围）
+   - **反例自查**（存在任一即不收录）：无法由 Repo 独立实现；已有功能（未查重）；与 Repo 定位不符
+5. **撰写交付内容**：
+   - 真实性与难度说明
+   - 可能涉及模块
+   - Verify Rubric（见下节）
+6. **Verify Rubric 反例自查**（必做）：Rubric 不得是主观描述、不得写死文件/类名/实现方案、不得依赖稀缺或不可访问的外部状态、不得事后倒改。
+7. **生成任务目录**：写入 `task.md`、`meta.json`、`verify-rubric.md`，输出题目名称与路径。
+
+## Verify Rubric 规范
+
+每条 Rubric 应包含**可观察行为 + 输入条件 + 预期结果**，不同质检人可稳定复现。
+
+| Bad Case | 问题 |
+|------|------|
+| “功能正常、体验良好、代码质量高。” | 判定标准主观，无观察行为/输入/预期，无法稳定复现 |
+| “必须修改 app.rs，并新增 AutoResetManager 类。” | 无必要写死文件/类名/实现方案，可能误判行为正确的替代实现 |
+| “使用真实账户耗尽额度，并消耗一次真实 reset credit 验证。” | 依赖稀缺/不可访问外部状态，成本高难复现；应允许 mock/日志/可控状态 |
+| “先看模型怎么实现，再补充它没有做到的检查项。” | 事后倒改标准；Rubric 可在出题前后完善，但必须在最终判定前固定 |
+
+## 反例：不应收录的伪需求
+
+| 反例需求 | 问题类型 | 为什么不收录 |
+|------|------|------|
+| 为 Claude Code 增加完整 CoT 的自动保存、展示和导出功能。 | 无法由 Repo 独立实现 | 依赖上游模型能力与安全策略变化，客户端 Repo 无法获取或还原 |
+| 为 Codex CLI 增加 side chat。 | 已有功能 | Codex CLI 已提供 `/side`（别名 `/btw`），属未查重的重复需求 |
+| 让 FastAPI 内置 Kubernetes 自动扩缩容控制器。 | 与 Repo 定位不符 | 属部署与集群编排，非 Web 框架核心职责 |
+
+## 路径规则
+
+```
+# 任务根目录
+{work_root}/{session}/tasks/{task-id}/
+├── task.md           # 需求 Prompt（原文，交付表「需求 Prompt（原文）」来源）
+├── meta.json         # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 / 题目名称
+├── verify-rubric.md  # Verify Rubric（验收前固定）
+├── run-log.md        # Trae Session ID / 有效轮数（02 阶段写入）
+├── result.md         # 产物结果 / 产物补充材料（02 阶段写入）
+└── review.md         # 是否完成 / Reviewer / 是否通过质检 / 收录判定（03 阶段写入）
+```
+
+> `{work_root}` 与 `{session}` 由 `config.toml [paths]` / `[sessions]` 决定。task-id 建议格式：`swe-{repo名}-{序号}`，如 `swe-fastapi-001`。
+
+## 交付字段前置填写
+
+出题阶段即确定以下交付表字段（写入 `meta.json`）：
+
+| 交付表字段 | 来源 |
+|------|------|
+| 题目名称 | 出题时定义（task-id 或短名） |
+| 提交人 | 不填写：飞书表格该字段有默认值，无需录入 |
+| Repo URL | 选定的 Repo |
+| Commit/版本 | 固定的 Commit/Tag |
+| 主要语言 | Repo 主语言（单选） |
+| 任务类型 | 需求性质（单选） |
+| 需求 Prompt（原文） | `task.md` 原文 |
+| 真实性与难度说明 | 出题交付 |
+| 可能涉及模块 | 出题交付 |
+| Verify Rubric | `verify-rubric.md`（验收前固定） |
+| Seed 模型/版本 | 运行所用模型（默认 `config.toml [run].model`） |
+
+## 注意事项
+
+1. 需求必须独立提出，**不得照抄 Issues、热门讨论或既有题目**。
+2. 出题与运行使用同一固定版本；版本变更需重新出题。
+3. 单 repo 题目不超过总题量 `max_tasks_per_repo_percent`%（高度同质化 repo 合并计算）。
+4. Verify Rubric 一旦验收开始即冻结，不得根据模型结果调整。

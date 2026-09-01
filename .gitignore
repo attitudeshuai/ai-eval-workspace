@@ -89,6 +89,9 @@ projects/webdev-long-horizon/config.toml
 /sessions/*
 !/sessions/code-eval-solo/
 !/sessions/code-eval-gsb/
+!/sessions/swe-like/
+/sessions/swe-like/*
+!/sessions/swe-like/README.md
 /deliverables/*
 !/deliverables/code-eval-solo/
 !/deliverables/code-eval-gsb/
@@ -122,3 +125,4 @@ sessions/pairwise-gsb/demo/**/original.xlsx
 ~$*
 
 /.tmp
+/.npm-cache

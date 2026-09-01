@@ -1,0 +1,84 @@
+[project]
+id = "swe-like"
+name = "SWE-like 长程代码任务题库"
+description = "基于真实开源 Repo 出 SWE 类真实难题，Trae+Seed 单 Prompt 运行，Verify Rubric 验收，按收录标准入库并交付飞书多维表格"
+owner = "ai-evaluation-workspace"
+created_at = "2026-09-01T00:00:00Z"
+
+# ============================================================
+# 项目模式说明
+# ============================================================
+#   1. 选择熟悉的开源 Repo，记录 URL + 固定版本（Commit/Tag）
+#   2. 基于真实使用场景独立出题（不照抄 Issues）+ 写 Verify Rubric
+#   3. Trae CN + Seed Evolving 单 Prompt 运行，记录 Session ID / 有效轮数
+#   4. 对照 Verify Rubric 验收复盘 → 收录判定 → 交付飞书多维表格
+#
+# ============================================================
+
+[paths]
+# ---- 所有路径以 ai-eval-workspace 为基准（工作台内闭环，不引用外部） ----
+work_root = "sessions/swe-like"
+# 任务目录名（拼接为 work_root/{session}/tasks/）
+tasks_dir = "tasks"
+
+[task]
+# 任务类型（与交付表「任务类型」单选字段逐字一致）
+task_types = [
+    "功能新增",
+    "Bug 修复",
+    "测试增强",
+    "重构/性能",
+    "配置/工具链",
+    "其他",
+    "问题修复"
+]
+# 主要语言（与交付表「主要语言」单选字段逐字一致，供出题时选择）
+languages = [
+    "Python", "JavaScript/TypeScript", "Rust", "Go", "Java/Kotlin",
+    "C/C++", "C#", "Ruby", "PHP", "Swift/Objective-C", "Dart", "Shell",
+    "其他", "Java", "TypeScript"
+]
+# 收录标准：有效轮数 > 该值 → 长程题收录
+long_horizon_min_rounds = 100
+# 单 repo 题目不超过总题量的百分比上限（高度同质化 repo 合并计算）
+max_tasks_per_repo_percent = 2
+
+[run]
+# 运行环境与纪律
+client = "Trae CN"
+model = "Seed Evolving"
+# 单 Prompt 运行：运行过程中不追加人工澄清、任务拆解或引导性提示
+single_prompt = true
+# 有效轮数无上限（0 = 不设上限），由收录标准决定是否收录
+rounds_cap = 0
+
+[review]
+# Verify Rubric 验收：验收前必须固定，评判口径一致，不得根据模型结果事后调整标准
+rubric_frozen_before_review = true
+# 验收/质检文字是否经 humanizer-zh 去 AI 化
+use_humanizer = true
+
+# ============================================================
+# 飞书多维表格（交付导出目标）
+# ============================================================
+# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/YGagbh3qkaQJsMs5lRbcRowFn9b?table=tbliE3DR4ozNhcst&view=vewjDu0bTP
+# app_id / app_secret 属敏感信息，放在 secrets.toml [feishu] 段
+# 前置要求：
+#   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
+#   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
+[feishu]
+app_token = "YGagbh3qkaQJsMs5lRbcRowFn9b"
+table_id = "tbliE3DR4ozNhcst"
+view_id = "vewjDu0bTP"
+# 查重字段：SWE 表每道题一条记录，按「题目名称」查重（默认；脚本读取此值）
+dedupe_field = "题目名称"
+
+[sessions]
+# 当前活跃 session（各开发者在 secrets.toml 中覆盖）
+active = "session-0001"
+
+[secrets]
+# 敏感配置集中管理文件（已加入 .gitignore，不提交）
+# 首次使用请复制 secrets-simple.toml → secrets.toml 并填入真实值
+file = "secrets.toml"
+template = "secrets-simple.toml"
