@@ -79,6 +79,7 @@ list 搜候选 → 写进 wishlist.txt → pull --file 批量拉取 → status �
 - 不要修改 `projects/<id>/` 中已冻结任务或参考答案，除非用户明确授权
 - 不要提交 `secrets.toml` 到 Git
 - 工作数据（`sessions/code-eval-*/` 下的 `source code/` 和 `ai-model-result/`）默认 gitignore，勿提交
+- 不要用 PowerShell 的 `Set-Content`/`Get-Content` 改写含中文（非 ASCII）的文本文件——会把 UTF-8 当 GBK 读写导致乱码。改文件内容一律用 write/edit 工具（它们正确处理 UTF-8）
 
 ## 工作前必读
 

@@ -59,6 +59,7 @@ swe restic create
 
 > **只提供项目名（repo 名）**，一次创建 3 道题 + 3 个分支（`{repo}-01/02/03`）——因为三者 Repo URL 和最新 commit 相同，仓库信息只需提供一次。
 > 给出 Repo URL；**版本默认由 AI 自动获取最新 Commit ID** 并写入各题 `meta.json`（如需固定到某 commit/tag 可覆盖）。也可不指定仓库，让 AI 从 `repo-fetcher` 素材池选。
+> **前置**：需已 fork 该 Repo，并把 fork clone 到 `repos/{repo}/origin/`（clone 由用户执行，AI 沙箱大传输会 reset）。
 
 ```text
 swe restic create
@@ -106,12 +107,12 @@ swe restic create
 swe restic-01 run
 ```
 
-### AI 会执行（分支准备）
+### AI 会执行（就绪检查 + 引导）
 
-1. 确认 Repo 已 fork 到用户的 GitHub（未 fork 则先提示用户 fork，作为后续 commit 目标）
-2. 用户把 fork 的主分支 clone 到 `{work_root}/{session}/repos/{repo}/origin/`（clone 由用户执行，AI 沙箱无法访问 GitHub）
-3. AI 在 `origin` 里基于主分支创建 3 个分支 `{repo}-01` / `{repo}-02` / `{repo}-03`，分别对应 3 道题（tasks/{repo}/ 下 {repo}-01 / {repo}-02 / {repo}-03）
-4. AI 用 `git worktree add` 拉出 3 份工作目录 `repos/{repo}/` 下的 `{repo}-01/`、`{repo}-02/`、`{repo}-03/`，各自 checkout 到对应题 `meta.json` 记录的 `commit`
+1. 检查任务就绪：`tasks/{repo}/{branch}/task.md` 与 `verify-rubric.md` 已存在且冻结；`repos/{repo}/{branch}/` worktree 存在，checkout 到 `meta.json` 的 `commit`
+2. 输出运行指引：让用户打开 `repos/{repo}/{branch}/` 项目，按下方「用户在 Trae 中执行」单 Prompt 运行
+
+> 分支与 worktree 在第 1 步 `create` 时已建好；`run` 不再重复创建，只做检查与引导。
 
 ### 用户在 Trae 中执行
 

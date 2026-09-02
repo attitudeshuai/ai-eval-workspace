@@ -33,30 +33,26 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
 
 ## 执行流程
 
-1. **就绪检查**：确认 `tasks/{repo}/{branch}/task.md`（需求 Prompt）与 `verify-rubric.md` 已存在且冻结。
-2. **分支准备（AI 执行，`run` 命令时）**：
-   - 确认 Repo 已 fork 到用户的 GitHub（未 fork 则先提示用户 fork，作为后续 commit 目标）
-   - 用户把 fork 主分支 clone 到 `{work_root}/{session}/repos/{repo}/origin/`（clone 由用户执行，沙箱无法访问 GitHub）
-   - AI 在 `origin` 创建 3 个分支 `{repo}-01/02/03`，用 `git worktree add` 拉出 `repos/{repo}/{repo}-01/`、`repos/{repo}/{repo}-02/`、`repos/{repo}/{repo}-03/`，各自 checkout 到对应题 `meta.json` 的 `commit`
-3. **运行（用户在 Trae 中执行）**：
+1. **就绪检查**：确认 `tasks/{repo}/{branch}/task.md`（需求 Prompt）与 `verify-rubric.md` 已存在且冻结；`repos/{repo}/{branch}/` worktree 存在，checkout 到 `meta.json` 的 `commit`。
+2. **运行（用户在 Trae 中执行）**：
    - 打开 `repos/{repo}/{branch}/`（{repo}-01/02/03 之一）项目，新建任务窗口，选择 Trae CN + Seed Evolving（SOLO Agent 模式，关闭 Auto）
    - 把 `task.md` 的 Prompt **原文**提交，单 Prompt 运行
    - 运行过程中**不追加人工澄清、任务拆解或引导性提示**
-   - 记录 Trae Session ID（对话窗口 ID）与有效轮数（= 模型输出步数，通过下方第 4 步从 Trae 日志读取）
+   - 记录 Trae Session ID（对话窗口 ID）与有效轮数（= 模型输出步数，通过下方第 3 步从 Trae 日志读取）
    - **省积分经验**（见 `docs/内部规范.md`）：执行超过 1.5 小时可停止并按「>100 轮且效果差」提交；若模型正在跑测试/执行任务或马上结束，可再等等尽量提交完整数据；不要为省积分故意出难题
-4. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除：
-   - 复制完整 Trae Session ID
-   - 把 `docs/步数统计.txt` 的内容 + Session ID 发给 Codex，让 Codex 只读 Trae 日志统计有效 TC 次数
+3. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除：
+   - 用户复制完整 Trae Session ID 发给 AI
+   - AI 按 `docs/步数统计.txt` 口径只读 Trae 日志统计有效 TC 次数
    - 该数字即「有效轮数」= 模型输出步数 = 有效 TC（工具调用）次数，按 `toolCallId`/`serverCallId` 去重
-5. **记录录入**：将以下内容写入 `run-log.md`：
+4. **记录录入**：将以下内容写入 `run-log.md`：
    - Trae Session ID【必须原文逐字复制，禁止改写】
    - 有效轮数（= 模型输出步数，数字）
    - 运行环境备注（Max 是否开启等，如有）
-6. **产物收集**：将模型产物描述与补充材料路径写入 `result.md`：
+5. **产物收集**：将模型产物描述与补充材料路径写入 `result.md`：
    - 产物结果：模型交付了什么（功能/代码/配置变更摘要）
    - 产物补充材料：`model.patch`、verifier 测试日志、失败测试列表及轨迹等文件的路径
-7. **提交 + 记录 commitUrl（导出飞书前）**：模型改完代码后，AI 在对应 `repos/{repo}/{branch}/` 里 commit 并 push 到 fork，得到 commit URL 写入 `run-log.md`（导出飞书时填 `commitUrl` 字段，与 gsb 类似）。**本地代码先不要删除**。
-8. **确认**：输出记录摘要，提示可进入验收复盘。
+6. **提交 + 记录 commitUrl（导出飞书前）**：模型改完代码后，AI 在对应 `repos/{repo}/{branch}/` 里 commit 并 push 到 fork，得到 commit URL 写入 `run-log.md`（导出飞书时填 `commitUrl` 字段，与 gsb 类似）。**本地代码先不要删除**。
+7. **确认**：输出记录摘要，提示可进入验收复盘。
 
 ## 路径规则
 
