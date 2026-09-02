@@ -20,6 +20,7 @@ sessions/swe-like/session-0001/
         │   ├── task.md           # 需求 Prompt（原文）
         │   ├── meta.json         # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本
         │   ├── verify-rubric.md  # Verify Rubric（验收前固定）
+        │   ├── session.md        # Trae 完整会话（出题阶段创建空文件，02 阶段粘贴，供步数统计）
         │   ├── run-log.md        # Trae Session ID / 有效轮数（= 模型输出步数）
         │   ├── result.md         # 产物结果 / 产物补充材料
         │   └── review.md         # 是否完成 / 是否通过质检 / 收录判定

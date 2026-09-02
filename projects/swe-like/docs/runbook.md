@@ -4,7 +4,7 @@
 
 配置统一读取 `projects/swe-like/config.toml`，敏感信息在 `secrets.toml`（`.gitignore` 已排除）。
 
-> 出题规范详见 `docs/SWE-like Repo-v2.md`（现行版）；内部规范见 `docs/内部规范.md`（账号积分/步数统计/表单填写/省积分）；步数口径见 `docs/步数统计.txt`；对应技术细节见 `skills/01-task-create.md` ~ `skills/04-export-delivery.md`。
+> 出题规范详见 `docs/SWE-like Repo-v2.md`（现行版）；内部规范见 `docs/内部规范.md`（账号积分/步数统计/表单填写/省积分）；步数口径见 `docs/步数统计.md`；对应技术细节见 `skills/01-task-create.md` ~ `skills/04-export-delivery.md`。
 
 ---
 
@@ -82,7 +82,8 @@ swe restic create
 ├── restic-01/                 # 第 1 题
 │   ├── task.md                 # 需求 Prompt（原文）
 │   ├── meta.json               # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本
-│   └── verify-rubric.md        # Verify Rubric（验收前固定）
+│   ├── verify-rubric.md        # Verify Rubric（验收前固定）
+│   └── session.md              # Trae 完整会话（出题阶段创建空文件，第 2 步粘贴，供步数统计）
 ├── restic-02/
 │   └── ...（同上）
 └── restic-03/
@@ -126,11 +127,11 @@ swe restic-01 run
 
 表单的「有效轮数」字段就是「模型输出步数」（有效 TC 次数）。跑完**尽快**执行——Trae 日志会动态清除：
 
-1. 用户复制完整 Trae Session ID 发给 AI
-2. AI 按 `docs/步数统计.txt` 口径只读 Trae 日志，统计有效 TC 次数（= 有效轮数 = 模型输出步数）
+1. 用户复制完整 Trae Session ID 发给 AI，并把 Trae 完整会话粘贴到任务目录的 `session.md`
+2. AI 按 `docs/步数统计.md` 口径只读 Trae 日志统计文件操作 TC，从 `session.md` 统计终端命令 TC（= 有效轮数 = 模型输出步数）
 3. AI 把该数字记入 `run-log.md`
 
-> 有效轮数 = 模型输出步数 = 有效 TC（工具调用）次数，按 `toolCallId`/`serverCallId` 去重。口径详见 `docs/步数统计.txt`。
+> 有效轮数 = 模型输出步数 = 有效 TC（工具调用）次数，按 `toolCallId`/`serverCallId` 去重。口径详见 `docs/步数统计.md`。
 
 ### 提交 + 记录 Commit URL（导出飞书前）
 
@@ -149,7 +150,7 @@ swe restic-01 record TraeSessionID:xxxx
 ### AI 会执行
 
 1. 读取 `task.md` 确认 Prompt 就绪
-2. 用 Session ID 读 Trae 日志统计有效 TC 次数，得到「有效轮数」（= 模型输出步数，口径见 `docs/步数统计.txt`）
+2. 用 Session ID 读 Trae 日志统计文件操作 TC，从 `session.md` 统计终端命令 TC，得到「有效轮数」（= 模型输出步数，口径见 `docs/步数统计.md` 与 `skills/02-step-count.md`）
 3. 在对应 `repos/{repo}/{branch}/` 里 `git add` + `git commit`，push 到 fork（HTTPS + PAT），得到 Commit URL
 4. 把 Trae Session ID（原文复制）、有效轮数、Commit URL 写入 `run-log.md`
 5. 录入产物结果与补充材料路径到 `result.md`（`model.patch`、verifier 日志、失败测试列表等）

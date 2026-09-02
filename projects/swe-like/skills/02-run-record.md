@@ -40,7 +40,7 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
    - 运行过程中**不追加人工澄清、任务拆解或引导性提示**
    - 记录 Trae Session ID（对话窗口 ID）与有效轮数（= 模型输出步数，通过下方第 3 步从 Trae 日志读取）
    - **省积分经验**（见 `docs/内部规范.md`）：执行超过 1.5 小时可停止并按「>100 轮且效果差」提交；若模型正在跑测试/执行任务或马上结束，可再等等尽量提交完整数据；不要为省积分故意出难题
-3. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除。按 [02-step-count.md](02-step-count.md) 的抓取顺序执行：用户复制完整 Session ID 发给 AI，AI 抓日志统计有效 TC（文件操作 + 终端命令，重点别漏终端命令）。该数字即「有效轮数」= 模型输出步数 = 有效 TC（工具调用）次数，按唯一工具调用 ID 去重。
+3. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除。按 [02-step-count.md](02-step-count.md) 的抓取顺序执行：用户复制完整 Session ID 发给 AI，并把 Trae 完整会话粘贴到任务目录的 `session.md`；AI 抓日志统计文件操作 TC，从 `session.md` 统计终端命令 TC（重点别漏终端命令）。该数字即「有效轮数」= 模型输出步数 = 有效 TC（工具调用）次数，按唯一工具调用 ID 去重。
 4. **记录录入**：将以下内容写入 `run-log.md`：
    - Trae Session ID【必须原文逐字复制，禁止改写】
    - 有效轮数（= 模型输出步数，数字）
@@ -56,6 +56,7 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
 ```
 # 输入
 {work_root}/{session}/tasks/{repo}/{branch}/task.md
+{work_root}/{session}/tasks/{repo}/{branch}/session.md   # 用户粘贴的 Trae 完整会话（终端命令统计来源）
 
 # 输出
 {work_root}/{session}/tasks/{repo}/{branch}/run-log.md
@@ -80,7 +81,7 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
 1. **单 Prompt 纪律**：运行过程不追加人工澄清、任务拆解或引导性提示；如需追加，该轮次仍如实计入有效轮数，但过程不可追溯性会在验收时记录到备注。
 2. **Session ID 纪律**：原文复制，禁止改写或推断。
 3. 有效轮数统计口径需与 Repo-v2 规范一致：以模型主动推进任务的有效 TC 次数计（= 模型输出步数），不计人为"继续"提示。
-4. **步数及时获取**：Trae 日志动态清除，跑完尽快按 [02-step-count.md](02-step-count.md) 抓取并记入 `run-log.md`；有效轮数 = 模型输出步数（口径见 `docs/步数统计.txt`）。
+4. **步数及时获取**：Trae 日志动态清除，跑完尽快按 [02-step-count.md](02-step-count.md) 抓取并记入 `run-log.md`；有效轮数 = 模型输出步数（口径见 `docs/步数统计.md`）。
 5. **省积分**：超过 1.5 小时可停止；不要为省积分故意出难题。
 6. **本地代码先不要删除**：模型跑完后的本地代码（含改动）保留，用于 commit 与后续复核。
 7. **Commit URL**：修改前 fork、改完 commit，记录 commit URL。**push 走 HTTPS + PAT**（`secrets.toml` 的 `github_pat` / `github_username`），不用 SSH（AI 沙箱 SSH 会失败）。

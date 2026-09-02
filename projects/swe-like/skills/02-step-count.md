@@ -5,11 +5,11 @@ description: "SWE 有效轮数统计：按固定顺序抓取 Trae 日志统计�
 
 # SWE 有效轮数统计（步数统计·实操）
 
-> 被 `02-run-record.md` 第 3 步「获取有效轮数」调用。口径依据 `../docs/步数统计.txt`，本文固化**抓取顺序**与 Trae 3.3.95 的坑。
+> 被 `02-run-record.md` 第 3 步「获取有效轮数」调用。口径依据 `../docs/步数统计.md`，本文固化**抓取顺序**与 Trae 3.3.95 的坑。
 
 ## 为什么单独成 skill
 
-Trae CN 3.3.95 的终端命令执行（pytest / ruff / go test / 冒烟命令）**不产生 tooling 工具调用**，renderer.log 里看不到命令本身和输出，只按 renderer.log 统计会漏掉终端命令（曾把 38 误算成 30）。因此必须按下面的顺序，从「日志」和「模型最终答复」两个来源抓取，缺一不可。
+Trae CN 3.3.95 的终端命令执行（pytest / ruff / go test / 冒烟命令）**不产生 tooling 工具调用**，renderer.log 里看不到命令本身和输出，只按 renderer.log 统计会漏掉终端命令（曾把 38 误算成 30）。因此必须按下面的顺序，从「日志」和「session.md（模型完整会话）」两个来源抓取，缺一不可。`session.md` 由 01 出题阶段默认创建（空文件），用户跑完把 Trae 完整会话粘贴进来。
 
 ## 抓取顺序（按序执行，勿跳步）
 
@@ -66,7 +66,7 @@ Trae 3.3.95 终端命令走集成终端，**不产生 tooling 工具调用**，�
 - 终端输出（`64 passed`、ruff 结果、`Unknown config key` 等）不落盘，日志里搜不到
 - `Modular/ai_agent-*.alaudalog` 是二进制且常被进程锁，读不出
 
-所以终端命令次数**从模型最终答复里数**：让用户贴模型结尾的「验证结果」段，或从会话最后一条消息取。每条独立命令计 1 次（状态轮询 / 结果读取合并不重复计）。
+所以终端命令次数**从 `session.md` 里数**：用户把 Trae 完整会话（模型思考轨迹 + 工具调用 + 命令结果）粘贴到任务目录的 `session.md`。逐条数独立命令（pytest / ruff / go test / 冒烟命令），每条独立命令计 1 次（状态轮询 / 结果读取合并不重复计）。`session.md` 比「模型最终答复」更全，能覆盖「首跑失败 → 换 PYTHONPATH → 重跑 → 冒烟 → 复跑」这类多次迭代命令，避免只数最终答复漏掉中间失败的 run。
 
 ### 6. 确认会话状态与时间
 
@@ -87,10 +87,14 @@ run-log 里分开列：文件操作明细（工具 + 次数）、终端命令明
 - [ ] 确认会话实际跑的是哪个 repo / 任务（与用户报的一致，否则先问）
 - [ ] 文件操作类 TC 按唯一 UUID 去重
 - [ ] 明确排除了 getTerminalContributedEnv / getDocumentByUri / getDiagnostics 等
-- [ ] 终端命令从模型最终答复里数了（pytest / ruff / go test / 冒烟命令）
+- [ ] 终端命令从 `session.md`（模型完整会话）里数了（pytest / ruff / go test / 冒烟命令），不是只看最终答复
 - [ ] 有效轮数 = 文件操作 + 终端命令，不是只看 renderer.log
 - [ ] 会话 status 为 completed
 
 ## 参考案例（flask-01）
 
-有效轮数 38 = 文件操作 30（applyChatSnapshotPatch 8 + readFile 20 + listFolder 2）+ 终端命令 8（pytest 1 + ruff check 1 + ruff format --check 1 + flask 冒烟 5）。终端命令未落盘，8 条来自模型最终答复；renderer.log 里的 getTerminalContributedEnv（10 次）是环境读取，不计入。
+有效轮数 45 = 文件操作 30（applyChatSnapshotPatch 8 + readFile 20 + listFolder 2）+ 终端命令 15（pytest 4 + flask 冒烟 6 + ruff 5）。终端命令未落盘，按 session.md 逐条数得 15 条；若只按最终答复数则只有 8 条（漏了失败初跑、环境排查、PYTHONPATH 重跑和 ruff 的 diff/应用）。renderer.log 里的 getTerminalContributedEnv（10 次）是环境读取，不计入。
+
+## 参考案例（flask-03）
+
+有效轮数 43 = 文件操作 36（readFile 23 + applyChatSnapshotPatch 9 + listFolder 2 + createFile 1 + deleteFile 1）+ 终端命令 7（pytest 首跑失败 + python -c 查导入路径 + PYTHONPATH=src pytest 9 测 + 全量 503 + 冒烟首跑报错 + 冒烟重跑 + 全量复跑 503）。终端命令从 `session.md` 逐条数出，与 renderer.log 里 8 次 `getTerminalContributedEnv` 终端活跃信号吻合。

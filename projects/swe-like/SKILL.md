@@ -44,7 +44,7 @@ description: "SWE-like 长程代码任务：基于真实开源 Repo 独立出题
 |------|------|
 | [docs/SWE-like Repo-v2.md](docs/SWE-like%20Repo-v2.md) | 出题规范（试行·现行版）：出题/交付示例/DeepSWE 参考/反例/收录标准（v1 已归档） |
 | [docs/内部规范.md](docs/内部规范.md) | 内部规范：账号积分 / 步数统计 / 表单填写规范 / 省积分经验 |
-| [docs/步数统计.txt](docs/步数统计.txt) | Trae Session 有效 TC 次数自查指南（=「模型输出步数」统计口径） |
+| [docs/步数统计.md](docs/步数统计.md) | Trae Session 有效 TC 次数自查指南（=「模型输出步数」统计口径） |
 | [docs/runbook.md](docs/runbook.md) | 逐步操作手册（指令模板） |
 | [docs/structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 
@@ -57,19 +57,21 @@ projects/swe-like/
 ├── skills/                     # 详细技能文件
 │   ├── 01-task-create.md       # 题目创建
 │   ├── 02-run-record.md        # 运行记录
+│   ├── 02-step-count.md        # 步数统计（有效轮数抓取顺序）
 │   ├── 03-verify-review.md     # 验收复盘
 │   └── 04-export-delivery.md   # 交付导出（追加到飞书多维表格）
 ├── secrets-simple.toml         # 本地敏感配置模板
 ├── docs/
 │   ├── SWE-like Repo-v2.md     # 出题规范（试行·现行版）
 │   ├── 内部规范.md              # 账号积分 / 步数统计 / 表单填写规范 / 省积分
-│   ├── 步数统计.txt             # 有效 TC 次数自查指南
+│   ├── 步数统计.md              # 有效 TC 次数自查指南
 │   ├── runbook.md
 │   └── structure-example.md
 ├── templates/
 │   ├── task-form.md            # 出题表单
 │   └── delivery-form.md        # 交付表单（24 字段映射）
 └── scripts/
+    ├── create_task.py          # 题目创建脚本（生成任务目录，含空 session.md）
     └── append_delivery_feishu.py   # 交付导出脚本
 ```
 

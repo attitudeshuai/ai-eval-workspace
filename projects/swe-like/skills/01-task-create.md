@@ -18,7 +18,7 @@ SWE-like 流水线的第一步，也是核心。目标：给定一个 Repo，**�
 - 基于对项目真实使用场景和代码结构的理解，**独立提出**需求
 - 撰写真实性与难度说明、可能涉及模块
 - 撰写 Verify Rubric（可观察行为 + 输入条件 + 预期结果）
-- 创建 3 个分支 `{repo}-01/02/03` + 3 份 worktree，并生成 3 个任务目录（各含 `task.md` / `meta.json` / `verify-rubric.md`）
+- 创建 3 个分支 `{repo}-01/02/03` + 3 份 worktree，并生成 3 个任务目录（各含 `task.md` / `meta.json` / `verify-rubric.md` / `session.md`）
 
 这个技能不负责：
 
@@ -50,7 +50,7 @@ SWE-like 流水线的第一步，也是核心。目标：给定一个 Repo，**�
    - 可能涉及模块
    - Verify Rubric（见下节）
 6. **Verify Rubric 反例自查**（必做）：Rubric 不得是主观描述、不得写死文件/类名/实现方案、不得依赖稀缺或不可访问的外部状态、不得事后倒改。
-7. **生成任务目录 + 分支**：在 `repos/{repo}/origin` 创建 3 个分支 `{repo}-01/02/03`，用 `git worktree add` 拉出 3 份工作目录；写入 3 组 `task.md` / `meta.json` / `verify-rubric.md`（三个分支共用同一 commit），输出题目名称与路径。
+7. **生成任务目录 + 分支**：在 `repos/{repo}/origin` 创建 3 个分支 `{repo}-01/02/03`，用 `git worktree add` 拉出 3 份工作目录；写入 3 组 `task.md` / `meta.json` / `verify-rubric.md`（三个分支共用同一 commit），并为每个任务目录创建**空的 `session.md`**（供 02 阶段粘贴 Trae 完整会话），输出题目名称与路径。
 
 ## Verify Rubric 规范
 
@@ -86,6 +86,7 @@ SWE-like 流水线的第一步，也是核心。目标：给定一个 Repo，**�
 ├── task.md           # 需求 Prompt（原文，交付表「需求 Prompt（原文）」来源）
 ├── meta.json         # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 / 题目名称
 ├── verify-rubric.md  # Verify Rubric（验收前固定）
+├── session.md        # Trae 完整会话（出题阶段创建空文件，02 阶段用户粘贴，供步数统计）
 ├── run-log.md        # Trae Session ID / 有效轮数（02 阶段写入）
 ├── result.md         # 产物结果 / 产物补充材料（02 阶段写入）
 └── review.md         # 是否完成 / 是否通过质检 / 收录判定（03 阶段写入）
