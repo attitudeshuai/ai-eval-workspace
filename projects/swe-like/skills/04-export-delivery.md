@@ -1,6 +1,6 @@
 ---
 name: swe-export-delivery
-description: "SWE 交付导出：验收复盘完成后，把任务记录映射为交付表 24 字段（含 Type / commitUrl）并追加一条记录到飞书多维表格。Use when: SWE 导出, 交付表追加, 飞书多维表格。"
+description: "SWE 交付导出：验收复盘完成后，把任务记录映射为交付表 24 字段（含 Type / Commit URL）并追加一条记录到飞书多维表格。Use when: SWE 导出, 交付表追加, 飞书多维表格。"
 ---
 
 # SWE 交付导出 · 追加记录到飞书多维表格
@@ -8,7 +8,7 @@ description: "SWE 交付导出：验收复盘完成后，把任务记录映射�
 > 配置从 `../config.toml [feishu]` 读取（app_token / table_id / dedupe_field），凭证在 `../secrets.toml [feishu]`（app_id / app_secret）。
 > 脚本：`scripts/swe-like/append_delivery_feishu.py`（仅标准库，Python 3.11+）
 
-每次 `review` 验收完成、用户确认 `review.md` 后执行本技能：把任务目录的记录映射为交付表的一条记录（24 字段，含「Type」「commitUrl」），追加到交付飞书多维表格（`config.toml [feishu]` 指向的「数据表」）。
+每次 `review` 验收完成、用户确认 `review.md` 后执行本技能：把任务目录的记录映射为交付表的一条记录（24 字段，含「Type」「Commit URL」），追加到交付飞书多维表格（`config.toml [feishu]` 指向的「数据表」）。
 
 ## 功能概述
 
@@ -35,7 +35,7 @@ description: "SWE 交付导出：验收复盘完成后，把任务记录映射�
 分支名：<repo>-01 / <repo>-02 / <repo>-03 之一
 ```
 
-> Reviewer 从 `review.md` 读取（验收阶段人工填写），不再作为命令参数。
+> Reviewer 不再填写，留空；不再作为命令参数。
 
 > 提交人**不填写**：飞书表格「提交人」字段有默认值，交付时脚本跳过不写入。
 
@@ -46,8 +46,8 @@ description: "SWE 交付导出：验收复盘完成后，把任务记录映射�
 2. **完成度检查（不满足则中止）**：
    - 所有文件中不得残留 `【待填写】` / `【待用户填写】` 占位标记
    - `meta.json` 的 Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 齐全
-   - `run-log.md` 的 Trae Session ID、有效轮数（= 步数）、commitUrl 齐全
-   - `review.md` 的是否完成需求 / Reviewer / 是否通过质检 齐全
+   - `run-log.md` 的 Trae Session ID、有效轮数（= 步数）、Commit URL 齐全
+   - `review.md` 的是否完成需求 / 是否通过质检 齐全
 
 3. **生成记录 JSON**：写入 `.tmp/<task-id>-delivery.json`，键名与多维表格字段名**逐字一致**，映射规则见下节。
 
@@ -93,13 +93,13 @@ description: "SWE 交付导出：验收复盘完成后，把任务记录映射�
 | 18 | 有效轮数 | `run-log.md`（数字；= 模型输出步数 / 有效 TC 次数） |
 | 19 | seed 轮次 | 【待确认】文本；默认留空 |
 | 20 | 是否完成需求 | `review.md`（单选：完成 / 部分完成 / 未完成 / 无法判断） |
-| 21 | Reviewer | `review.md`（验收阶段人工填写） |
+| 21 | Reviewer | 留空（不再填写） |
 | 22 | 是否通过质检 | `review.md`（单选：通过 / 未通过（题面验收未全部满足）） |
 | 23 | 备注 | `review.md` 收录判定结论及其他补充 |
-| 24 | commitUrl | `run-log.md`（fork 开源 repo 后、模型改完 commit 的 URL；填写规范待同步） |
+| 24 | Commit URL | `run-log.md`（fork 开源 repo 后、模型改完 commit 的 URL；填写规范待同步） |
 
 > **有效轮数 = 模型输出步数**（已确认）：「有效轮数」字段填的就是「模型输出步数」（有效 TC 次数，Codex 读 Trae 日志得到）。「Trae Session ID 2」（数字）与「seed 轮次」（文本）两个字段的真实含义仍待甲方确认，默认留空。
-> **commitUrl**（试标新增）：修改前 fork 开源 repo，模型改完再 commit，commitUrl 填该 commit 的 URL。填写规范待甲方同步，先记录到 `run-log.md`。
+> **Commit URL**（试标新增）：修改前 fork 开源 repo，模型改完再 commit，Commit URL 填该 commit 的 URL。填写规范待甲方同步，先记录到 `run-log.md`。
 
 ## 注意事项
 

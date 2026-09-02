@@ -13,8 +13,9 @@ description: "SWE-like 长程代码任务：基于真实开源 Repo 独立出题
 |:--:|------|------|------|
 | 1 | **题目创建** | [skills/01-task-create.md](skills/01-task-create.md) | 选 Repo + 锁版本 → 独立出题（不照抄 Issues）→ Verify Rubric → 生成任务目录 |
 | 2 | **运行记录** | [skills/02-run-record.md](skills/02-run-record.md) | Trae+Seed 单 Prompt 运行 → 记录 Session ID / 有效轮数（= 模型输出步数）/ 产物 |
+| 2a | **步数统计** | [skills/02-step-count.md](skills/02-step-count.md) | 有效轮数抓取顺序：文件操作 + 终端命令，防漏终端命令 |
 | 3 | **验收复盘** | [skills/03-verify-review.md](skills/03-verify-review.md) | 对照 Verify Rubric 逐条验收 → 完成/质检判定 → 收录决策 |
-| 4 | **交付导出** | [skills/04-export-delivery.md](skills/04-export-delivery.md) | 任务记录 → 24 字段映射（含 Type / commitUrl）→ 追加飞书多维表格（地址见 config.toml `[feishu]`） |
+| 4 | **交付导出** | [skills/04-export-delivery.md](skills/04-export-delivery.md) | 任务记录 → 24 字段映射（含 Type / Commit URL）→ 追加飞书多维表格（地址见 config.toml `[feishu]`） |
 
 ## 共享 Agent
 

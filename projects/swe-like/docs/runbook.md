@@ -132,9 +132,9 @@ swe restic-01 run
 
 > 有效轮数 = 模型输出步数 = 有效 TC（工具调用）次数，按 `toolCallId`/`serverCallId` 去重。口径详见 `docs/步数统计.txt`。
 
-### 提交 + 记录 commitUrl（导出飞书前）
+### 提交 + 记录 Commit URL（导出飞书前）
 
-模型改完代码后：AI 在对应 `repos/{repo}/{branch}/` 里 `git add` + `git commit`，push 到 fork，得到 commit URL 记入 `run-log.md`；导出飞书时填入 `commitUrl` 字段（与 gsb 类似）。**本地代码（含模型改动）先不要删除**，用于 commit 与后续复核。
+模型改完代码后：AI 在对应 `repos/{repo}/{branch}/` 里 `git add` + `git commit`，push 到 fork，得到 commit URL 记入 `run-log.md`；导出飞书时填入 `Commit URL` 字段（与 gsb 类似）。**本地代码（含模型改动）先不要删除**，用于 commit 与后续复核。
 
 > **push 走 HTTPS + PAT**（`secrets.toml` 的 `github_pat` / `github_username`），不用 SSH（AI 沙箱 SSH 与默认 schannel 会失败）。命令形如：`git -c http.sslBackend=openssl -c http.extraHeader="Authorization: Basic <base64(user:pat)>" push https://github.com/<user>/<repo>.git <branch>`
 
@@ -144,14 +144,14 @@ swe restic-01 run
 swe restic-01 record TraeSessionID:xxxx
 ```
 
-> 用户**只提供 Trae Session ID（原文复制）**；有效轮数与 commitUrl 由 AI 完成，不用你填。
+> 用户**只提供 Trae Session ID（原文复制）**；有效轮数与 Commit URL 由 AI 完成，不用你填。
 
 ### AI 会执行
 
 1. 读取 `task.md` 确认 Prompt 就绪
 2. 用 Session ID 读 Trae 日志统计有效 TC 次数，得到「有效轮数」（= 模型输出步数，口径见 `docs/步数统计.txt`）
-3. 在对应 `repos/{repo}/{branch}/` 里 `git add` + `git commit`，push 到 fork（HTTPS + PAT），得到 commitUrl
-4. 把 Trae Session ID（原文复制）、有效轮数、commitUrl 写入 `run-log.md`
+3. 在对应 `repos/{repo}/{branch}/` 里 `git add` + `git commit`，push 到 fork（HTTPS + PAT），得到 Commit URL
+4. 把 Trae Session ID（原文复制）、有效轮数、Commit URL 写入 `run-log.md`
 5. 录入产物结果与补充材料路径到 `result.md`（`model.patch`、verifier 日志、失败测试列表等）
 6. 提示用户：本地代码先不要删除（用于 commit 与复核）
 
@@ -180,13 +180,13 @@ swe restic-01 review
 {work_root}/{session}/tasks/restic/restic-01/review.md
 ```
 
-评分判定字段中 `【待确认】` / `【待用户填写】` 需人工核对后提交。
+评分判定字段中 `【待确认】`（Trae Session ID 2 / seed 轮次）默认留空；Reviewer 不再填写。
 
 ---
 
 ## 第 4 步：交付导出（追加到飞书多维表格）
 
-`review.md` 人工核对定稿后执行：
+`review.md` 定稿后执行：
 
 ### 指令模板
 

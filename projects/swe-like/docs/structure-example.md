@@ -22,7 +22,7 @@ sessions/swe-like/session-0001/
         │   ├── verify-rubric.md  # Verify Rubric（验收前固定）
         │   ├── run-log.md        # Trae Session ID / 有效轮数（= 模型输出步数）
         │   ├── result.md         # 产物结果 / 产物补充材料
-        │   └── review.md         # 是否完成 / Reviewer / 是否通过质检 / 收录判定
+        │   └── review.md         # 是否完成 / 是否通过质检 / 收录判定
         ├── restic-02/
         └── restic-03/
 ```

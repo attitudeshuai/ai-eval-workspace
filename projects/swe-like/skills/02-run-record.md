@@ -40,10 +40,7 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
    - 运行过程中**不追加人工澄清、任务拆解或引导性提示**
    - 记录 Trae Session ID（对话窗口 ID）与有效轮数（= 模型输出步数，通过下方第 3 步从 Trae 日志读取）
    - **省积分经验**（见 `docs/内部规范.md`）：执行超过 1.5 小时可停止并按「>100 轮且效果差」提交；若模型正在跑测试/执行任务或马上结束，可再等等尽量提交完整数据；不要为省积分故意出难题
-3. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除：
-   - 用户复制完整 Trae Session ID 发给 AI
-   - AI 按 `docs/步数统计.txt` 口径只读 Trae 日志统计有效 TC 次数
-   - 该数字即「有效轮数」= 模型输出步数 = 有效 TC（工具调用）次数，按 `toolCallId`/`serverCallId` 去重
+3. **获取有效轮数（= 模型输出步数 / 步数）**：跑完**尽快**执行——Trae 日志会动态清除。按 [02-step-count.md](02-step-count.md) 的抓取顺序执行：用户复制完整 Session ID 发给 AI，AI 抓日志统计有效 TC（文件操作 + 终端命令，重点别漏终端命令）。该数字即「有效轮数」= 模型输出步数 = 有效 TC（工具调用）次数，按唯一工具调用 ID 去重。
 4. **记录录入**：将以下内容写入 `run-log.md`：
    - Trae Session ID【必须原文逐字复制，禁止改写】
    - 有效轮数（= 模型输出步数，数字）
@@ -51,7 +48,7 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
 5. **产物收集**：将模型产物描述与补充材料路径写入 `result.md`：
    - 产物结果：模型交付了什么（功能/代码/配置变更摘要）
    - 产物补充材料：`model.patch`、verifier 测试日志、失败测试列表及轨迹等文件的路径
-6. **提交 + 记录 commitUrl（导出飞书前）**：模型改完代码后，AI 在对应 `repos/{repo}/{branch}/` 里 commit 并 push 到 fork，得到 commit URL 写入 `run-log.md`（导出飞书时填 `commitUrl` 字段，与 gsb 类似）。**本地代码先不要删除**。
+6. **提交 + 记录 Commit URL（导出飞书前）**：模型改完代码后，AI 在对应 `repos/{repo}/{branch}/` 里 commit 并 push 到 fork，得到 commit URL 写入 `run-log.md`（导出飞书时填 `Commit URL` 字段，与 gsb 类似）。**本地代码先不要删除**。
 7. **确认**：输出记录摘要，提示可进入验收复盘。
 
 ## 路径规则
@@ -76,14 +73,14 @@ description: "SWE 运行记录：把需求 Prompt 提交给 Trae CN + Seed Evolv
 | 有效轮数（= 模型输出步数） | `run-log.md`（数字，Codex 读 Trae 日志得到的有效 TC 次数） |
 | 产物结果 | `result.md` 产物描述 |
 | 产物补充材料 | `result.md` 材料路径 |
-| commitUrl | `run-log.md`（fork 后 commit 的 URL；填写规范待同步） |
+| Commit URL | `run-log.md`（fork 后 commit 的 URL；填写规范待同步） |
 
 ## 注意事项
 
 1. **单 Prompt 纪律**：运行过程不追加人工澄清、任务拆解或引导性提示；如需追加，该轮次仍如实计入有效轮数，但过程不可追溯性会在验收时记录到备注。
 2. **Session ID 纪律**：原文复制，禁止改写或推断。
 3. 有效轮数统计口径需与 Repo-v2 规范一致：以模型主动推进任务的有效 TC 次数计（= 模型输出步数），不计人为"继续"提示。
-4. **步数及时获取**：Trae 日志动态清除，跑完尽快通过 Codex + Session ID 获取步数并记入 `run-log.md`；有效轮数 = 模型输出步数（口径见 `docs/步数统计.txt`）。
+4. **步数及时获取**：Trae 日志动态清除，跑完尽快按 [02-step-count.md](02-step-count.md) 抓取并记入 `run-log.md`；有效轮数 = 模型输出步数（口径见 `docs/步数统计.txt`）。
 5. **省积分**：超过 1.5 小时可停止；不要为省积分故意出难题。
 6. **本地代码先不要删除**：模型跑完后的本地代码（含改动）保留，用于 commit 与后续复核。
-7. **commitUrl**：修改前 fork、改完 commit，记录 commit URL。**push 走 HTTPS + PAT**（`secrets.toml` 的 `github_pat` / `github_username`），不用 SSH（AI 沙箱 SSH 会失败）。
+7. **Commit URL**：修改前 fork、改完 commit，记录 commit URL。**push 走 HTTPS + PAT**（`secrets.toml` 的 `github_pat` / `github_username`），不用 SSH（AI 沙箱 SSH 会失败）。

@@ -88,7 +88,7 @@ SWE-like 流水线的第一步，也是核心。目标：给定一个 Repo，**�
 ├── verify-rubric.md  # Verify Rubric（验收前固定）
 ├── run-log.md        # Trae Session ID / 有效轮数（02 阶段写入）
 ├── result.md         # 产物结果 / 产物补充材料（02 阶段写入）
-└── review.md         # 是否完成 / Reviewer / 是否通过质检 / 收录判定（03 阶段写入）
+└── review.md         # 是否完成 / 是否通过质检 / 收录判定（03 阶段写入）
 ```
 
 > `{work_root}` 与 `{session}` 由 `config.toml [paths]` / `[sessions]` 决定。分支命名 `{repo}-01/02/03`；task-id = 分支名（`{repo}-XX`），任务目录 `tasks/{repo}/{branch}/`。
