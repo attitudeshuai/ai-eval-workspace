@@ -1,34 +1,33 @@
 # 出题表单模板（SWE Task Form）
 
-> 用于生成 `tasks/{task-id}/task.md`、`meta.json`、`verify-rubric.md`。需求必须独立提出，不照抄 Issues、热门讨论或既有题目。
+> 用于生成 `tasks/{repo}/{branch}/task.md`、`meta.json`、`verify-rubric.md`。需求必须独立提出，不照抄 Issues、热门讨论或既有题目。
 
 ## task.md（需求 Prompt 原文）
 
-```markdown
+```text
 为 <Repo 名> 增加/修复/重构……：<一句话目标>。
 
-<场景与现状>：<真实使用场景、当前行为与痛点>。
-
-<预期行为>：<可观察的预期行为，输入 → 输出，含边界情况>。
-
-<非目标/约束>：<明确不做什么、不可破坏的既有行为>。
+<像真实 MR 需求那样平实描述：现状与痛点、要改什么、改完后的可观察行为、边界情况与非目标。>
 ```
+
+> 像真实 Merge Request 开发前收到的需求：MR 改什么就写什么，不要扩展成「大而全」需求文档；用平实自然语言，**不使用 Markdown 标题/列表/加粗等标签**（表单字段去 AI 味）。
 
 ## meta.json
 
 ```json
 {
-  "task_id": "swe-{repo}-{序号}",
+  "task_id": "{repo}-XX",
   "title": "题目名称",
   "repo_url": "https://github.com/<owner>/<repo>",
-  "commit": "固定 Commit 或 Tag",
-  "language": "主要语言（单选：Python / JavaScript/TypeScript / Rust / ...）",
+  "commit": "固定 Commit 或 Tag（运行前 checkout 到的基线，默认取最新 Commit ID）",
+  "language": "主要语言（单选：Go / Python，本轮仅限）",
   "task_type": "任务类型（单选：功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 / 问题修复）",
   "seed_model": "Seed 模型/版本（默认 config.toml [run].model）"
 }
 ```
 
 > 注：提交人不写入 meta.json，飞书表格「提交人」字段有默认值，无需填写。
+> 注：`commit` 是运行前需 checkout 到的基线（默认最新 Commit ID）；第 2 步在 Trae 中运行前先 checkout 到该 commit，保证出题与运行同版本。
 
 ## verify-rubric.md
 
@@ -62,3 +61,6 @@
 - [ ] Verify Rubric 是否主观不可复现？（“功能正常、体验良好”→ 需改写）
 - [ ] Verify Rubric 是否写死文件/类名/实现方案？（行为正确的替代实现会被误判）
 - [ ] Verify Rubric 是否依赖稀缺或不可访问的外部状态？（真实账户/真实额度 → 应允许 mock/日志）
+- [ ] 题是否与 Repo 匹配、是该 Repo 管理员可能会合并到主分支的需求？（不匹配 → 不收录，最最重要）
+- [ ] 语言是否仅限 Go / Python？（本轮 100 题限制）
+- [ ] 该 Repo 是否已提交 ≥ 3 条数据？（一个 Repo 最多 3 条）

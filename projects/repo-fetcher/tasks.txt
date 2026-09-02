@@ -1,0 +1,2 @@
+# 做题次数记录（owner/repo 空格 次数），每行一条，# 开头为注释。
+# 用 fetch.py task <owner/repo> <次数> 更新；用 fetch.py table 生成 repos.md。

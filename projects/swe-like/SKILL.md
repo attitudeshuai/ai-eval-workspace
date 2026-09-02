@@ -12,9 +12,9 @@ description: "SWE-like 长程代码任务：基于真实开源 Repo 独立出题
 | 序号 | 技能 | 文件 | 说明 |
 |:--:|------|------|------|
 | 1 | **题目创建** | [skills/01-task-create.md](skills/01-task-create.md) | 选 Repo + 锁版本 → 独立出题（不照抄 Issues）→ Verify Rubric → 生成任务目录 |
-| 2 | **运行记录** | [skills/02-run-record.md](skills/02-run-record.md) | Trae+Seed 单 Prompt 运行 → 记录 Session ID / 有效轮数 / 产物 |
+| 2 | **运行记录** | [skills/02-run-record.md](skills/02-run-record.md) | Trae+Seed 单 Prompt 运行 → 记录 Session ID / 有效轮数（= 模型输出步数）/ 产物 |
 | 3 | **验收复盘** | [skills/03-verify-review.md](skills/03-verify-review.md) | 对照 Verify Rubric 逐条验收 → 完成/质检判定 → 收录决策 |
-| 4 | **交付导出** | [skills/04-export-delivery.md](skills/04-export-delivery.md) | 任务记录 → 20 字段映射 → 追加飞书多维表格（地址见 config.toml `[feishu]`） |
+| 4 | **交付导出** | [skills/04-export-delivery.md](skills/04-export-delivery.md) | 任务记录 → 24 字段映射（含 Type / commitUrl）→ 追加飞书多维表格（地址见 config.toml `[feishu]`） |
 
 ## 共享 Agent
 
@@ -34,12 +34,16 @@ description: "SWE-like 长程代码任务：基于真实开源 Repo 独立出题
 - **单 Prompt 纪律**：运行过程中不追加人工澄清、任务拆解或引导性提示；完整记录 Trae Session ID 与有效轮数，确保过程可追溯。
 - **Verify Rubric 纪律**：验收前固定，评判口径一致，不得根据模型结果事后调整标准。
 - **收录标准**（有效轮数 > 100 → 长程题收录；≤ 100 且实现明显差 → 难题收录；≤ 100 且实现较好 → 不收录）。
+- **步数统计**：跑完任务尽快把 Session ID + 步数统计文档发给 Codex 读取 Trae 日志，得到「模型输出步数」= 有效轮数（有效 TC 次数）记入 `run-log.md`（日志动态清除，务必及时）。
+- **表单规范**（见 `docs/内部规范.md`）：字段不得含 Markdown 标签（去 AI 味）；本轮语言仅限 Go / Python；一个 Repo 最多 3 条；Prompt 像真实 MR 需求，题要和 Repo 匹配。
 
 ## 文档
 
 | 文档 | 说明 |
 |------|------|
-| [docs/SWE-like Repo-v1.md](docs/SWE-like%20Repo-v1.md) | 出题规范（试行）：出题/交付示例/Verify Rubric 反例/收录标准 |
+| [docs/SWE-like Repo-v2.md](docs/SWE-like%20Repo-v2.md) | 出题规范（试行·现行版）：出题/交付示例/DeepSWE 参考/反例/收录标准（v1 已归档） |
+| [docs/内部规范.md](docs/内部规范.md) | 内部规范：账号积分 / 步数统计 / 表单填写规范 / 省积分经验 |
+| [docs/步数统计.txt](docs/步数统计.txt) | Trae Session 有效 TC 次数自查指南（=「模型输出步数」统计口径） |
 | [docs/runbook.md](docs/runbook.md) | 逐步操作手册（指令模板） |
 | [docs/structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 
@@ -56,11 +60,14 @@ projects/swe-like/
 │   └── 04-export-delivery.md   # 交付导出（追加到飞书多维表格）
 ├── secrets-simple.toml         # 本地敏感配置模板
 ├── docs/
+│   ├── SWE-like Repo-v2.md     # 出题规范（试行·现行版）
+│   ├── 内部规范.md              # 账号积分 / 步数统计 / 表单填写规范 / 省积分
+│   ├── 步数统计.txt             # 有效 TC 次数自查指南
 │   ├── runbook.md
 │   └── structure-example.md
 ├── templates/
 │   ├── task-form.md            # 出题表单
-│   └── delivery-form.md        # 交付表单（20 字段映射）
+│   └── delivery-form.md        # 交付表单（24 字段映射）
 └── scripts/
     └── append_delivery_feishu.py   # 交付导出脚本
 ```
@@ -69,6 +76,6 @@ projects/swe-like/
 
 1. 配置 `secrets.toml`（从 `secrets-simple.toml` 复制并填入真实值）
 2. 使用 [题目创建](skills/01-task-create.md) 选 Repo 并出题，生成任务目录
-3. 用户在 Trae 中让 Seed 单 Prompt 运行，使用 [运行记录](skills/02-run-record.md) 记录过程
+3. 用户在 Trae 中让 Seed 单 Prompt 运行，使用 [运行记录](skills/02-run-record.md) 记录过程（含尽快获取步数）
 4. 使用 [验收复盘](skills/03-verify-review.md) 对照 Verify Rubric 验收并做收录决策
 5. 使用 [交付导出](skills/04-export-delivery.md) 把任务记录追加到飞书多维表格

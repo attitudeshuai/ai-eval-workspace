@@ -34,7 +34,7 @@ description: "SWE 验收复盘：对照已冻结的 Verify Rubric 逐条验收�
 
 ## 执行流程
 
-1. **读取冻结的 Rubric**：`tasks/{task-id}/verify-rubric.md`。⚠️ 验收开始后 Rubric 即冻结，不得根据模型结果调整。
+1. **读取冻结的 Rubric**：`tasks/{repo}/{branch}/verify-rubric.md`。⚠️ 验收开始后 Rubric 即冻结，不得根据模型结果调整。
 2. **读取运行记录**：`run-log.md`（Session ID / 有效轮数）、`result.md`（产物描述）、产物补充材料（`model.patch`、verifier 日志、失败测试列表等）。
 3. **逐条验收**：对 Rubric 每条，核对产物证据（可运行验证优先），记录：
    - 通过：产物满足该条可观察行为与预期结果
@@ -48,13 +48,15 @@ description: "SWE 验收复盘：对照已冻结的 Verify Rubric 逐条验收�
 6. **质检判定**：
    - 通过：题面验收全部满足
    - 未通过（题面验收未全部满足）：存在任一 Rubric 失败
-7. **收录决策**（`config.toml [task]`）：
+7. **收录决策 → Type 字段**（`config.toml [task]`；交付表「Type」单选字段，选项逐字一致）：
 
-   | 运行结果 | 是否收录 | 标注 |
+   | 运行结果 | Type 字段值 | 是否收录 |
    |------|------|------|
-   | 有效轮数 > `long_horizon_min_rounds`，效果好或差 | 收录 | 长程题 |
-   | 有效轮数 ≤ `long_horizon_min_rounds`，但实现明显差 | 收录 | 难题 |
-   | 有效轮数 ≤ `long_horizon_min_rounds`，且实现较好 | 不收录 | — |
+   | 有效轮数 > `long_horizon_min_rounds`，效果好或差 | 有效轮数 > 100 | 收录（长程题） |
+   | 有效轮数 ≤ `long_horizon_min_rounds`，但实现明显差 | 有效轮数 < 100 且 效果差 | 收录（难题） |
+   | 有效轮数 ≤ `long_horizon_min_rounds`，且实现较好 | 有效轮数 < 100 且 效果好 | 不收录（不结算） |
+
+   > **Type 字段规则**（见 `docs/内部规范.md`）：Type =「有效轮数 < 100 且 效果好」的数据不结算，且其数量需 ≥ 总提交数量的 25%。即「≤ 100 且实现较好」这类数据要如实记录并提交，不得人为筛掉或谎报。
 8. **（可选）去 AI 化**：若 `config.toml [review].use_humanizer = true`，验收/质检文字经 `humanizer-zh` 处理。
 9. **写入 `review.md`**：完成度、质检、Reviewer、收录判定、备注。
 
@@ -62,12 +64,12 @@ description: "SWE 验收复盘：对照已冻结的 Verify Rubric 逐条验收�
 
 ```
 # 输入
-{work_root}/{session}/tasks/{task-id}/verify-rubric.md
-{work_root}/{session}/tasks/{task-id}/run-log.md
-{work_root}/{session}/tasks/{task-id}/result.md
+{work_root}/{session}/tasks/{repo}/{branch}/verify-rubric.md
+{work_root}/{session}/tasks/{repo}/{branch}/run-log.md
+{work_root}/{session}/tasks/{repo}/{branch}/result.md
 
 # 输出
-{work_root}/{session}/tasks/{task-id}/review.md
+{work_root}/{session}/tasks/{repo}/{branch}/review.md
 ```
 
 ## 交付字段前置填写

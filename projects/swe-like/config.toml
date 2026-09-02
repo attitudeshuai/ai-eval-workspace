@@ -33,15 +33,12 @@ task_types = [
     "问题修复"
 ]
 # 主要语言（与交付表「主要语言」单选字段逐字一致，供出题时选择）
-languages = [
-    "Python", "JavaScript/TypeScript", "Rust", "Go", "Java/Kotlin",
-    "C/C++", "C#", "Ruby", "PHP", "Swift/Objective-C", "Dart", "Shell",
-    "其他", "Java", "TypeScript"
-]
+# 本轮 100 题语言仅限 Go / Python（见 docs/内部规范.md「表单数据填写规范」）
+languages = ["Go", "Python"]
 # 收录标准：有效轮数 > 该值 → 长程题收录
 long_horizon_min_rounds = 100
-# 单 repo 题目不超过总题量的百分比上限（高度同质化 repo 合并计算）
-max_tasks_per_repo_percent = 2
+# 单 repo 最多提交条数上限（见 docs/内部规范.md「一个 Repo 最多提交 3 条数据」）
+max_tasks_per_repo = 3
 
 [run]
 # 运行环境与纪律
@@ -51,6 +48,10 @@ model = "Seed Evolving"
 single_prompt = true
 # 有效轮数无上限（0 = 不设上限），由收录标准决定是否收录
 rounds_cap = 0
+# 步数 = 模型输出步数 = 有效轮数（有效 TC 次数）：跑完尽快把 Session ID + 步数统计文档发给 Codex
+# 读取 Trae 日志获取（日志动态清除，务必及时）；口径见 docs/步数统计.txt
+# 省积分：执行超过 1.5 小时可停止，按「>100 轮且效果差」提交（见 docs/内部规范.md）
+run_time_cap_hours = 1.5
 
 [review]
 # Verify Rubric 验收：验收前必须固定，评判口径一致，不得根据模型结果事后调整标准
@@ -61,14 +62,14 @@ use_humanizer = true
 # ============================================================
 # 飞书多维表格（交付导出目标）
 # ============================================================
-# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/YGagbh3qkaQJsMs5lRbcRowFn9b?table=tbliE3DR4ozNhcst&view=vewjDu0bTP
+# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/FpWUbTe1qa36E2sEFiic0Hnjnxf?table=tblXHYLBoRMAfe5u&view=vewjDu0bTP
 # app_id / app_secret 属敏感信息，放在 secrets.toml [feishu] 段
 # 前置要求：
 #   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
 #   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
 [feishu]
-app_token = "YGagbh3qkaQJsMs5lRbcRowFn9b"
-table_id = "tbliE3DR4ozNhcst"
+app_token = "FpWUbTe1qa36E2sEFiic0Hnjnxf"
+table_id = "tblXHYLBoRMAfe5u"
 view_id = "vewjDu0bTP"
 # 查重字段：SWE 表每道题一条记录，按「题目名称」查重（默认；脚本读取此值）
 dedupe_field = "题目名称"

@@ -1,0 +1,4 @@
+# 黑名单：已经用过的仓库，每行一个 GitHub 地址，# 开头为注释。
+# 搜索（list）与拉取（pull）会自动跳过这些仓库。
+# 一个仓库用完（提交满任务/不再复用）后，执行：
+#   python scripts/repo-fetcher/fetch.py blacklist add <owner/repo>

@@ -1,0 +1,48 @@
+[project]
+id = "repo-fetcher"
+name = "仓库拉取器（Repo Fetcher）"
+description = "专门从 GitHub 搜索、快照拉取、去重开源仓库；黑名单记录已用过的仓库，搜索与拉取时自动跳过。"
+owner = "ai-evaluation-workspace"
+created_at = "2026-09-01T00:00:00Z"
+
+[paths]
+# 拉取落点（快照，干净 origin 仓）
+pool_root = "sessions/repo-fetcher/repos"
+# 去重清单（已拉取；本地数据，不提交）
+manifest = "sessions/repo-fetcher/repos-manifest.json"
+# 候选清单（待拉取，每行 owner/repo，# 开头为注释；提交到 Git）
+wishlist = "projects/repo-fetcher/wishlist.txt"
+# 黑名单（已经用过的仓库，每行 GitHub 地址；提交到 Git）
+blacklist = "projects/repo-fetcher/blacklist.txt"
+# 做题次数记录（owner/repo 空格 次数，每行一条；提交到 Git）
+tasks = "projects/repo-fetcher/tasks.txt"
+# 生成的仓库状态表（Markdown；提交到 Git）
+table = "projects/repo-fetcher/repos.md"
+
+[criteria]
+# ---- 拉取标准：什么样的仓库可以进池 ----
+languages         = ["Go", "Python"]   # 本轮 SWE-like 100 题仅限 Go / Python
+min_stars         = 200                 # 过滤玩具仓库
+max_inactive_days = 365                 # 最近活跃门槛（按 pushed 时间）
+# 严禁关键词（命中即过滤）
+forbidden_keywords = [
+    "商城", "购物车", "订单", "RBAC", "权限管理", "博客", "CMS",
+    "考勤", "OA", "图书借阅", "医院挂号", "问诊", "外卖", "点餐",
+    "CRM", "私信", "IM", "拍卖", "停车场", "工单", "客服",
+    "预约系统", "积分商城", "报表统计", "CSV看板", "记账",
+    "健康健身", "菜谱", "天气", "番茄钟", "习惯打卡", "音乐播放器",
+    "旅行日记", "观影记录", "贪吃蛇", "打砖块", "俄罗斯方块",
+    "五子棋", "2048", "扫雷", "打地鼠", "命令行工具", "代码片段管理器",
+    "批量重命名", "截图标注", "文件管理", "密码管理器",
+]
+
+[criteria.search]
+# GitHub Search API 参数
+per_page  = 30
+max_pages = 3      # list 每语言最多翻几页（控制 API 额度）
+sort      = "stars"
+order     = "desc"
+
+[secrets]
+file     = "secrets.toml"
+template = "secrets-simple.toml"

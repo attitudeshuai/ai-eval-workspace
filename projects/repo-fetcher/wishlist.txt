@@ -1,0 +1,32 @@
+# 候选仓库清单（owner/repo），每行一个，# 开头为注释。
+# 用 pull --file 批量拉取；已拉取（manifest）与黑名单中的会自动跳过。
+# 拉取：python scripts/repo-fetcher/fetch.py pull --file projects/repo-fetcher/wishlist.txt
+
+# ---- Go ----
+restic/restic
+rclone/rclone
+syncthing/syncthing
+charmbracelet/bubbletea
+gofiber/fiber
+zeromicro/go-zero
+caddyserver/caddy
+cli/cli
+nektos/act
+go-gitea/gitea
+usememos/memos
+gitleaks/gitleaks
+jesseduffield/lazydocker
+helm/helm
+minio/minio
+seaweedfs/seaweedfs
+photoprism/photoprism
+
+# ---- Python ----
+pallets/flask
+scrapy/scrapy
+django/django
+fastapi/fastapi
+home-assistant/core
+localstack/localstack
+docling-project/docling
+opendatalab/MinerU

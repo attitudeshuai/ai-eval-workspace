@@ -16,7 +16,8 @@
 | `pairwise-gsb` | 生图标注 | `skills/gsb-annotator/SKILL.md` | AI 生图 Pairwise GSB 标注 |
 | `code-eval-solo` | 代码评估 | `SKILL.md` | 单模型代码能力批量评估 |
 | `code-eval-gsb` | 代码评估 | `SKILL.md` | 多模型代码对比评估（GSB） |
-| `repo-pool` | 素材池 | `SKILL.md` | GitHub 开源仓库搜索/拉取/去重（供评估项目出题） |
+| `swe-like` | 代码评估 | `SKILL.md` | SWE-like 长程代码任务题库（Trae+Seed 单 Prompt） |
+| `repo-fetcher` | 素材池 | `SKILL.md` | 专门拉取 GitHub 仓库（黑名单记录已用过的仓库，自动跳过） |
 
 ## 共享资源
 
@@ -64,13 +65,13 @@ GitLab clone → GitHub push → 分支创建 → 提示词生成 → Trae 执�
 
 详见 `projects/webdev-long-horizon/SKILL.md`
 
-### repo-pool（开源仓库素材池）
+### repo-fetcher（仓库拉取器）
 
 ```
-list 搜索候选 → pull 快照拉取+去重 → status 盘点 → 人工 copy 到评估项目
+list 搜候选 → 写进 wishlist.txt → pull --file 批量拉取 → status 盘点 → blacklist add 标记已用过
 ```
 
-详见 `projects/repo-pool/docs/runbook.md`
+详见 `projects/repo-fetcher/docs/runbook.md`
 
 ## 你不能做什么
 
@@ -87,4 +88,5 @@ list 搜索候选 → pull 快照拉取+去重 → status 盘点 → 人工 copy
 - [projects/code-eval-gsb/SKILL.md](./projects/code-eval-gsb/SKILL.md) — 多模型代码对比入口
 - [projects/code-eval-gsb/docs/runbook.md](./projects/code-eval-gsb/docs/runbook.md) — GSB 操作手册
 - [projects/webdev-long-horizon/SKILL.md](./projects/webdev-long-horizon/SKILL.md) — Web Dev 实操流程
-- [projects/repo-pool/SKILL.md](./projects/repo-pool/SKILL.md) — 开源仓库池入口
+- [projects/swe-like/SKILL.md](./projects/swe-like/SKILL.md) — SWE-like 长程代码任务入口
+- [projects/repo-fetcher/SKILL.md](./projects/repo-fetcher/SKILL.md) — 仓库拉取器入口（含黑名单）
