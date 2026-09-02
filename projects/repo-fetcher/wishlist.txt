@@ -25,7 +25,6 @@ photoprism/photoprism
 pallets/flask
 scrapy/scrapy
 django/django
-fastapi/fastapi
 home-assistant/core
 localstack/localstack
 docling-project/docling
