@@ -44,7 +44,7 @@ description: "SWE 交付导出：验收复盘完成后，把任务记录映射�
 1. **读取任务记录**：`{work_root}/{session}/tasks/{repo}/{branch}/` 下的 `task.md` / `meta.json` / `verify-rubric.md` / `run-log.md` / `result.md` / `review.md`。
 
 2. **完成度检查（不满足则中止）**：
-   - 所有交付字段（含需求 Prompt 原文、Verify Rubric）不得含反引号（`）、——、「」等 Markdown / AI 痕迹；如发现，先清理源文件（task.md / verify-rubric.md / result.md / review.md）再导出
+   - 所有交付字段（含需求 Prompt 原文、Verify Rubric）不得含反引号（`）、——、「」、列表符号（- / ① ② ③ 圈号）等 Markdown / AI 痕迹；如发现，先清理源文件（task.md / verify-rubric.md / result.md / review.md）再导出
    - 所有文件中不得残留 `【待填写】` / `【待用户填写】` 占位标记
    - `meta.json` 的 Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 齐全
    - `run-log.md` 的 Trae Session ID、有效轮数（= 步数）、Commit URL 齐全
