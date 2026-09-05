@@ -1,100 +1,53 @@
 ---
 name: swe-step-count
-description: "SWE 有效轮数统计：按固定顺序抓取 Trae 日志统计有效 TC（文件操作 + 终端命令），重点防漏终端命令。Use when: 步数统计, 有效轮数, 有效 TC 次数, Session ID 抓日志。"
+description: "SWE 有效轮数统计（agent step 口径）：TraeX 用 count_steps.py 对原始轨迹计数，miniswe 取 api_calls，或用 Hook 客户端。Use when: 步数统计, 有效轮数, effective_turns, agent step。"
 ---
 
-# SWE 有效轮数统计（步数统计·实操）
+# SWE 有效轮数统计（agent step 口径）
 
-> 被 `02-run-record.md` 第 3 步「获取有效轮数」调用。口径依据 `../docs/步数统计.md`，本文固化**抓取顺序**与 Trae 3.3.95 的坑。
+> 被 `02-run-record.md` 调用。口径依据 `../docs/内部规范-v1.md` 与 `../docs/SWE-like Repo-v3.md` 第 7 节。
+> ⚠️ 旧的「读 Trae renderer.log 数有效 TC 次数」方式已作废，本文件只保留新口径。
 
-## 为什么单独成 skill
+## 新口径：agent step（一次模型调用 = 1 步）
 
-Trae CN 3.3.95 的终端命令执行（pytest / ruff / go test / 冒烟命令）**不产生 tooling 工具调用**，renderer.log 里看不到命令本身和输出，只按 renderer.log 统计会漏掉终端命令（曾把 38 误算成 30）。因此必须按下面的顺序，从「日志」和「session.md（模型完整会话）」两个来源抓取，缺一不可。`session.md` 由 01 出题阶段默认创建（空文件），用户跑完把 Trae 完整会话粘贴进来。
+有效轮数（`effective_turns`）以 agent step 为单位，**不是**工具调用次数：
 
-## 抓取顺序（按序执行，勿跳步）
+- 一次模型调用记为一个 step；
+- 一批工具调用无论包含几个调用，均记为一个 step（不是每个工具调用各算 1）；
+- 未附带工具调用的收尾回复记为一个 step；
+- 一次上下文压缩记为一个 step；
+- 子代理（`spawn_agent`）执行的轮数一并计入；
+- 环境重试不计入。
 
-### 0. 解析 Session ID
+## 获取方式（三选一）
 
-格式：`<user_id>:<trace_id>_<session_id>.<agent_message_id>.<user_message_id>:<客户端版本时间>`
+### 1. Hook 客户端（推荐，准确率高）
 
-拆出 `session_id`、`trace_id`、`user_message_id` 三个搜索键，`session_id` 最常用。Session ID 原文照录，禁止改写。
+见 `docs/内部规范-v1.md`：https://github.com/aliAjax/tc-hook-kit-main-5a8b63a
 
-### 1. 定位日志目录
+### 2. TraeX：count_steps.py
 
-- Windows：`$env:APPDATA\Trae CN\logs`（PowerShell 里 `%APPDATA%` 不展开，用 `$env:APPDATA`）
-- macOS：`~/Library/Application Support/Trae CN/logs`
+对 `.trae/cli/sessions/` 下的**原始轨迹**跑（子代理轨迹是独立文件，依赖该目录结构定位；轨迹拷入 `evidence/` 后无法关联，计数会偏小）：
 
-列出时间戳目录，找与会话时间最接近的那个（Session ID 末尾的时间，如 `2026/9/3 00:03:12` 对应 `20260902T235549`）。
-
-### 2. 全目录搜索会话（勿只看 window1）
-
-对整个 logs 目录递归搜索 `session_id` / `trace_id`，得到命中文件完整路径。可能有多个 window（window1/window2/window3），都要看。锁定会话后确认：`trace_id` 一致、用户消息内容对得上、会话最终 `status` 为 completed。
-
-### 3. 确认会话归属（防错，必须先做）
-
-Session ID 与用户报的任务名可能对不上（曾出现「restic-01 的 ID 实际跑的是 flask-01」）。抓数之前先核对：
-
-- 工具调用里引用的仓库路径（`repos/<repo>/<branch>/`）指向哪个 repo
-- 日志里 prompt 关键词（题干术语）命中哪个任务
-- 与用户给的任务名不一致时，**先问用户再落盘**，绝不把 A 任务的 Session 记到 B 任务
-
-### 4. 统计文件操作类 TC（renderer.log）
-
-匹配模式：
-
-```text
-[message:<user_message_id>] <uuid> icube.common.commands.tooling.<Name> start
+```bash
+python3 count_steps.py ~/.trae/cli/sessions/2026/09/03/rollout-xxx.jsonl
+python3 count_steps.py <轨迹文件> --show   # 想看每一步是什么
 ```
 
-按唯一 UUID 去重计数。计入：
+### 3. miniswe：api_calls
 
-| 工具 | 含义 |
-|------|------|
-| applyChatSnapshotPatch | 写文件 |
-| readFile | Agent 主动读文件 |
-| listFolder | 列目录 / 搜索 |
+取 `.traj.json` 里 `info.model_stats.api_calls`，无需 count_steps.py。
 
-排除（不计入）：getAutoRunConfig、getDocumentByUri、getDiagnostics、getRulesDetails、fileDiffCount、getConfigurationValue、getTerminalContributedEnv、getNextAvailableTerminal、getAllAgentExtensions、getAllOpenedProjects、getDeviceId、filePathSensitiveOrNot、reportIdeSubagentAICodeContribution、createBinaryFile 等客户端配置 / 诊断 / 编辑器刷新 / 上报类调用。
+## 填表
 
-### 5. 终端命令不落盘——换来源（关键，最易漏）
-
-Trae 3.3.95 终端命令走集成终端，**不产生 tooling 工具调用**，特征：
-
-- renderer.log 无 `runCommandInTerminal` / `executeCommand` / 命令文本（pytest、ruff 都搜不到）
-- 只有 `getTerminalContributedEnv`（终端环境读取，cost 0-2ms，**不计入**，只作终端活跃信号）
-- ShellExec 未启用（`useShellExec=false`）
-- 终端输出（`64 passed`、ruff 结果、`Unknown config key` 等）不落盘，日志里搜不到
-- `Modular/ai_agent-*.alaudalog` 是二进制且常被进程锁，读不出
-
-所以终端命令次数**从 `session.md` 里数**：用户把 Trae 完整会话（模型思考轨迹 + 工具调用 + 命令结果）粘贴到任务目录的 `session.md`。逐条数独立命令（pytest / ruff / go test / 冒烟命令），每条独立命令计 1 次（状态轮询 / 结果读取合并不重复计）。`session.md` 比「模型最终答复」更全，能覆盖「首跑失败 → 换 PYTHONPATH → 重跑 → 冒烟 → 复跑」这类多次迭代命令，避免只数最终答复漏掉中间失败的 run。
-
-### 6. 确认会话状态与时间
-
-找 `[DoneHandler] Stream done event received` / `[stream-diagnostics][done]`，确认 `status:"completed"` 及完成时间，记入 run-log。
-
-### 7. 汇总写 run-log.md
-
-```text
-有效轮数 = 文件操作 TC + 终端命令 TC
-```
-
-run-log 里分开列：文件操作明细（工具 + 次数）、终端命令明细（命令列表 + 次数）、排除项、以及「终端命令不落盘」的统计说明，便于复核。
+- `task.toml` 的 `effective_turns` = 上述得到的整数。
+- 底稿「有效轮数」列由 `toml2base.py` 从 `task.toml` 回填。
+- `count_steps.py` 与 `harbor-交付模板包.zip` 见 `SWE-like Repo-v3.md` 第 7 节附件。
 
 ## 快速检查清单
 
-- [ ] 拆出 session_id / trace_id / user_message_id
-- [ ] 搜了整个 logs 目录，不是只看 window1
-- [ ] 确认会话实际跑的是哪个 repo / 任务（与用户报的一致，否则先问）
-- [ ] 文件操作类 TC 按唯一 UUID 去重
-- [ ] 明确排除了 getTerminalContributedEnv / getDocumentByUri / getDiagnostics 等
-- [ ] 终端命令从 `session.md`（模型完整会话）里数了（pytest / ruff / go test / 冒烟命令），不是只看最终答复
-- [ ] 有效轮数 = 文件操作 + 终端命令，不是只看 renderer.log
-- [ ] 会话 status 为 completed
-
-## 参考案例（flask-01）
-
-有效轮数 45 = 文件操作 30（applyChatSnapshotPatch 8 + readFile 20 + listFolder 2）+ 终端命令 15（pytest 4 + flask 冒烟 6 + ruff 5）。终端命令未落盘，按 session.md 逐条数得 15 条；若只按最终答复数则只有 8 条（漏了失败初跑、环境排查、PYTHONPATH 重跑和 ruff 的 diff/应用）。renderer.log 里的 getTerminalContributedEnv（10 次）是环境读取，不计入。
-
-## 参考案例（flask-03）
-
-有效轮数 43 = 文件操作 36（readFile 23 + applyChatSnapshotPatch 9 + listFolder 2 + createFile 1 + deleteFile 1）+ 终端命令 7（pytest 首跑失败 + python -c 查导入路径 + PYTHONPATH=src pytest 9 测 + 全量 503 + 冒烟首跑报错 + 冒烟重跑 + 全量复跑 503）。终端命令从 `session.md` 逐条数出，与 renderer.log 里 8 次 `getTerminalContributedEnv` 终端活跃信号吻合。
+- [ ] 口径是 agent step（一次模型调用 = 1 步），不是工具调用次数
+- [ ] TraeX 用 count_steps.py 对 .trae/cli/sessions/ 原始轨迹跑（不是 evidence/ 里的拷贝）
+- [ ] miniswe 取 .traj.json 的 info.model_stats.api_calls
+- [ ] 环境重试未计入
+- [ ] 旧方式（读 renderer.log 数有效 TC）没有再用

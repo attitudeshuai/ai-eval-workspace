@@ -1,80 +1,86 @@
-# swe-like 目录结构样例
+# swe-like 交付结构样例
 
-> 以 **session=session-0001**、**repo=restic**、分支 **restic-01/02/03** 为例。
+> 以一道题为例，展示伪 Harbor 交付包结构。目录名 = 题目名称。
 
 ---
 
-## 总览
+## 总览（一个 zip = 一道题）
 
-```
-sessions/swe-like/session-0001/
-├── repos/                        # 源码（fork clone，与 tasks 平级）
-│   └── restic/                   # {repo}
-│       ├── origin/               # 主分支基线（fork 的 master/main，不动）
-│       ├── restic-01/           # 分支 restic-01（worktree）
-│       ├── restic-02/           # 分支 restic-02（worktree）
-│       └── restic-03/           # 分支 restic-03（worktree）
-└── tasks/                        # 题目（结构镜像 repos，一个分支一道题）
-    └── restic/                   # {repo}
-        ├── restic-01/           # {branch}，对应上面同名分支
-        │   ├── task.md           # 需求 Prompt（原文）
-        │   ├── meta.json         # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本
-        │   ├── verify-rubric.md  # Verify Rubric（验收前固定）
-        │   ├── session.md        # Trae 完整会话（出题阶段创建空文件，02 阶段粘贴，供步数统计）
-        │   ├── run-log.md        # Trae Session ID / 有效轮数（= 模型输出步数）
-        │   ├── result.md         # 产物结果 / 产物补充材料
-        │   └── review.md         # 是否完成 / 是否通过质检 / 收录判定
-        ├── restic-02/
-        └── restic-03/
+```text
+<题目名称>/
+├── task.toml                 # 16 键底稿字段（题目背景信息）
+├── instruction.md            # 需求 Prompt 原文
+├── environment/
+│   └── Dockerfile            # 基线 public.ecr.aws/x8v8d7g8/mars-base:latest，ARG BASE_SHA
+├── tests/
+│   └── nl_rubric.yaml        # 自然语言判分标准（≥5 条，f2p/p2p）
+├── solution/                 # 本批允许留空
+└── evidence/                 # 一次运行的取证
+    ├── trajectory.jsonl      # TraeX 轨迹（或 trajectory.md / trajectory.json）
+    ├── model.patch           # diff 基准 = base_commit
+    └── screenshots/          # 运行结果截图（非空）
 ```
 
 ---
 
-## 路径映射
+## 示例：restic 一题
 
-| 变量 | 含义 | 示例 |
-|------|------|------|
-| `{work_root}` | 工作根 | `sessions/swe-like` |
-| `{session}` | 会话（批次） | `session-0001` |
-| `{repo}` | 仓库名 | `restic` |
-| `{branch}` | 分支名（= task-id） | `restic-01` |
-
-| 用途 | 公式 | 示例 |
-|------|------|------|
-| 源码基线 | `{work_root}/{session}/repos/{repo}/origin/` | `.../repos/restic/origin/` |
-| 分支工作目录 | `{work_root}/{session}/repos/{repo}/{branch}/` | `.../repos/restic/restic-01/` |
-| 任务目录 | `{work_root}/{session}/tasks/{repo}/{branch}/` | `.../tasks/restic/restic-01/` |
-| 需求 Prompt | 同上 `task.md` | `.../restic-01/task.md` |
-| 元数据 | 同上 `meta.json` | `.../restic-01/meta.json` |
-| Verify Rubric | 同上 `verify-rubric.md` | `.../restic-01/verify-rubric.md` |
-| 运行记录 | 同上 `run-log.md` / `result.md` | `.../restic-01/run-log.md` |
-| 验收记录 | 同上 `review.md` | `.../restic-01/review.md` |
+```text
+restic-01-prune-json-output/
+├── task.toml
+├── instruction.md
+├── environment/
+│   └── Dockerfile
+├── tests/
+│   └── nl_rubric.yaml
+├── solution/
+└── evidence/
+    ├── trajectory.jsonl
+    ├── model.patch
+    └── screenshots/
+        └── verify-passed.png
+```
 
 ---
 
-## 多批次示例
+## task.toml 16 键
 
+| 键 | 说明 |
+|----|------|
+| `title` | 题目名称（= zip 目录名） |
+| `submitter` | 提交人（不回填） |
+| `submit_date` | YYYY-MM-DD |
+| `language` | Python / Go |
+| `task_type` | 功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 |
+| `repo_url` | 原始仓库 URL |
+| `base_commit` | 40 位完整 SHA，= Dockerfile BASE_SHA |
+| `realism_and_difficulty` | 真实性与难度说明 |
+| `modules` | 可能涉及模块 |
+| `trae_session_id` | miniswe 留空 |
+| `effective_turns` | 有效轮数（agent step） |
+| `harness` | Trae / TraeX / miniswe |
+| `seed_model` | Seed Evolving |
+| `requirement_met` | 完成 / 部分完成 / 未完成 / 无法判断 |
+| `run_result` | 逐条对应 rubric：id + 通过/未通过 + 原因 |
+| `notes` | 备注（可空） |
+
+---
+
+## nl_rubric.yaml 样例
+
+```yaml
+rubrics:
+  - id: 1
+    type: f2p
+    text: 功能默认关闭，关闭时保持现有行为。
+
+  - id: 2
+    type: f2p
+    text: 开启后……（可观察行为）。
+
+  - id: 3
+    type: p2p
+    text: 回归：既有测试不得回归。
 ```
-sessions/swe-like/
-├── session-0001/             # 第 1 批（repo: restic）
-│   ├── repos/restic/
-│   │   ├── origin/
-│   │   ├── restic-01/
-│   │   ├── restic-02/
-│   │   └── restic-03/
-│   └── tasks/restic/
-│       ├── restic-01/
-│       ├── restic-02/
-│       └── restic-03/
-│
-└── session-0002/             # 第 2 批（repo: pydantic）
-    ├── repos/pydantic/
-    │   ├── origin/
-    │   ├── restic-01/
-    │   ├── restic-02/
-    │   └── restic-03/
-    └── tasks/pydantic/
-        ├── restic-01/
-        ├── restic-02/
-        └── restic-03/
-```
+
+> 至少 5 条，至少各 1 条 f2p 和 p2p。

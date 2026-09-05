@@ -1,121 +1,106 @@
 ---
 name: swe-task-create
-description: "SWE 题目创建：给定一个 Repo，一次为 3 个分支（{repo}-01/02/03）各出一道真实且有难度的题，创建分支/worktree，写 Verify Rubric 并生成 3 个任务目录。Use when: SWE 出题, 选 repo, 写需求, Verify Rubric。"
+description: "SWE 题目创建：给定一个 Repo，独立出一道真实且有难度的题（不照抄 Issues，不做同一诉求内置化改写），生成 harbor 交付包（task.toml + instruction.md + nl_rubric.yaml + Dockerfile）。Use when: SWE 出题, 选 repo, 写需求, nl_rubric, Dockerfile。"
 ---
 
 # SWE 题目创建（Task Create）
 
-> 配置从 `../config.toml` 读取，`secrets.toml` 中可覆盖。
-> 依赖 agent：无（需求独立提出，不调用 prompt-architect）
-
-SWE-like 流水线的第一步，也是核心。目标：给定一个 Repo，**一次产出 3 道**真实且有难度的 SWE 题（对应 3 个分支 {repo}-01/02/03）——选对 Repo、锁对版本、写出可观察、可验收的需求与 Rubric，并建好分支与 worktree。
+> 规范见 `../docs/SWE-like Repo-v3.md`、`../docs/内部规范-v1.md`、`../docs/常见问题.md`。
+> 交付形态：一题一个 zip（伪 Harbor），目录名 = 题目名称。骨架见 `../templates/harbor/`。
 
 ## 功能概述
 
 这个技能负责：
 
-- 选择自己熟悉的开源 Repo，记录 Repo URL 与版本（默认获取最新 Commit ID，可固定到某 commit/tag）
-- 基于对项目真实使用场景和代码结构的理解，**独立提出**需求
-- 撰写真实性与难度说明、可能涉及模块
-- 撰写 Verify Rubric（可观察行为 + 输入条件 + 预期结果）
-- 创建 3 个分支 `{repo}-01/02/03` + 3 份 worktree，并生成 3 个任务目录（各含 `task.md` / `meta.json` / `verify-rubric.md` / `session.md`）
+- 选择开源 Repo，记录 `repo_url` 与 40 位完整 `base_commit`
+- 独立提出需求（不照抄 Issues，也不做「同一诉求内置化改写」）
+- 写 `instruction.md`（需求 Prompt 原文）
+- 写 `tests/nl_rubric.yaml`（≥5 条，含 f2p / p2p）
+- 写 `environment/Dockerfile`（ARG BASE_SHA = base_commit）
+- 生成 `task.toml`（16 键）
 
-这个技能不负责：
+这个技能不负责：运行模型（02）、验收（03）、回填底稿（04）。
 
-- 从 Issues、热门讨论或既有题目照抄需求（**严禁**）
-- 预先指定单元测试、实现模块或技术方案（不写死实现）
-- 运行模型或记录回答（由 `02-run-record.md` 负责）
+## 交付结构（伪 Harbor）
 
-## 命令
+```
+<题目名称>/
+├── task.toml                 # 16 键底稿字段
+├── instruction.md            # 需求 Prompt 原文
+├── environment/Dockerfile    # 基线 public.ecr.aws/x8v8d7g8/mars-base:latest
+├── tests/nl_rubric.yaml      # 自然语言判分标准
+├── solution/                 # 本批允许留空
+└── evidence/                 # 运行后取证（trajectory + model.patch + screenshots/）
+```
 
-| 命令 | 说明 |
-|------|------|
-| create | 默认命令。给定 Repo（项目名）→ 锁版本 → 独立出 3 题 → 建 3 分支/worktree → 生成 3 个任务目录 |
+## 候选池（一个 repo 一个文件）
+
+- 每个 repo 一次出 **10 个候选提示词**，集中写入 `sessions/swe-like/<session>/tasks/{repo}/prompt-candidates.md`；不同 repo 不混放。
+- 候选入池前三重自检：①本地代码验证功能不存在（grep 证据）；②公开 Issues 查重（open + closed，见下）；③难度门槛自检（见下）。
+- 池内每条记录：题名、base_commit、复杂度要点（命中的难度维度）、查重证据（搜索词 + issue 编号 + 排除理由）、提示词正文。
+- 候选**通过需求预检后**才落地：用户反馈通过编号（如 `swe {repo} create 通过：候选 1、2`），AI 逐条把正文复制进任务目录的 instruction.md，补齐 rubric / Dockerfile / task.toml，检查分支与 worktree 是否就位，并跑 `preflight_check.py --stage create` 自检。
+- 被击毙的方向（撞 issue / base 已实现 / 超出 repo 能力）记入该文件末尾的「调研阵亡名单」，防止重复踩坑。
 
 ## 执行流程
 
-1. **选择 Repo**：用户提供项目名/Repo（URL），一次处理 3 道题。支持从 `repo-fetcher` 素材池选择。
-2. **锁定版本**：默认自动获取该 Repo 的**最新 Commit ID** 写入 `meta.json`（如需固定到某 commit/tag 可由用户指定）。出题与运行必须基于同一版本，保证可复现。
-3. **类型与语言**：根据 Repo 主语言与需求性质，从 `config.toml [task]` 中选任务类型（功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 / 问题修复）与主要语言。**本轮 100 题语言仅限 Go / Python**（见 `docs/内部规范.md`）。
-4. **独立出题**：撰写 **3 份**需求 Prompt（分别写入 3 个分支的 `task.md`，三道题各不同）。每份要求：
-   - 明确目标、适用场景及**可观察的预期行为**，避免仅描述抽象方向
-   - 需求描述长度不限
-   - 不直接照抄 Top Open Issues、热门讨论或既有题目
-   - 不预先指定单元测试、实现模块或技术方案（但可描述涉及的模块范围）
-   - **像真实 MR 需求**：MR 改什么就写什么，不要扩展成「大而全」需求文档；用平实自然语言，交付字段不得含 Markdown 标签和排版符号——尤其是反引号（命令/选项名直接写裸词，如 flask config、--json）、加粗、斜体、——、「」、列表符号（- 和 ① ② ③ 等圈号都不要用，序列需求用句号或分号连成自然段）
-   - **题要与 Repo 匹配**：是该 Repo 管理员可能会合并到主分支的需求
-   - **反例自查**（存在任一即不收录）：无法由 Repo 独立实现；已有功能（未查重）；与 Repo 定位不符；与 Repo 不匹配 / 维护者不会合并
-5. **撰写交付内容**：
-   - 真实性与难度说明
-   - 可能涉及模块
-   - Verify Rubric（见下节）
-6. **Verify Rubric 反例自查**（必做）：Rubric 不得是主观描述、不得写死文件/类名/实现方案、不得依赖稀缺或不可访问的外部状态、不得事后倒改。
-7. **生成任务目录 + 分支**：在 `repos/{repo}/origin` 创建 3 个分支 `{repo}-01/02/03`，用 `git worktree add` 拉出 3 份工作目录；写入 3 组 `task.md` / `meta.json` / `verify-rubric.md`（三个分支共用同一 commit），并为每个任务目录创建**空的 `session.md`**（供 02 阶段粘贴 Trae 完整会话），输出题目名称与路径。
+1. **选 Repo + 锁 base_commit**：40 位完整 SHA，须与 Dockerfile 的 ARG BASE_SHA 一致。
+2. **生成候选池**：对该 repo 出 10 个候选提示词，写入 `tasks/{repo}/prompt-candidates.md`（一个 repo 一个文件，格式见上节「候选池」）。
+3. **写 instruction.md**：候选通过需求预检后，把正文落到任务目录。平实自然语言，像真实 MR 需求；明确目标、适用场景、可观察预期行为；不用 Markdown 标签，也不用 `-`/`*` 等列表符号（一眼 AI 痕迹）——预期行为用完整句子分段叙述；不写死实现。
+4. **写 nl_rubric.yaml**：≥5 条，每条 `id` + `type`(f2p/p2p) + `text`；至少各 1 条 f2p 和 p2p。
+5. **写 Dockerfile**：基线 `public.ecr.aws/x8v8d7g8/mars-base:latest`，ARG BASE_SHA = base_commit，装仓库依赖（含需求新增依赖）。
+6. **写 task.toml**：16 键，title = zip 目录名；除 submitter 外每键对应一个底稿列。
 
-## Verify Rubric 规范
+## 难度门槛（自检清单）
 
-每条 Rubric 应包含**可观察行为 + 输入条件 + 预期结果**，不同质检人可稳定复现。
+预检高频打回原因：「太简单」。定稿前按清单自检，**至少命中 3 项**才算复杂度足够：
 
-| Bad Case | 问题 |
+- **跨模块/跨层**：改动横跨 2 个以上模块或层次（如请求处理 + 配置解析 + 状态管理）
+- **状态生命周期**：涉及启动、运行、重载、失败恢复等状态的语义设计
+- **并发与竞态**：请求间隔离、共享状态的原子性、goroutine / 进程安全
+- **配置面**：需要新增配置项（数据格式、解析、校验、非法值处理）
+- **边界与失败路径**：有非平凡分支语义（全部不可用、部分恢复、空结果、超大输入等）
+- **向后兼容**：默认行为不变、旧配置/旧数据不回归，且这一点本身需要专门设计
+
+复杂度不足的反例（必被打回）：单文件改动；新增一个配置开关；对现有能力的薄封装（语法糖）；只有 happy path 的功能。
+
+## 公开 Issues 相似查重（必做，加严流程）
+
+1. **先查代码，再写题**：base_commit 越新，越多「明显缺口」其实已被填补。在本地仓库 grep 确认功能不存在（含相近命名、相近能力的变体），避免「已有功能」型打回。
+2. **open + closed 都查**：closed issue 同样算重复（历史被拒或已搁置的同一诉求）。
+3. **同义词多搜几轮**：中英文、功能名/场景名都试（如 mirror / shadow / copy / tee）。
+4. **判定标准是「可观察行为重合」**：核心对象、触发阶段、预期行为三者一致即判高相似，换实现方式不等于独立；命中即换题，不得靠改写 Prompt / Rubric 硬过。
+5. **留证**：搜索词、命中/排除的 issue 编号与理由记入 task.toml 的 notes，供预检复核。
+
+### 预检失败案例（caddy 实践，2026-09）
+
+| 候选 | 死因 |
 |------|------|
-| “功能正常、体验良好、代码质量高。” | 判定标准主观，无观察行为/输入/预期，无法稳定复现 |
-| “必须修改 app.rs，并新增 AutoResetManager 类。” | 无必要写死文件/类名/实现方案，可能误判行为正确的替代实现 |
-| “使用真实账户耗尽额度，并消耗一次真实 reset credit 验证。” | 依赖稀缺/不可访问外部状态，成本高难复现；应允许 mock/日志/可控状态 |
-| “先看模型怎么实现，再补充它没有做到的检查项。” | 事后倒改标准；Rubric 可在出题前后完善，但必须在最终判定前固定 |
+| p2c + peak-EWMA 负载均衡 | 撞 open issue #7879（同一诉求） |
+| 一致性哈希负载均衡 | 撞 closed issue #1804（closed 也算重复） |
+| 访问日志 sampling | base_commit 已实现（LogSampling + Caddyfile sampling 块） |
+| map 正则捕获映射 / 默认值 | base_commit 已实现（input_regexp / Defaults） |
+| 自定义 browse 模板 | base_commit 已实现（template_file） |
+| 上游 CONNECT 代理 | base_commit 已实现（HTTPTransport Proxy 字段） |
+| admin 配置 dry-run | 撞 open issue #4717 |
 
 ## 反例：不应收录的伪需求
 
 | 反例需求 | 问题类型 | 为什么不收录 |
 |------|------|------|
 | 为 Claude Code 增加完整 CoT 的自动保存、展示和导出功能。 | 无法由 Repo 独立实现 | 依赖上游模型能力与安全策略变化，客户端 Repo 无法获取或还原 |
-| 为 Codex CLI 增加 side chat。 | 已有功能 | Codex CLI 已提供 `/side`（别名 `/btw`），属未查重的重复需求 |
+| 为 Codex CLI 增加 side chat。 | 已有功能 | Codex CLI 已提供 `/side`，属未查重的重复需求 |
 | 让 FastAPI 内置 Kubernetes 自动扩缩容控制器。 | 与 Repo 定位不符 | 属部署与集群编排，非 Web 框架核心职责 |
-| 给 Web 框架加一个与框架无关的通用工具（如内置拼写检查器）。 | 与 Repo 不匹配 | 不是该 Repo 管理员会合并到主分支的需求（见 `docs/内部规范.md`） |
+| 为 Flask 增加「未处理 HTTPException 默认返回 JSON」的配置项。 | 公开 Issue 高相似（同一诉求内置化改写） | Issue #2144 已要求 want all Errors return JSON，#5255 亦记录同场景；换实现方式仍是同一诉求 |
 
-## 路径规则
+## nl_rubric.yaml 规范
 
-```
-# 源码目录（fork clone，与 tasks 平级）
-{work_root}/{session}/repos/{repo}/origin/       # 主分支基线
-{work_root}/{session}/repos/{repo}/{repo}-01/   # 分支 {repo}-01（第 1 题）
-{work_root}/{session}/repos/{repo}/{repo}-02/   # 分支 {repo}-02（第 2 题）
-{work_root}/{session}/repos/{repo}/{repo}-03/   # 分支 {repo}-03（第 3 题）
-
-# 任务根目录
-{work_root}/{session}/tasks/{repo}/{branch}/
-├── task.md           # 需求 Prompt（原文，交付表「需求 Prompt（原文）」来源）
-├── meta.json         # Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 / 题目名称
-├── verify-rubric.md  # Verify Rubric（验收前固定）
-├── session.md        # Trae 完整会话（出题阶段创建空文件，02 阶段用户粘贴，供步数统计）
-├── run-log.md        # Trae Session ID / 有效轮数（02 阶段写入）
-├── result.md         # 产物结果 / 产物补充材料（02 阶段写入）
-└── review.md         # 是否完成 / 是否通过质检 / 收录判定（03 阶段写入）
-```
-
-> `{work_root}` 与 `{session}` 由 `config.toml [paths]` / `[sessions]` 决定。分支命名 `{repo}-01/02/03`；task-id = 分支名（`{repo}-XX`），任务目录 `tasks/{repo}/{branch}/`。
-
-## 交付字段前置填写
-
-出题阶段即确定以下交付表字段（写入 `meta.json`）：
-
-| 交付表字段 | 来源 |
-|------|------|
-| 题目名称 | 出题时定义（task-id 或短名） |
-| 提交人 | 不填写：飞书表格该字段有默认值，无需录入 |
-| Repo URL | 选定的 Repo |
-| Commit/版本 | 默认最新 Commit ID（可固定到某 commit/tag） |
-| 主要语言 | Repo 主语言（单选） |
-| 任务类型 | 需求性质（单选） |
-| 需求 Prompt（原文） | `task.md` 原文 |
-| 真实性与难度说明 | 出题交付 |
-| 可能涉及模块 | 出题交付 |
-| Verify Rubric | `verify-rubric.md`（验收前固定） |
-| Seed 模型/版本 | 运行所用模型（默认 `config.toml [run].model`） |
+- 每条一句自然语言，只额外标 `type`，不拆字段级、不写死文件名/类名/实现方案。
+- `f2p`：原本做不对、新需求下应该做对；`p2p`：原本就能对、新需求下也应保持对。
+- 至少各 1 条 f2p 和 p2p，整体不少于 5 条。
 
 ## 注意事项
 
-1. 需求必须独立提出，**不得照抄 Issues、热门讨论或既有题目**。
-2. 出题与运行使用同一固定版本；版本变更需重新出题。
-3. 单 repo 最多提交 3 条数据（`config.toml [task].max_tasks_per_repo`；见 `docs/内部规范.md`）。
-4. Verify Rubric 一旦验收开始即冻结，不得根据模型结果调整。
-5. 本轮语言仅限 Go / Python；Prompt 用平实自然语言书写，交付字段不得含 Markdown 标签。
+1. 需求必须独立提出，**不得照抄 Issues**，也不得「对同一诉求做内置化改写」。
+2. 本轮语言仅 Python / Go；一个 Repo 最多 5 条。
+3. 题要和 Repo 匹配，是该 Repo 管理员可能会合并到主分支的需求。
+4. base_commit 与 Dockerfile BASE_SHA 必须一致。

@@ -1,28 +1,29 @@
 [project]
 id = "swe-like"
 name = "SWE-like 长程代码任务题库"
-description = "基于真实开源 Repo 出 SWE 类真实难题，Trae+Seed 单 Prompt 运行，Verify Rubric 验收，按收录标准入库并交付飞书多维表格"
+description = "基于真实开源 Repo 出 SWE 类真实难题，Trae/TraeX/miniswe + Seed Evolving 单 Prompt 运行，Verify Rubric 验收，按收录标准以伪 Harbor zip 形式交付网站"
 owner = "ai-evaluation-workspace"
 created_at = "2026-09-01T00:00:00Z"
 
 # ============================================================
-# 项目模式说明
+# 项目模式说明（现行 · SWE-like Repo-v3）
 # ============================================================
-#   1. 选择熟悉的开源 Repo，记录 URL + 固定版本（Commit/Tag）
-#   2. 基于真实使用场景独立出题（不照抄 Issues）+ 写 Verify Rubric
-#   3. Trae CN + Seed Evolving 单 Prompt 运行，记录 Session ID / 有效轮数
-#   4. 对照 Verify Rubric 验收复盘 → 收录判定 → 交付飞书多维表格
+#   1. 选择熟悉的开源 Repo，记录 URL + 40 位完整 commit（base_commit）
+#   2. 基于真实使用场景独立出题（不照抄 Issues，也不做「同一诉求内置化改写」）
+#   3. 交付形态：一题一个 zip（task.toml + instruction.md + nl_rubric.yaml + Dockerfile + evidence/）
+#   4. Trae/TraeX/miniswe + Seed Evolving 单 Prompt 单轮运行
+#   5. 有效轮数 = agent step（一次模型调用 = 1 步），TraeX 用 count_steps.py，miniswe 取 api_calls
+#   6. 收录标准：>100 长程；≤100 且完成 → 不收录；≤100 且未完成 → 难题
+#   7. 用 toml2base.py 一键回填底稿（网站表单），不再交付飞书
 #
 # ============================================================
 
 [paths]
-# ---- 所有路径以 ai-eval-workspace 为基准（工作台内闭环，不引用外部） ----
+# ---- 所有路径以 ai-eval-workspace 为基准 ----
 work_root = "sessions/swe-like"
-# 任务目录名（拼接为 work_root/{session}/tasks/）
-tasks_dir = "tasks"
 
 [task]
-# 任务类型（与交付表「任务类型」单选字段逐字一致）
+# 任务类型（与底稿「任务类型」单选字段逐字一致）
 task_types = [
     "功能新增",
     "Bug 修复",
@@ -30,56 +31,28 @@ task_types = [
     "重构/性能",
     "配置/工具链",
     "其他",
-    "问题修复"
 ]
-# 主要语言（与交付表「主要语言」单选字段逐字一致，供出题时选择）
-# 本轮 100 题语言仅限 Go / Python（见 docs/内部规范.md「表单数据填写规范」）
+# 主要语言：本批次仅 Python / Go
 languages = ["Go", "Python"]
-# 收录标准：有效轮数 > 该值 → 长程题收录
+# 收录阈值：有效轮数 > 该值 → 长程题
 long_horizon_min_rounds = 100
-# 单 repo 最多提交条数上限（见 docs/内部规范.md「一个 Repo 最多提交 3 条数据」）
-max_tasks_per_repo = 3
+# 单 repo 最多提交条数上限
+max_tasks_per_repo = 5
 
 [run]
-# 运行环境与纪律
-client = "Trae CN"
+# 运行环境与纪律（推荐 TraeX：有效轮数可用 count_steps.py 自动统计；Trae IDE 需用 Hook 方式，见 docs/内部规范-v1.md）
+harness = "TraeX"         # Trae / TraeX / miniswe
 model = "Seed Evolving"
-# 单 Prompt 运行：运行过程中不追加人工澄清、任务拆解或引导性提示
+# 单 Prompt 单轮：运行过程中不追加人工澄清、任务拆解或引导性提示
 single_prompt = true
-# 有效轮数无上限（0 = 不设上限），由收录标准决定是否收录
-rounds_cap = 0
-# 步数 = 模型输出步数 = 有效轮数（有效 TC 次数）：跑完尽快把 Session ID + 步数统计文档发给 Codex
-# 读取 Trae 日志获取（日志动态清除，务必及时）；口径见 docs/步数统计.md
-# 省积分：执行超过 1.5 小时可停止，按「>100 轮且效果差」提交（见 docs/内部规范.md）
-run_time_cap_hours = 1.5
+# 有效轮数 = agent step（一次模型调用 = 1 步），口径见 skills/02-step-count.md
+# 省积分：执行超过 2 小时可停止，按「>100 轮且效果差」提交（见 docs/内部规范-v1.md）
+run_time_cap_hours = 2.0
 
 [review]
-# Verify Rubric 验收：验收前必须固定，评判口径一致，不得根据模型结果事后调整标准
+# Verify Rubric（nl_rubric.yaml）验收前固定，评判口径一致，不得事后调整
 rubric_frozen_before_review = true
-# 验收/质检文字是否经 humanizer-zh 去 AI 化
-use_humanizer = true
-
-# ============================================================
-# 飞书多维表格（交付导出目标）
-# ============================================================
-# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/FpWUbTe1qa36E2sEFiic0Hnjnxf?table=tblXHYLBoRMAfe5u&view=vewjDu0bTP
-# app_id / app_secret 属敏感信息，放在 secrets.toml [feishu] 段
-# 前置要求：
-#   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
-#   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
-[feishu]
-app_token = "FpWUbTe1qa36E2sEFiic0Hnjnxf"
-table_id = "tblXHYLBoRMAfe5u"
-view_id = "vewjDu0bTP"
-# 查重字段：SWE 表每道题一条记录，按「题目名称」查重（默认；脚本读取此值）
-dedupe_field = "题目名称"
 
 [sessions]
-# 当前活跃 session（各开发者在 secrets.toml 中覆盖）
+# 当前活跃 session
 active = "session-0001"
-
-[secrets]
-# 敏感配置集中管理文件（已加入 .gitignore，不提交）
-# 首次使用请复制 secrets-simple.toml → secrets.toml 并填入真实值
-file = "secrets.toml"
-template = "secrets-simple.toml"

@@ -1,0 +1,24 @@
+# nl_rubric.yaml（自然语言判分标准）
+# 至少 5 条；type 只能 f2p / p2p；至少各含 1 条 f2p 和 1 条 p2p。
+# 每条一句自然语言，不写死文件名/类名/实现方案。
+
+rubrics:
+  - id: 1
+    type: f2p
+    text: 
+
+  - id: 2
+    type: f2p
+    text: 
+
+  - id: 3
+    type: f2p
+    text: 
+
+  - id: 4
+    type: f2p
+    text: 
+
+  - id: 5
+    type: p2p
+    text: 

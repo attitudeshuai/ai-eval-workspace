@@ -1,113 +1,68 @@
 ---
 name: swe-export-delivery
-description: "SWE 交付导出：验收复盘完成后，把任务记录映射为交付表 24 字段（含 Type / Commit URL）并追加一条记录到飞书多维表格。Use when: SWE 导出, 交付表追加, 飞书多维表格。"
+description: "SWE 交付导出：填 task.toml → toml2base.py 体检（--dry-run）→ 回填底稿网站表单。Use when: SWE 导出, task.toml, toml2base, 底稿回填。"
 ---
 
-# SWE 交付导出 · 追加记录到飞书多维表格
+# SWE 交付导出 · 回填底稿（网站表单）
 
-> 配置从 `../config.toml [feishu]` 读取（app_token / table_id / dedupe_field），凭证在 `../secrets.toml [feishu]`（app_id / app_secret）。
-> 脚本：`scripts/swe-like/append_delivery_feishu.py`（仅标准库，Python 3.11+）
-
-每次 `review` 验收完成、用户确认 `review.md` 后执行本技能：把任务目录的记录映射为交付表的一条记录（24 字段，含「Type」「Commit URL」），追加到交付飞书多维表格（`config.toml [feishu]` 指向的「数据表」）。
+> 现行：不再交付飞书，改为一题一个 zip（伪 Harbor）+ task.toml，用 toml2base.py 一键回填底稿。
+> 规范见 `../docs/SWE-like Repo-v3.md`（第 2 / 7 节）与 `../docs/内部规范-v1.md`。
 
 ## 功能概述
 
-1. 读取该任务的 `task.md` / `meta.json` / `verify-rubric.md` / `run-log.md` / `result.md` / `review.md`
-2. 按交付表 24 字段逐字段映射，生成记录 JSON
-3. 调用 `append_delivery_feishu.py` 先 `--dry-run` 校验，再正式追加
-4. 输出追加结果（record_id、留空字段清单），提示用户核对
-
-**本技能不负责：**
-
-- 出题、运行或验收（由 01/02/03 完成）
-- 替人工确认判定（`review.md` 残留占位标记时中止）
-
-## 命令
-
-| 命令 | 说明 |
-|------|------|
-| export | 默认命令。任务记录 → 追加一条记录到飞书多维表格 |
+1. 组装交付包：`<题目名称>/`（task.toml + instruction.md + environment/Dockerfile + tests/nl_rubric.yaml + solution/ + evidence/）。
+2. 填好 `task.toml` 的 16 个键。
+3. 用 `toml2base.py --dry-run` 体检（不写库）。
+4. 体检通过后 `toml2base.py` 回填底稿（整包 zip 上传「交付包」列）。
 
 ## 执行流程
 
-**输入：**
+```bash
+# 1) 体检，不写库
+python3 toml2base.py --dry-run <题目目录>
+
+# 2) 体检通过后写入底稿（同一题重跑为更新原记录，不会重复建行）
+python3 toml2base.py <题目目录>
 ```
-分支名：<repo>-01 / <repo>-02 / <repo>-03 之一
-```
 
-> Reviewer 不再填写，留空；不再作为命令参数。
+> 环境要求：Python 3；`pip install pyyaml tomli`（3.11+ 无需 tomli）；`lark-cli auth login`；具备底稿编辑权限。缺任一项脚本会明确指出。
 
-> 提交人**不填写**：飞书表格「提交人」字段有默认值，交付时脚本跳过不写入。
+## task.toml 16 键（详见 Repo-v3 第 2 节）
 
-**步骤：**
+| 键 | 说明 |
+|----|------|
+| `title` | 题目名称（= zip 目录名） |
+| `submitter` | 提交人（不回填，底稿圈自己） |
+| `submit_date` | YYYY-MM-DD |
+| `language` | 仅 Python / Go |
+| `task_type` | 功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 |
+| `repo_url` | 原始仓库 URL |
+| `base_commit` | 40 位完整 SHA，= Dockerfile 的 ARG BASE_SHA |
+| `realism_and_difficulty` | 真实性与难度说明 |
+| `modules` | 可能涉及模块 |
+| `trae_session_id` | miniswe 可留空 |
+| `effective_turns` | 有效轮数（agent step，见 02-step-count） |
+| `harness` | Trae / TraeX / miniswe |
+| `seed_model` | Seed Evolving |
+| `requirement_met` | 完成 / 部分完成 / 未完成 / 无法判断 |
+| `run_result` | 逐条对应 rubric：id + 通过/未通过 + 原因 |
+| `notes` | 备注（可空） |
 
-1. **读取任务记录**：`{work_root}/{session}/tasks/{repo}/{branch}/` 下的 `task.md` / `meta.json` / `verify-rubric.md` / `run-log.md` / `result.md` / `review.md`。
+## 退回红线（提交前自查）
 
-2. **完成度检查（不满足则中止）**：
-   - 所有交付字段（含需求 Prompt 原文、Verify Rubric）不得含反引号（`）、——、「」、列表符号（- / ① ② ③ 圈号）等 Markdown / AI 痕迹；如发现，先清理源文件（task.md / verify-rubric.md / result.md / review.md）再导出
-   - 所有文件中不得残留 `【待填写】` / `【待用户填写】` 占位标记
-   - `meta.json` 的 Repo URL / Commit/版本 / 主要语言 / 任务类型 / Seed 模型/版本 齐全
-   - `run-log.md` 的 Trae Session ID、有效轮数（= 步数）、Commit URL 齐全
-   - `review.md` 的是否完成需求 / 是否通过质检 齐全
+- 必需文件缺失或空：task.toml、instruction.md、environment/Dockerfile、tests/nl_rubric.yaml、evidence/model.patch
+- evidence/trajectory.jsonl、trajectory.json、trajectory.md 全都不存在或全为空
+- harness 填 Trae 或 TraeX 却没填 trae_session_id
+- evidence/screenshots/ 为空
+- task.toml 的 title 与交付包目录名不一致
+- 单选列取值不在底稿选项内
+- base_commit 与 Dockerfile 的 ARG BASE_SHA 不一致
+- task.toml 含规范外键或键名大小写不符
+- rubric 少于 5 条、type 不为 f2p/p2p、id 重复，或无 f2p 条目
+- 产物结果未逐条对应 rubric，或与「是否完成需求」矛盾
+- instruction.md 或 rubric 残留 `<……>` 占位
 
-3. **生成记录 JSON**：写入 `.tmp/<task-id>-delivery.json`，键名与多维表格字段名**逐字一致**，映射规则见下节。
+## 附件
 
-4. **校验并追加**（在工作台根目录执行）：
-
-   ```bash
-   # 先 dry-run 校验字段名、选项值与留空情况
-   python scripts/swe-like/append_delivery_feishu.py \
-     --json .tmp/<task-id>-delivery.json --dry-run
-
-   # 确认无误后正式追加
-   python scripts/swe-like/append_delivery_feishu.py \
-     --json .tmp/<task-id>-delivery.json
-   ```
-
-   - 脚本按 `config.toml [feishu].dedupe_field`（默认「题目名称」）查重，重复时需用户确认后加 `--force`
-   - 单选/多选字段的值必须是表格中已有选项；脚本会校验，不匹配时报错并列出全部合法选项
-   - 「提交日期」为日期字段，默认填当前日期；如表格设为自动创建时间，脚本会按只读字段跳过
-
-5. **输出结果**：追加的 record_id + 留空字段清单，提示用户在多维表格中抽查该条记录。
-
-## 字段映射规则（24 字段）
-
-| # | 字段 | 来源 |
-|---|------|------|
-| 1 | 题目名称 | `meta.json`（与查重键一致） |
-| 2 | Type | `review.md` 收录判定（单选：有效轮数 > 100 / 有效轮数 < 100 且 效果差 / 有效轮数 < 100 且 效果好） |
-| 3 | 提交人 | 不填写：飞书表格该字段有默认值，脚本跳过不写入 |
-| 4 | 提交日期 | 当前日期（日期字段；若为自动创建时间则跳过） |
-| 5 | Repo URL | `meta.json`（超链接字段） |
-| 6 | Commit/版本 | `meta.json` 固定版本 |
-| 7 | 主要语言 | `meta.json`（单选，本轮仅提交 Go / Python） |
-| 8 | 任务类型 | `meta.json`（单选：功能新增 / Bug 修复 / 测试增强 / 重构/性能 / 配置/工具链 / 其他 / 问题修复） |
-| 9 | 需求 Prompt（原文） | `task.md` **原文复制，禁止改写** |
-| 10 | 真实性与难度说明 | `task.md` 或出题交付 |
-| 11 | 可能涉及模块 | 出题交付 |
-| 12 | Verify Rubric | `verify-rubric.md` **原文复制，禁止改写** |
-| 13 | 产物结果 | `result.md` 产物描述 |
-| 14 | 产物补充材料 | `result.md` 材料路径（patch / verifier 日志等） |
-| 15 | Seed 模型/版本 | `meta.json`（实际运行模型/版本） |
-| 16 | Trae Session ID | `run-log.md` **原文复制，禁止改写** |
-| 17 | Trae Session ID 2 | 【待确认】数字字段；疑似第二/续跑 Session，默认留空 |
-| 18 | 有效轮数 | `run-log.md`（数字；= 模型输出步数 / 有效 TC 次数） |
-| 19 | seed 轮次 | 【待确认】文本；默认留空 |
-| 20 | 是否完成需求 | `review.md`（单选：完成 / 部分完成 / 未完成 / 无法判断） |
-| 21 | Reviewer | 留空（不再填写） |
-| 22 | 是否通过质检 | `review.md`（单选：通过 / 未通过（题面验收未全部满足）） |
-| 23 | 备注 | `review.md` 收录判定结论及其他补充 |
-| 24 | Commit URL | `run-log.md`（fork 开源 repo 后、模型改完 commit 的 URL；填写规范待同步） |
-
-> **有效轮数 = 模型输出步数**（已确认）：「有效轮数」字段填的就是「模型输出步数」（有效 TC 次数，Codex 读 Trae 日志得到）。「Trae Session ID 2」（数字）与「seed 轮次」（文本）两个字段的真实含义仍待甲方确认，默认留空。
-> **Commit URL**（试标新增）：修改前 fork 开源 repo，模型改完再 commit，Commit URL 填该 commit 的 URL。填写规范待甲方同步，先记录到 `run-log.md`。
-
-## 注意事项
-
-1. **必须先 dry-run 再正式追加**；dry-run 输出的留空字段清单需人工过目，确认留空都是"本就无数据"而非漏映射。
-2. 键名与字段名逐字一致（含空格、全角括号），脚本对未知键名直接报错。**字段名以实际 SWE 交付飞书表为准**，若表头与本文档不一致，以脚本拉取到的表头为准（「Type」「Trae Session ID 2」「seed 轮次」等字段务必以实际表头为准）。
-3. 单选/多选字段只能写已有选项；如需新选项，先在多维表格中手动添加，再重新导出。
-4. `需求 Prompt（原文）`、`Verify Rubric`、`Trae Session ID` 三处强制原文复制，禁止改写或推断。
-5. **表单填写规范**（见 `docs/内部规范.md`）：任何字段不得含 Markdown 标签（标题/引用/代码块/加粗/斜体），去 AI 味；本轮语言仅限 Go / Python；一个 Repo 最多 3 条；Type =「有效轮数 < 100 且 效果好」的数据 ≥ 总提交 25%（不结算，不得筛掉）。
-6. 多维表格是最终交付物，追加前确认任务已定稿；追加错误记录需在多维表格中手动删除后重新导出。
-7. 首次使用前置：飞书开发者后台为应用开通 `bitable:app` 权限，并把应用添加为该多维表格的协作者。
+- `count_steps.py`：自查 `effective_turns`（对 `.trae/cli/sessions/` 原始轨迹跑）。
+- `harbor-交付模板包.zip`：模板，解压后把「请改成题目名称」目录重命名为本题题目名称。
