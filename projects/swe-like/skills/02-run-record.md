@@ -1,12 +1,12 @@
 ---
 name: swe-run-record
-description: "SWE 运行记录：把 instruction.md 需求 Prompt 提交给 Trae/TraeX/miniswe + Seed Evolving 单 Prompt 单轮运行，记录 Session ID、有效轮数（agent step）与取证。Use when: SWE 运行, 记录 Session ID, effective_turns, 取证。"
+description: "SWE 运行记录：把 instruction.md 需求 Prompt 提交给 Trae/TraeX/miniswe + Seed Evolving 单 Prompt 单轮运行，记录 Session ID、有效轮数（有效 TC）与取证。Use when: SWE 运行, 记录 Session ID, effective_turns, 取证。"
 ---
 
 # SWE 运行记录（Run Record）
 
 > 规范见 `../docs/SWE-like Repo-v3.md`（第 4 节）、`../docs/内部规范-v1.md`。
-> 步数口径：agent step（一次模型调用 = 1 步），见 [02-step-count.md](02-step-count.md)。
+> 步数口径：有效轮数 = 有效 TC（Hook），见 [02-step-count.md](02-step-count.md)。
 
 ## 功能概述
 
@@ -41,7 +41,7 @@ description: "SWE 运行记录：把 instruction.md 需求 Prompt 提交给 Trae
    - 在对应 worktree 里**运行验证**：Python 跑 pytest / Go 跑 go test，优先复用会话里模型自跑的命令与环境（如 `PYTHONPATH=src`、`GOPROXY` 指向国内源），确认实现是否成功、回归是否通过
    - 把验证结果**截图**（终端输出渲染成 PNG）保存到 `evidence/screenshots/`，至少 1 张，用于底稿「产物截图」附件与验收证据
    - 验证跑不通时，如实记录失败项，不要伪造通过截图
-5. **算有效轮数**：按 [02-step-count.md](02-step-count.md) 的 agent step 口径得 `effective_turns`。
+5. **算有效轮数**：按 [02-step-count.md](02-step-count.md) 的有效 TC 口径得 `effective_turns`。
 6. **填 task.toml**：`trae_session_id`、`effective_turns`、`harness`、`seed_model`。
 7. **commit 到 fork**：把模型改动做成一个单独 commit（**只含模型修改**）push 到 fork，记录 commit URL（见 `docs/内部规范-v1.md`）。**本地代码先不要删除**。
 
@@ -49,6 +49,6 @@ description: "SWE 运行记录：把 instruction.md 需求 Prompt 提交给 Trae
 
 1. **单 Prompt 单轮纪律**：不追加人工澄清、任务拆解或引导性提示。
 2. **Session ID 纪律**：原文复制，禁止改写或推断。
-3. **步数口径**：agent step（一次模型调用 = 1 步；一批工具调用算 1 步；收尾回复算 1 步；上下文压缩算 1 步；子代理轮数计入），不是工具调用次数。
+3. **步数口径**：有效轮数 = 有效 TC（PostToolUse 工具调用，按 tool_use_id 去重、排除轮询/配置/补丁类工具）；TraeCode CN/Trae 用 Hook、TraeX 用 count_steps.py、miniswe 取 api_calls。
 4. **取证**：patch 基准必须是 base_commit；screenshots 非空。
 5. **省积分**：执行超过 2 小时可停止，按「>100 轮且效果差」提交（见 `docs/内部规范-v1.md`）。

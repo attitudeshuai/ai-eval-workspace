@@ -1,0 +1,40 @@
+# Local credentials and generated configuration
+bridge.runtime.json
+bridge.json
+config.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Runtime event data and logs
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+*.log
+data/
+*.bak
+*.bak-*
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# JavaScript dependencies and build output
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+
+# Editor settings
+.vscode/
+.idea/
+
+# OS files
+.DS_Store

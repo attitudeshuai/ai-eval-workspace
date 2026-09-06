@@ -1,53 +1,79 @@
 ---
 name: swe-step-count
-description: "SWE 有效轮数统计（agent step 口径）：TraeX 用 count_steps.py 对原始轨迹计数，miniswe 取 api_calls，或用 Hook 客户端。Use when: 步数统计, 有效轮数, effective_turns, agent step。"
+description: "SWE 有效轮数统计：TraeCode CN/Trae CN 用 tc-hook-kit 数有效 TC（PostToolUse 去重排除）；TraeX 用 count_steps.py 数 agent step；miniswe 取 api_calls。Use when: 步数统计, 有效轮数, effective_turns, 有效 TC, hook。"
 ---
 
-# SWE 有效轮数统计（agent step 口径）
+# SWE 有效轮数统计
 
 > 被 `02-run-record.md` 调用。口径依据 `../docs/内部规范-v1.md` 与 `../docs/SWE-like Repo-v3.md` 第 7 节。
-> ⚠️ 旧的「读 Trae renderer.log 数有效 TC 次数」方式已作废，本文件只保留新口径。
+> **现行确认口径：有效轮数 = 有效 TC**（甲方 2026/09 确认：「那个轮次就是有效 TC，平台表单应该有误」）。
 
-## 新口径：agent step（一次模型调用 = 1 步）
+## 口径：有效轮数 = 有效 TC
 
-有效轮数（`effective_turns`）以 agent step 为单位，**不是**工具调用次数：
+表单「有效轮数」要填的是**有效 TC**：`PostToolUse` 工具调用，按 `tool_use_id` 去重，排除轮询/配置/补丁类工具（`checkRunCommandStatus`、`getDiagnostics`、`getConfigurationValue`、`fileDiffCount`、`getAutoRunConfig`、`getDocumentByUri`、`applyChatSnapshotPatch`）。平台把字段误写成"有效轮数"，填有效 TC 即可。
 
-- 一次模型调用记为一个 step；
-- 一批工具调用无论包含几个调用，均记为一个 step（不是每个工具调用各算 1）；
-- 未附带工具调用的收尾回复记为一个 step；
-- 一次上下文压缩记为一个 step；
-- 子代理（`spawn_agent`）执行的轮数一并计入；
-- 环境重试不计入。
+不同终端怎么得到它：
 
-## 获取方式（三选一）
+| 终端 | 统计方式 | 得到 |
+|------|---------|------|
+| **TraeCode CN / Trae CN（IDE）** | tc-hook-kit Hook（本流水线主力） | **有效 TC** ✅ |
+| **TraeX（CLI）** | `count_steps.py` 对 `.trae/cli/sessions/` 原始轨迹 | agent step（一次模型调用 = 1 步，与有效 TC 不同口径） |
+| **miniswe** | `.traj.json` 的 `info.model_stats.api_calls` | api_calls |
 
-### 1. Hook 客户端（推荐，准确率高）
+> ⚠️ TraeX 的 `count_steps.py` 数的是 **agent step**，不是有效 TC。若结算统一按「有效 TC」，用 TraeX/miniswe 需另行换算或改口径；当前按「TraeCode CN + Hook」最直接。
 
-见 `docs/内部规范-v1.md`：https://github.com/aliAjax/tc-hook-kit-main-5a8b63a
+## TraeCode CN 用 Hook 拿有效 TC（可行方案）
 
-### 2. TraeX：count_steps.py
+> **系统适配**：以下为 **Windows（TraeCode CN on Windows）** 的实测方案。**macOS** 直接沿用 tc-hook-kit 自带 `install.sh`（bash）即可——它写 `~/.trae-cn/hooks.json`、用 `node <bridge.js>`（node 在 PATH 上），**无需**本节的 wrapper / BOM / `setup-hook.ps1` 等 Windows 特化处理。
 
-对 `.trae/cli/sessions/` 下的**原始轨迹**跑（子代理轨迹是独立文件，依赖该目录结构定位；轨迹拷入 `evidence/` 后无法关联，计数会偏小）：
+前置：Python 3、Node >= 18；仓库 `scratch/tc-hook-kit`（tc-hook-kit）已拉好。
+
+### 1. 配置（初始化一次）
+
+Windows 下在 tc-hook-kit 目录跑 `setup-hook.ps1`（替代 `install.sh`），或手动：
+- 生成 secret → 写 `~/.tc-hook-kit/config.json` + `bridge.json`（二者 `server_url` 与 `hook_secret` 必须一致）。
+- 写 `~/.trae-cn/hooks.json`，6 个事件（`SessionStart` / `UserPromptSubmit` / `PreToolUse` / `PostToolUse` / `Stop` / `Notification`）都指向**一个单标记无空格命令**。
+
+### 2. 三个关键坑（Windows 特有，都踩过）
+
+1. **trae-sandbox 按空格拆命令**。TraeCode CN 用 `trae-sandbox.exe exec --command-line <命令>` 执行 hook，命令**按空格拆分**。所以不能直接写 `"D:\Program Files\nodejs\node.exe" "…\bridge.js"`——`Program Files` 带空格会报 `unexpected argument`。
+   **解决：用路径无空格的 wrapper 脚本**，命令只填 wrapper 的路径（单标记），wrapper 内部再调用 node：
+   ```cmd
+   @echo off
+   "D:\Program Files\nodejs\node.exe" "D:\...\tc-hook-kit\bridge.js"
+   ```
+   hooks.json 的 command 填 `D:\...\tc-hook-kit\hook-runner.cmd`。
+2. **BOM**。PowerShell 5.1 `Set-Content -Encoding utf8` 会写 UTF-8 BOM，Python `json.loads` / Node `JSON.parse` 会报 `Unexpected UTF-8 BOM`。配置/脚本必须**无 BOM**（用 `utf-8-sig` 解码或 UTF-8 无 BOM 写回）。
+3. **改完要重启 TraeCode CN**（`hooks.json` 启动时读取，不热加载）。
+
+### 3. 启动接收端 + 跑题 + 查数
 
 ```bash
-python3 count_steps.py ~/.trae/cli/sessions/2026/09/03/rollout-xxx.jsonl
-python3 count_steps.py <轨迹文件> --show   # 想看每一步是什么
+# 跑题前开接收端（保持一整轮，否则事件丢；确保 8765 只有一个实例）
+python D:/charles/program/ai/ai-eval-workspace/scratch/tc-hook-kit/server.py --host 127.0.0.1 --port 8765
+curl.exe http://127.0.0.1:8765/health          # 应返回 ok
+
+# 跑完后按 session 查数
+curl.exe http://127.0.0.1:8765/sessions         # 列出 session_id
+curl.exe "http://127.0.0.1:8765/stats?session_id=<片段>"
 ```
 
-### 3. miniswe：api_calls
+返回的 `valid_tc` 即有效 TC，填 `task.toml` 的 `effective_turns`。
 
-取 `.traj.json` 里 `info.model_stats.api_calls`，无需 count_steps.py。
+## 其他终端（备用口径）
 
-## 填表
-
-- `task.toml` 的 `effective_turns` = 上述得到的整数。
-- 底稿「有效轮数」列由 `toml2base.py` 从 `task.toml` 回填。
-- `count_steps.py` 与 `harbor-交付模板包.zip` 见 `SWE-like Repo-v3.md` 第 7 节附件。
+- **TraeX**：对 `.trae/cli/sessions/` 原始轨迹跑（子代理轨迹是独立文件，依赖该目录结构；拷入 `evidence/` 会漏数）：
+  ```bash
+  python3 count_steps.py ~/.trae/cli/sessions/2026/09/03/rollout-xxx.jsonl
+  python3 count_steps.py <轨迹> --show
+  ```
+- **miniswe**：取 `.traj.json` 的 `info.model_stats.api_calls`。
 
 ## 快速检查清单
 
-- [ ] 口径是 agent step（一次模型调用 = 1 步），不是工具调用次数
-- [ ] TraeX 用 count_steps.py 对 .trae/cli/sessions/ 原始轨迹跑（不是 evidence/ 里的拷贝）
-- [ ] miniswe 取 .traj.json 的 info.model_stats.api_calls
-- [ ] 环境重试未计入
-- [ ] 旧方式（读 renderer.log 数有效 TC）没有再用
+- [ ] 口径已确认：有效轮数 = 有效 TC，`task.toml.effective_turns` 填 `valid_tc`
+- [ ] TraeCode CN 的 hook 命令是**单标记 wrapper（无空格）**，不是 `node "..."`
+- [ ] 配置文件（`config.json` / `bridge.json` / `hooks.json`）**无 BOM**
+- [ ] 改完 hook 配置后**重启了 TraeCode CN**
+- [ ] 接收端在跑、`/health` 返回 ok，且 8765 只有 1 个进程
+- [ ] `count_steps.py`（agent step）仅 TraeX 用，不用于 TraeCode CN

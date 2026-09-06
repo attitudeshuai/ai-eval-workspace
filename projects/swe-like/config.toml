@@ -12,7 +12,7 @@ created_at = "2026-09-01T00:00:00Z"
 #   2. 基于真实使用场景独立出题（不照抄 Issues，也不做「同一诉求内置化改写」）
 #   3. 交付形态：一题一个 zip（task.toml + instruction.md + nl_rubric.yaml + Dockerfile + evidence/）
 #   4. Trae/TraeX/miniswe + Seed Evolving 单 Prompt 单轮运行
-#   5. 有效轮数 = agent step（一次模型调用 = 1 步），TraeX 用 count_steps.py，miniswe 取 api_calls
+#   5. 有效轮数 = 有效 TC（已确认口径）：TraeCode CN/Trae 用 Hook；TraeX 用 count_steps.py（agent step）；miniswe 取 api_calls
 #   6. 收录标准：>100 长程；≤100 且完成 → 不收录；≤100 且未完成 → 难题
 #   7. 用 toml2base.py 一键回填底稿（网站表单），不再交付飞书
 #
@@ -40,12 +40,12 @@ long_horizon_min_rounds = 100
 max_tasks_per_repo = 5
 
 [run]
-# 运行环境与纪律（推荐 TraeX：有效轮数可用 count_steps.py 自动统计；Trae IDE 需用 Hook 方式，见 docs/内部规范-v1.md）
-harness = "TraeX"         # Trae / TraeX / miniswe
+# 运行环境与纪律（TraeCode CN/Trae 用 Hook 取有效 TC；TraeX 用 count_steps.py 取 agent step；见 docs/内部规范-v1.md + skills/02-step-count.md）
+harness = "Trae"          # Trae / TraeX / miniswe
 model = "Seed Evolving"
 # 单 Prompt 单轮：运行过程中不追加人工澄清、任务拆解或引导性提示
 single_prompt = true
-# 有效轮数 = agent step（一次模型调用 = 1 步），口径见 skills/02-step-count.md
+# 有效轮数 = 有效 TC（Hook），口径见 skills/02-step-count.md
 # 省积分：执行超过 2 小时可停止，按「>100 轮且效果差」提交（见 docs/内部规范-v1.md）
 run_time_cap_hours = 2.0
 

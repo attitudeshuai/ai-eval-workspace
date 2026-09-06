@@ -35,7 +35,7 @@ swe restic create
 #### AI 会执行
 
 1. 确认开源 Repo，锁 `base_commit`（40 位完整 SHA）
-2. 对该 repo 出 10 个候选提示词，写入 `tasks/{repo}/prompt-candidates.md`（一个 repo 一个文件）——先本地代码验证功能不存在，再做公开 Issues 相似查重（open + closed，防「同一诉求内置化改写」），按难度门槛自检，独立写需求（不照抄 Issues）
+2. 对该 repo 出 10 个候选提示词，写入 `tasks/{repo}/prompt-candidates.md`（一个 repo 一个文件）——每个候选提示词**起草时即过 humanizer-zh 去 AI 化**；先本地代码验证功能不存在，再做公开 Issues 相似查重（open + closed，防「同一诉求内置化改写」），按难度门槛自检，独立写需求（不照抄 Issues）
 3. 被击毙的方向记入该文件末尾「调研阵亡名单」
 
 ### 1b. 预检通过后落地
@@ -54,6 +54,8 @@ swe restic create 通过：候选 1、2、3
 4. 写 `task.toml`（16 键）
 5. 检查对应分支与 worktree 是否就位（缺则在 base_commit 上创建）
 6. `preflight_check.py --stage create` 自检
+
+> 全程自动套 humanizer-zh：第 1/2/4 步产生的自然语言文本（instruction.md、nl_rubric 每条 text、task.toml 文本字段）每步一写出就按 `skills/humanizer-zh/SKILL.md` 过一遍，命中即改，不允许保留。
 
 > 未通过的候选留在池中标注即可，不删；池子不足 10 个或全军覆没时，让 AI 补齐（如 `swe restic create 补齐`）。
 
@@ -91,7 +93,7 @@ swe restic-01 run
 
 1. **取证**：trajectory（`.trae/cli/sessions/` → `evidence/trajectory.jsonl` 等）+ `evidence/model.patch`（diff 基准 = base_commit）+ `evidence/screenshots/`
 2. **验证 + 截图**：在 worktree 里复跑验证（pytest / go test，复用会话里命令与 PYTHONPATH/GOPROXY），确认成功与回归；把验证结果渲染成 PNG 存 `evidence/screenshots/`（至少 1 张）
-3. **算有效轮数**：agent step 口径（一次模型调用 = 1 步），TraeX 用 `count_steps.py`、miniswe 取 `api_calls`（见 `skills/02-step-count.md`）
+3. **算有效轮数**：有效轮数 = 有效 TC，TraeCode CN/Trae 用 Hook、TraeX 用 `count_steps.py`、miniswe 取 `api_calls`（见 `skills/02-step-count.md`）
 4. **填 task.toml**：`trae_session_id`、`effective_turns`、`harness`、`seed_model`
 5. **commit 到 fork**：只含模型改动的单独 commit，push 后记 commit URL（见 `docs/内部规范-v1.md`）
 
@@ -142,6 +144,8 @@ swe restic-01 export
 1. 组装交付包：`<题目名称>/`（task.toml + instruction.md + Dockerfile + nl_rubric.yaml + evidence/）
 2. 体检：`python3 toml2base.py --dry-run <题目目录>`（不写库）
 3. 回填：`python3 toml2base.py <题目目录>`（整包 zip 上传「交付包」列）
+
+> 备用路径：本地项目无远程 `repo_url`/`Fork Repo Commit URL`，或环境无 `lark-cli`/未 `auth login` 时，`toml2base.py` 不可用，改为在交付包生成 `docs/底稿必填字段.md`，由提交人逐字段复制到底稿（详见 `skills/04-export-delivery.md`「人工回填」）。
 
 ### 退回红线（提交前自查）
 

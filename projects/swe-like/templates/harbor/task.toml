@@ -17,7 +17,7 @@ realism_and_difficulty = """
 modules = ""                # 可能涉及模块
 
 trae_session_id = ""        # harness 为 miniswe 时可留空
-effective_turns = 0         # 整数，环境重试不计入（agent step 口径）
+effective_turns = 0         # 整数（有效 TC 口径）
 harness         = "Trae"    # Trae / TraeX / miniswe
 seed_model      = "Seed Evolving"
 requirement_met = "完成"     # 完成 / 部分完成 / 未完成 / 无法判断

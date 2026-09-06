@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# tc-hook-kit 入口：serve | install | stats
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  serve)
+    exec python3 "$ROOT/server.py" "$@"
+    ;;
+  install)
+    exec bash "$ROOT/install.sh" "$@"
+    ;;
+  stats)
+    CONFIG="$HOME/.tc-hook-kit/config.json"
+    if [[ -f "$CONFIG" ]]; then
+      URL="$(python3 -c "import json; print(json.load(open('$CONFIG'))['server_url'])")"
+    else
+      URL="${TC_HOOK_SERVER:-http://127.0.0.1:8765}"
+    fi
+    SESSION="${1:-}"
+    if [[ -n "$SESSION" ]]; then
+      curl -s "${URL}/stats?session_id=${SESSION}" | python3 -m json.tool
+    else
+      curl -s "${URL}/stats" | python3 -m json.tool
+    fi
+    ;;
+  health)
+    CONFIG="$HOME/.tc-hook-kit/config.json"
+    URL="${TC_HOOK_SERVER:-}"
+    if [[ -z "$URL" && -f "$CONFIG" ]]; then
+      URL="$(python3 -c "import json; print(json.load(open('$CONFIG'))['server_url'])")"
+    fi
+    URL="${URL:-http://127.0.0.1:8765}"
+    curl -s "${URL}/health" | python3 -m json.tool
+    ;;
+  "")
+    cat <<EOF
+tc-hook-kit — Trae Hook 接收与有效 TC 统计
+
+用法:
+  tc-hook serve   [--host 0.0.0.0] [--port 8765]   启动接收端
+  tc-hook install --host <IP> --port <端口>          安装 Trae Hook
+  tc-hook stats   [session_id片段]                   查看统计
+  tc-hook health                                     健康检查
+
+示例:
+  tc-hook serve --port 8765
+  tc-hook install --host 192.168.1.10 --port 8765
+  tc-hook stats example-session
+
+详细 API: $ROOT/API.md
+EOF
+    ;;
+  *)
+    echo "未知命令: $cmd" >&2
+    exit 1
+    ;;
+esac

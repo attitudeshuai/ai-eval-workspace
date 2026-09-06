@@ -10,6 +10,8 @@
 <题目名称>/
 ├── task.toml                 # 16 键底稿字段（题目背景信息）
 ├── instruction.md            # 需求 Prompt 原文
+├── docs/
+│   └── 底稿必填字段.md         # 人工回填备用（本地项目 / 无 lark-cli 时生成）
 ├── environment/
 │   └── Dockerfile            # 基线 public.ecr.aws/x8v8d7g8/mars-base:latest，ARG BASE_SHA
 ├── tests/
@@ -57,7 +59,7 @@ restic-01-prune-json-output/
 | `realism_and_difficulty` | 真实性与难度说明 |
 | `modules` | 可能涉及模块 |
 | `trae_session_id` | miniswe 留空 |
-| `effective_turns` | 有效轮数（agent step） |
+| `effective_turns` | 有效轮数（有效 TC） |
 | `harness` | Trae / TraeX / miniswe |
 | `seed_model` | Seed Evolving |
 | `requirement_met` | 完成 / 部分完成 / 未完成 / 无法判断 |

@@ -1,0 +1,36 @@
+# 题目背景信息。键固定 16 个，不要增删或改名，多一个键脚本会报错。
+# 除 notes 外全部必填（harness = miniswe 时 trae_session_id 也可留空）；
+# 单选项的取值必须落在底稿的选项里，脚本会实时校验。
+# 键的顺序与规范第 2 节的映射表一致。
+
+title       = ""            # 题目名称，必须与交付包顶层目录名完全一致
+submitter   = ""            # 提交人；只记录在包内，底稿「提交人」请自己在表里圈人
+submit_date = ""            # 提交日期，YYYY-MM-DD
+language    = ""            # 主要语言：本批次只收 Python 或 Go
+task_type   = ""            # 任务类型：功能新增 | Bug 修复 | 测试增强 | 重构/性能 | 配置/工具链 | 其他
+repo_url    = ""            # Repo URL，http(s) 开头
+base_commit = ""            # Commit/版本，40 位小写完整 SHA，须与 Dockerfile 的 ARG BASE_SHA 一致
+
+# 为什么这是真实场景下会出现的需求，难点在哪里。
+realism_and_difficulty = """
+"""
+
+modules = ""                # 可能涉及模块，例如 fastapi/dependencies, fastapi/openapi
+
+# 运行信息
+trae_session_id = ""        # Trae Session ID；harness = miniswe 时可留空
+effective_turns = 0         # 有效轮数，整数，至少 1；TraeX 可用 count_steps.py 自查
+harness         = ""        # Harness：Trae | TraeX | miniswe
+seed_model      = ""        # Seed 模型/版本
+
+requirement_met = ""        # 是否完成需求：完成 | 部分完成 | 未完成 | 无法判断
+
+# 逐条给出 tests/nl_rubric.yaml 里每条 rubric 的结论，一条一行，不要写成整段说明。
+# 每行格式：<rubric id> <通过|未通过> [说明]，判为未通过的必须在同一行写失败原因。
+# 结论要与 requirement_met 对得上：全部通过就该填「完成」，有未通过就不能填「完成」。
+run_result = """
+1 通过
+2 未通过 这里写这条 rubric 为什么没过
+"""
+
+notes = ""                  # 备注，唯一可留空的键

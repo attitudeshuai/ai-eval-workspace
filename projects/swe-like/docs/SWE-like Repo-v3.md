@@ -84,7 +84,7 @@ task\.toml 只承载下表 16 个键，填好后用脚本一键回填底稿，�
 |`realism_and_difficulty`|真实性与难度说明|真实性与难度证明写在这里|
 |`modules`|可能涉及模块||
 |`trae_session_id`|Trae Session ID|harness 填 miniswe 时可留空|
-|`effective_turns`|有效轮数|整数，环境重试不计入；TraeX 用 count\_steps\.py 自查，miniswe 取轨迹里的 api\_calls，见第 7 节|
+|`effective_turns`|有效轮数|整数（有效 TC 口径）；Trae CN/Trae 用 Hook 取有效 TC，TraeX 用 count\_steps\.py 自查，miniswe 取轨迹里的 api\_calls，见第 7 节|
 |`harness`|Harness|Trae、TraeX、miniswe|
 |`seed_model`|Seed 模型/版本||
 |`requirement_met`|是否完成需求|完成、部分完成、未完成、无法判断|
@@ -142,6 +142,8 @@ notes = ""
 # 3\. instruction\.md（需求 Prompt）
 
 给模型的唯一输入，同时回填底稿「需求 Prompt（原文）」列。长度不限；无需预先指定单元测试、实现模块或技术方案，但应明确目标、适用场景及可观察的预期行为，避免仅描述抽象方向。
+
+**去 AI 化（红线，全程自动）**：本题目**所有自然语言产物**——instruction.md、nl_rubric 每条 text、task.toml 文本字段（真实性与难度说明、产物结果、notes）、底稿交付字段——全程自动套 `skills/humanizer-zh/SKILL.md`：**每步产物一写出来就立即过**，不做「最后统一补」。正文为平实自然语言，禁用「」（直角引号）、——（双破折号）、反引号、加粗滥用，不用 Markdown 标签与 -/* 列表符号；命中即改，不允许保留。
 
 ```Markdown
 为 Codex 增加一个可选的自动续跑功能：当任务因用量达到上限而终止、且账户存在可用 reset credit 时，自动兑换一次，并在同一 Session 中发起新的 continuation turn；否则保持现有错误提示和手动重置流程。
@@ -287,6 +289,8 @@ python3 count_steps.py <轨迹文件> --show
 ```
 
 体检逐列输出结果，任一列不通过即中止，不写入任何内容，并指出列名、缺失项与合法取值。同一题重跑为更新原记录，不会重复建行。
+
+此外，若题目是本地项目、无远程 `repo_url`/`Fork Repo Commit URL`，或环境未装 `lark-cli`/未 `auth login`、底稿「需求预检记录」需先走预检，则脚本无法直接回填。此时改为在交付包生成 `docs/底稿必填字段.md`，把底稿**必填字段**的值按「基础与仓库信息 / 出题内容与产物 / 运行记录」整理成表，由提交人逐字段复制；截图、轨迹、预检记录由提交人自行在底稿处理。
 
 下列情况一律退回，提交前应自行体检：
 
