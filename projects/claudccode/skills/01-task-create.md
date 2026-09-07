@@ -1,0 +1,139 @@
+---
+name: claudccode-task-create
+description: "claudccode 任务初始化：新建一个任务（会话窗口），打初始环境快照（commit permalink），填共享运行环境字段，起草首轮提示词。Use when: claudccode 新建任务, 满意度标注任务初始化, 初始快照, 出题。"
+---
+
+## ⚙️ 当前期配置
+
+> 配置从 `../config.toml` 读取；`secrets.toml` 可覆盖 `active_session`、`repo_base_path`、`records_dir`、`annotator`。
+> 依赖 agent：`skills/humanizer-zh/SKILL.md`（去 AI 化，AI 起草提示词必用）、`skills/prompt-architect/SKILL.md`（可选起草）
+> 路径变量：`{work_root}`=`[paths].work_root`、`{SESSION_NAME}`=`[sessions].active`、`{RECORD_DIR}`=`{work_root}/{SESSION_NAME}/[paths].records_dir`、`{REPO_BASE_PATH}`=`{work_root}/{SESSION_NAME}/[paths].repo_base_path`、`{TASK_PREFIX}`=`[naming].task_prefix`
+
+# claudccode 任务初始化
+
+## 功能概述
+
+为一个**任务（= 一个会话窗口，≤ 10 轮）**建立数据档案：
+
+1. 校验被标注仓库（干净、无凭据泄漏、已 git init、可 push）
+2. **打初始环境快照**：首轮交互前提交 baseline 并 push，记录 commit permalink（完整 40 位 SHA）
+3. 建任务目录与 `task-info.md`（共享运行环境字段）
+4. 起草**首轮提示词**（真实用户口径：AI 起草须先 humanizer-zh 去 AI 化，再人工确认后写盘）
+
+**不负责**：在 Claude Code / Codex 中代跑对话；代替人工决定任务类型/难度。
+
+## 命令
+
+| 命令 | 说明 |
+|------|------|
+| create | 默认。校验仓库 → 打快照 → 建 task-info → 起草首轮提示词 |
+| info | 仅校验仓库状态与展示将填写的字段，不写文件 |
+
+## 默认配置
+
+> 任务 ID：`{TASK_PREFIX}-<id>`（不补零，扫描 records 目录自动取下一个未用 id，用户也可显式指定）
+> 任务目录：`{RECORD_DIR}/{TASK_ID}/`；共享字段文件：`{RECORD_DIR}/{TASK_ID}/task-info.md`
+> 仓库：优先 `{REPO_BASE_PATH}/{TASK_ID}-repo/`（不存在时用用户给的本机/远端路径）
+
+## 输入（create 需向用户确认）
+
+- 仓库路径（本地或远端 URL）
+- 计划任务类型（7 选 1；首轮严禁「简单」难度）
+- 目标说明（一句话）
+- Harness（`Claude Code` / `Codex CLI`）+ Harness 版本（必填：版本升级会改 system prompt/工具集）
+- 操作系统（`MacOS/Linux` / `Windows`）
+- 环境可复现等级（3 选 1）
+
+## 执行流程
+
+### 1. 校验仓库
+
+1. 确认路径存在且为 git 仓库。
+2. `git status` 检查：若已出现未提交改动 → 提示先提交或清理（快照必须是会话首轮前的基线）。
+3. **凭据检查**：确认 `.gitignore` 已覆盖 `.env` 以及各类密钥/连接串/token 文件；抽查 `git ls-files` 无凭据文件。有泄漏 → 中止并提示先处理，禁止带着凭据提交。
+4. 确认有可 push 的远端（评测团队可访问）。若远端为空 → 按 workspace 约定创建/关联远端。
+
+### 2. 打初始环境快照
+
+1. 若工作区与基线有差异且无提交：`git add -A && git commit -m "<baseline: task init.>"`（保持一个干净基线 commit）。
+2. `git push` 到评测团队可访问远端。
+3. 取**完整 40 位 SHA**（`git rev-parse HEAD`），生成 permalink：`https://github.com/<org>/<repo>/commit/<40位完整SHA>`。
+   - 必须完整 SHA，禁止短 SHA/分支/tag。
+   - 之后**禁止 force-push/rebase** 改写该快照。
+
+### 3. 建任务目录 + task-info.md
+
+- 扫描 `{RECORD_DIR}/` 决定 `{TASK_ID}`（用户未给时取下一个未用 id）。
+- 用模板 `templates/task-info.md` 生成，填入共享字段：
+  `任务 ID / 任务标题 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后填) / 轨迹根目录(首轮 SessionID 回填后按 Harness 分行定位：Codex→~/.codex/sessions、Claude Code→~/.claude/projects) / annotator / 创建日期`。
+- 共享字段整个会话各轮不变。
+
+### 4. 起草首轮提示词（出题，需去 AI 化）
+
+- 目标：像真实用户写给 Coding Agent 的自然需求；**纯自然语言**；难度/范围与任务类型匹配，不得过简（首轮严禁「简单」，也不得是雷同题/过于简单题，见 docs/annotate-guide.md §3/§7）。
+- 起草：可调用 `skills/prompt-architect/SKILL.md` 协助起草，但 AI 起草的首轮提示词**必须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**，再由人工确认。
+- 未去 AI 化 + 未经人工确认的提示词不写入 `-R01.md`（只暂存在 task-info.md「首轮提示词（待确认）」或输出给用户）。
+
+### 5. 输出摘要
+
+- 任务目录路径、快照 permalink、共享字段一览、首轮提示词。
+- 提示用户下一步：到 Claude Code / Codex 打开工作区执行首轮提示词，完成后执行 `02-round-capture`。
+
+## 输出模板（task-info.md，字段标题与 `templates/task-info.md` 一致，导出脚本按 `## ` 切块解析）
+
+```markdown
+# {TASK_ID} 任务信息（会话元信息）
+
+## 任务 ID
+{TASK_ID}
+
+## 任务标题
+<一句话说明这题让模型做什么>
+
+## 首轮任务类型
+<0-1代码生成 / Feature迭代 / Bug修复 / 代码理解 / 代码重构 / 工程化 / 代码测试>
+
+## 标注人
+<TPM/专家名>
+
+## 创建日期
+<YYYY-MM-DD>
+
+## Repo URL
+<https://github.com/<org>/<repo>，去掉 .git>
+
+## 本地路径
+<工作区路径>
+
+## 初始环境快照
+<https://github.com/<org>/<repo>/commit/<40位完整SHA>>
+
+## Harness
+<Claude Code / Codex CLI>
+
+## Harness版本
+<版本号>
+
+## 操作系统
+<MacOS/Linux / Windows>
+
+## 环境可复现等级
+<无外部依赖 / 有外部依赖，未容器化 / 已容器化，可一键起环境>
+
+## SessionID
+<整个会话窗口 ID，所有轮同一值；首轮后回填>
+
+## 轨迹根目录（轨迹文件）
+<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code → ~/.claude/projects/<项目目录名>/<SessionID>；首轮 SessionID 回填后定位>
+
+## 首轮提示词（待人工确认）
+<首轮 prompt 原文；确认后复制到 cc-1-R01.md>
+```
+
+## 注意事项
+
+1. 快照必须是会话首轮前的工作区状态；若模型已开始改动才补快照 → 该任务数据无法追溯，需重建任务。
+2. 凭据不进仓库；push 到个人私有仓库等同没记录。
+3. 任务 ID 不补零；不覆盖已存在任务目录（已存在 → 提示用别的 ID 或确认续用）。
+4. 写中文文件一律用写文件工具（UTF-8），禁止 PowerShell `Set-Content`。
+5. 出题分布：按天统计须满足 `0-1代码生成/Feature迭代/Bug修复 > 代码理解 ≈ 代码重构 > 其他`（导出时校验）。
