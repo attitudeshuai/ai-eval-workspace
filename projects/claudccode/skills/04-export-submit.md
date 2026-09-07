@@ -21,7 +21,7 @@ description: "claudccode 导出提交表并投递飞书：把全部任务/轮次
 | 命令 | 说明 |
 |------|------|
 | export | 默认。扫描全部任务 → 生成 CSV → 质检报告 |
-| export <TASK_ID> | 仅导出指定任务 |
+| export <REPO> | 仅导出指定任务（REPO = 仓库目录名 = 任务 ID） |
 | feishu | 把已导出的正式提交表 CSV 投递到飞书（先 --dry-run） |
 
 ## 执行流程
@@ -38,7 +38,7 @@ python scripts/claudccode/export_submit.py
 ```
 
 脚本行为：
-- 遍历 `{RECORD_DIR}/*/task-info.md`（共享字段）+ 各 `{TASK_ID}-R*.md`（每轮一条）
+- 遍历 `{RECORD_DIR}/*/task-info.md`（共享字段）+ 各 `{REPO}-R*.md`（每轮一条；REPO = 仓库目录名，脚本以目录名=任务 ID 分组）
 - 每轮拼一行：任务类型 / 任务难度 / 语言/框架 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照 / User Prompt / SessionID / TurnID/PromptID / 轨迹文件 / 五维分数与描述 / 其他问题
 - 表头见 `templates/submit-headers.csv`；TPM 内部字段（Repo URL/截图附件/备注/标注人）按配置追加在末尾
 - 输出 UTF-8 with BOM CSV（Excel 打开中文不乱码）

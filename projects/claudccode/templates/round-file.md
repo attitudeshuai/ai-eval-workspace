@@ -1,11 +1,11 @@
 # 单轮数据文件模板（round-file.md）
 
-> 每个有效轮次一个文件：`{TASK_ID}-R{NN}.md`（NN 两位补零），**一个文件 = 一条数据**。
+> 每个有效轮次一个文件：`{REPO}-R{NN}.md`（NN 两位补零），**一个文件 = 一条数据**。`{REPO}` = 仓库目录名（= 任务 ID）。
 > 运行环境共享字段不在此重复（导出时从 `task-info.md` 合并）。文件名即轮次。
 > 使用 `## 字段` 小标题结构，值可多行；导出脚本按 `## ` 切块解析，请勿改动标题文本。
 
 ```markdown
-# {TASK_ID} 第 {N} 轮数据
+# {REPO} 第 {N} 轮数据
 
 ## User Prompt
 <本轮发给模型的完整 prompt 原文，直接粘贴，不摘要不改写；带附件/图片/选中代码时，在末尾补一句说明>
@@ -20,7 +20,7 @@
 <本轮实际主要涉及的语言与框架，多个用逗号分隔，如 Go, Gin, PostgreSQL>
 
 ## TurnID/PromptID
-<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一>
+<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从 ~/.claude/projects 或 ~/.codex/sessions 自取，可人工覆盖。>
 
 ## 模型回答存档（内部）
 <可选：粘贴/摘录本轮模型回答，或写轨迹定位说明；非提交字段>
@@ -77,6 +77,6 @@
 
 ## 注意事项
 
-- 评分依据：人工撰写（原样）或 AI 起草 → 经 humanizer-zh 去 AI 化 → 人工复核；交付文本须无 AI 痕迹。
+- 评分依据：人工撰写（原样）或 AI 代打（练习阶段默认，严格按五维模式）；正式交付前经 humanizer-zh 去 AI 化 → 人工复核。
 - 每轮独立评分：不得因后续轮次修复给前几轮补高分。
 - 对话满 10 轮（R10）后不再新建轮次，应开新任务。

@@ -14,14 +14,16 @@
 cc {任务ID} {操作}
 ```
 
-如：`cc cc-1 create`、`cc cc-1 round 1`、`cc cc-1 score 1`、`cc export`
+如：`cc solocc-0001 create`、`cc solocc-0001 round 1`、`cc solocc-0001 score 1`、`cc export`
+
+> 任务 ID = **仓库目录名**（`repos/<repo>` 的目录名，如 `solocc-0001`），记录目录与轮次文件都以它为前缀，与仓库一一对应。
 
 > 📁 完整目录结构样例见 [structure-example.md](structure-example.md)
 
 ## ⚠️ 使用前必读
 
 - **一个任务 = 一个会话窗口（≤10 轮）；一轮 = 一条数据**。
-- **交付文本必须去 AI 化**：AI 起草的提示词/评分依据等必须先经 `skills/humanizer-zh` 去 AI 化 + 人工复核，才可写入与投递；人工撰写的原文保持原样。
+- **交付文本与打分依据（正式交付时去 AI 化）**：正式投递前 AI 起草的提示词/评分依据须先经 `skills/humanizer-zh` 去 AI 化 + 人工复核；当前练习阶段允许 AI 直接打分与写依据（须严格按五维模式）；人工撰写的原文保持原样。
 - 被标注模型跑在 **Claude Code / Codex CLI** 里，由用户在终端里操作，本 skill 不代跑。
 
 ## 前置准备
@@ -53,12 +55,12 @@ annotator = "张三"
 ### 指令模板
 
 ```text
-cc cc-1 create
-仓库: sessions/claudccode/session-0907/repos/cc-1-repo
-计划任务类型: Bug修复
-目标: 修复登录后会话被踢出的问题
+cc solocc-0001 create
+仓库: sessions/claudccode/session-0907/repos/solocc-0001
+计划任务类型: 0-1代码生成
+目标: 在划词插件里从零构建完整生词管理系统
 Harness: Claude Code
-Harness版本: <版本>
+Harness版本: 2.1.263
 操作系统: MacOS/Linux
 ```
 
@@ -66,23 +68,23 @@ Harness版本: <版本>
 
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）
 2. **打初始快照**：若工作区未到基线，先提交一个 baseline commit → push → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<org>/<repo>/commit/<40sha>`）
-3. 创建 `records/cc-1/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
-4. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草，但**必须先经 `humanizer-zh` 去 AI 化 + 人工确认后**才写盘
+3. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
+4. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
 5. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Claude Code/Codex 执行
 
 ### 产物
 
 ```text
-records/cc-1/task-info.md
+records/solocc-0001/task-info.md
 ```
 
 ---
 
 ## 第 2 步：与模型交互（用户在 Claude Code / Codex 中）
 
-1. 打开任务工作区目录，进入 Claude Code 或 Codex CLI
+1. 打开任务仓库目录（如 `repos/solocc-0001`），进入 Claude Code 或 Codex CLI
 2. 粘贴首轮提示词，开始对话
-3. 完成一轮后，把该轮的 **SessionID / TurnID / PromptID / 轨迹位置 / 模型回答**（如需要）带回给 agent
+3. 完成一轮后**无需手动带回 SessionID/TurnID**——agent 直接从本机轨迹自动定位并拆轮：Claude Code → `~/.claude/projects/<项目目录名>/<SessionID>.jsonl`（文件名=SessionID，一条 user 键入=一轮，promptId=TurnID）；Codex CLI → `~/.codex/sessions/<SessionID>/`。agent 同时会把该会话 `.jsonl` 复制一份到 `records/{REPO}/{REPO}-trajectory.jsonl`（重命名为仓库名，交付/上传用）。仅在读取失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
 
 ---
 
@@ -91,24 +93,25 @@ records/cc-1/task-info.md
 ### 指令模板
 
 ```text
-cc cc-1 round 1
-User Prompt: <首轮原文粘贴>
-TurnID: <Codex turn_id / Claude promptId>
-任务类型: Bug修复
-任务难度: 中等
-语言/框架: Python, FastAPI
+cc solocc-0001 round 1
+（SessionID / User Prompt / TurnID(promptId) 由 agent 从本机轨迹自取，无需手动填）
+任务类型: 0-1代码生成
+任务难度: 困难
+语言/框架: JavaScript, Chrome MV3, Dexie
+人工确认: 是
 ```
 
 ### AI 会执行
 
-1. 创建 `records/cc-1/cc-1-R01.md`，回填 User Prompt、任务类型/难度、语言/框架
-2. 从 `task-info.md` 继承 SessionID 等共享字段（导出时合并）
-3. 校验：轮次 ≤ 10；TurnID 在任务内唯一；SessionID 与任务一致
+1. 读取本机轨迹，定位本任务会话并拆出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId
+2. 创建 `records/solocc-0001/solocc-0001-R01.md`，回填 User Prompt、任务类型/难度、语言/框架、TurnID
+3. 从 `task-info.md` 继承 SessionID 等共享字段（导出时合并），并按 Harness 分行回填轨迹根目录
+4. 校验：轮次 ≤ 10；TurnID 在任务内唯一；SessionID 与任务一致
 
 ### 产物
 
 ```text
-records/cc-1/cc-1-R01.md
+records/solocc-0001/solocc-0001-R01.md
 ```
 
 ---
@@ -118,22 +121,22 @@ records/cc-1/cc-1-R01.md
 ### 指令模板
 
 ```text
-cc cc-1 score 1
+cc solocc-0001 score 1
 ```
 
 ### AI 会执行
 
-1. 打开 `cc-1-R01.md`，确认该轮已录入（有 User Prompt / TurnID）
+1. 打开 `solocc-0001-R01.md`，确认该轮已录入（有 User Prompt / TurnID）
 2. **录入方式二选一**（先与用户确认）：
    - 人工打分：逐字段索要 **五维分数（1-5）+ 五条依据描述 + 其他问题** → 原样录入、不改写
-   - AI 辅助起草：AI 结合真实轨迹/产物起草分数与依据 → **必须先经 `skills/humanizer-zh` 去 AI 化** → 交用户逐条核对/修改后定稿
+   - AI 代打（练习阶段默认）：AI 结合真实轨迹/产物起草分数与依据 → 严格按五维模式直接定稿；正式交付时先经 `skills/humanizer-zh` 去 AI 化 → 用户逐条核对/修改后定稿
 3. 机械校验：五个分数为 1-5 整数；五条描述均非空；分数与描述方向一致性提示（请人工复核）
 4. 询问是否继续下一轮（≤10 轮）；第 10 轮后强制结束本任务
 
 ### 产物
 
 ```text
-records/cc-1/cc-1-R01.md   # 已填入五维打分与依据
+records/solocc-0001/solocc-0001-R01.md   # 已填入五维打分与依据
 ```
 
 ---
@@ -141,7 +144,7 @@ records/cc-1/cc-1-R01.md   # 已填入五维打分与依据
 ## 第 5 步：会话结束，开新任务
 
 - 达到 10 轮，或模型达成目标且无需继续时，本任务结束
-- 新开 Claude Code/Codex 会话窗口与任务目录（`cc-2/...`），重复第 1-4 步
+- 新开 Claude Code/Codex 会话窗口与任务目录（`solocc-0002/...`），重复第 1-4 步
 
 ---
 
@@ -174,7 +177,7 @@ deliverables/claudccode/session-0907/正式提交表-session-0907-<date>.csv
 
 ```text
 cc export feishu
-（或）cc cc-1 feishu --submitter 张三
+（或）cc solocc-0001 feishu --submitter 张三
 ```
 
 ### AI 会执行

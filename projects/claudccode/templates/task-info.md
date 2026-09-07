@@ -4,10 +4,10 @@
 > 使用 `## 字段` 小标题结构，值可多行；导出脚本按 `## ` 切块解析，请勿改动标题文本。
 
 ```markdown
-# {TASK_ID} 任务信息（会话元信息）
+# {REPO} 任务信息（会话元信息）
 
 ## 任务 ID
-{TASK_ID}
+{REPO}  （= 仓库目录名，如 solocc-0001）
 
 ## 任务标题
 <一句话说明这题让模型做什么>
@@ -25,7 +25,7 @@
 <https://github.com/<org>/<repo>，去掉 .git>
 
 ## 本地路径
-<工作区路径，如 sessions/claudccode/{SESSION}/repos/cc-1-repo>
+<工作区路径，如 sessions/claudccode/{SESSION_NAME}/repos/solocc-0001>
 
 ## 初始环境快照
 <https://github.com/<org>/<repo>/commit/<40位完整SHA>>
@@ -53,7 +53,7 @@
 
 | 字段 | 说明 |
 |------|------|
-| 任务 ID | `{TASK_PREFIX}-<id>`，如 `cc-1`，不补零 |
+| 任务 ID | 仓库目录名（`repos/<repo>` 的目录名，如 `solocc-0001`）= 记录目录名；同仓库多窗口用后缀区分 |
 | 初始环境快照 | 会话首轮前的工作区 commit permalink；完整 40 位 SHA；同一任务各轮同一值 |
 | Harness/版本/OS/可复现等级 | 运行环境字段；Harness 升级会改 system prompt/工具集，版本必填 |
 | SessionID | 首轮完成后由 `02-round-capture` 回填 |

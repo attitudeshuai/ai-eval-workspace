@@ -7,7 +7,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 > 配置从 `../config.toml` 读取；`secrets.toml` 可覆盖 `active_session`、`repo_base_path`、`records_dir`、`annotator`。
 > 依赖 agent：`skills/humanizer-zh/SKILL.md`（去 AI 化，AI 起草提示词必用）、`skills/prompt-architect/SKILL.md`（可选起草）
-> 路径变量：`{work_root}`=`[paths].work_root`、`{SESSION_NAME}`=`[sessions].active`、`{RECORD_DIR}`=`{work_root}/{SESSION_NAME}/[paths].records_dir`、`{REPO_BASE_PATH}`=`{work_root}/{SESSION_NAME}/[paths].repo_base_path`、`{TASK_PREFIX}`=`[naming].task_prefix`
+> 路径变量：`{work_root}`=`[paths].work_root`、`{SESSION_NAME}`=`[sessions].active`、`{RECORD_DIR}`=`{work_root}/{SESSION_NAME}/[paths].records_dir`、`{REPO_BASE_PATH}`=`{work_root}/{SESSION_NAME}/[paths].repo_base_path`、`{REPO}`=仓库目录名（`repos/<repo>` 的目录名）= 任务 ID。旧 `{TASK_PREFIX}` 已不再用于记录标识。
 
 # claudccode 任务初始化
 
@@ -31,9 +31,9 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 ## 默认配置
 
-> 任务 ID：`{TASK_PREFIX}-<id>`（不补零，扫描 records 目录自动取下一个未用 id，用户也可显式指定）
-> 任务目录：`{RECORD_DIR}/{TASK_ID}/`；共享字段文件：`{RECORD_DIR}/{TASK_ID}/task-info.md`
-> 仓库：优先 `{REPO_BASE_PATH}/{TASK_ID}-repo/`（不存在时用用户给的本机/远端路径）
+> 任务 ID = **仓库目录名**（`repos/<repo>` 的目录名，如 `solocc-0001`）。记录目录与轮次文件都以它为前缀，便于与 `repos/` 一一对应。
+> 任务目录：`{RECORD_DIR}/{REPO}/`；共享字段文件：`{RECORD_DIR}/{REPO}/task-info.md`
+> 仓库：用户给的本地/远端路径（如 `{REPO_BASE_PATH}/{REPO}`）；记录目录名取该仓库目录名。
 
 ## 输入（create 需向用户确认）
 
@@ -63,9 +63,9 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 ### 3. 建任务目录 + task-info.md
 
-- 扫描 `{RECORD_DIR}/` 决定 `{TASK_ID}`（用户未给时取下一个未用 id）。
+- 记录目录名 = 仓库目录名（`repos/<repo>` 的目录名），即本任务 ID；同仓库有多个任务窗口时为区分可加后缀（如 `solocc-0001-2`），人工确认。
 - 用模板 `templates/task-info.md` 生成，填入共享字段：
-  `任务 ID / 任务标题 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后填) / 轨迹根目录(首轮 SessionID 回填后按 Harness 分行定位：Codex→~/.codex/sessions、Claude Code→~/.claude/projects) / annotator / 创建日期`。
+  `任务 ID(=仓库目录名) / 任务标题 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后按 Harness 分行定位：Codex→~/.codex/sessions、Claude Code→~/.claude/projects) / annotator / 创建日期`。
 - 共享字段整个会话各轮不变。
 
 ### 4. 起草首轮提示词（出题，需去 AI 化）
@@ -82,10 +82,10 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 ## 输出模板（task-info.md，字段标题与 `templates/task-info.md` 一致，导出脚本按 `## ` 切块解析）
 
 ```markdown
-# {TASK_ID} 任务信息（会话元信息）
+# {REPO} 任务信息（会话元信息）
 
 ## 任务 ID
-{TASK_ID}
+{REPO}  （= 仓库目录名，如 solocc-0001）
 
 ## 任务标题
 <一句话说明这题让模型做什么>
@@ -126,14 +126,14 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 ## 轨迹根目录（轨迹文件）
 <按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code → ~/.claude/projects/<项目目录名>/<SessionID>；首轮 SessionID 回填后定位>
 
-## 首轮提示词（待人工确认）
-<首轮 prompt 原文；确认后复制到 cc-1-R01.md>
+## 首轮提示词（已确认）
+<首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {REPO}-R01.md>
 ```
 
 ## 注意事项
 
 1. 快照必须是会话首轮前的工作区状态；若模型已开始改动才补快照 → 该任务数据无法追溯，需重建任务。
 2. 凭据不进仓库；push 到个人私有仓库等同没记录。
-3. 任务 ID 不补零；不覆盖已存在任务目录（已存在 → 提示用别的 ID 或确认续用）。
+3. 记录目录名 = 仓库目录名（任务 ID），不覆盖已存在目录（已存在 → 提示换后缀或确认续用）。
 4. 写中文文件一律用写文件工具（UTF-8），禁止 PowerShell `Set-Content`。
 5. 出题分布：按天统计须满足 `0-1代码生成/Feature迭代/Bug修复 > 代码理解 ≈ 代码重构 > 其他`（导出时校验）。

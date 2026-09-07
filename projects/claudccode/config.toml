@@ -29,7 +29,7 @@ deliverables_root = "deliverables/claudccode"
 
 # 任务信息文件（每个任务目录下一份，存共享的会话/环境字段）
 session_task_info = "task-info.md"
-# 每轮数据文件命名：{TASK_ID}-R{NN}.md（NN 两位补零）
+# 每轮数据文件命名：{REPO}-R{NN}.md（NN 两位补零；REPO = 仓库目录名 = 任务 ID）
 round_file_prefix = "R"
 
 [task_types]
@@ -98,7 +98,8 @@ max_rounds = 10
 active = "session-0907"
 
 [naming]
-# 任务 ID 前缀，任务 ID 形如 {task_prefix}-<id>（不补零），如 cc-1、cc-23
+# 任务 ID 现直接用仓库目录名（repos/<repo> 的目录名，如 solocc-0001），记录目录与轮次文件都以它为前缀。
+# 保留 task_prefix 仅为兼容旧写法/命名提示；新建任务不再拼成 cc-N。
 task_prefix = "cc"
 
 [github]
