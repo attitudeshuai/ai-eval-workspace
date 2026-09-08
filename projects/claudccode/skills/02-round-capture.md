@@ -29,12 +29,14 @@ description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据
 
 ## 输入（round N 需向用户确认）
 
-- 第 N 轮 User Prompt（**完整 prompt 原文**；通常 agent 已从轨迹解析，无需手贴）
-- TurnID/PromptID（Codex：本轮 `task_started` 的 turn_id；Claude Code：本轮 user 消息的 promptId；agent 自取，可覆盖）
-- SessionID（同一任务所有轮同一值；agent 自取）
+用户只需给 `cc {TASK_ID} round N`，以下全部由 agent 从轨迹/仓库自动推断（有疑问才回问确认）：
+
+- User Prompt（**完整 prompt 原文**，从轨迹 `type==user` 且 content 为字符串的条目取）
+- TurnID/PromptID（Claude Code：本轮 user 消息的 promptId；Codex：本轮 task_started 的 turn_id）
+- SessionID（同一任务所有轮同一值）
 - 任务类型（按本轮主要意图单选，7 选 1）
-- 任务难度（4 选 1）
-- 语言/框架（本轮实际主要涉及，多个逗号分隔；agent 可从轨迹/仓库推断，但**须人工确认**）
+- 任务难度（4 选 1，人类视角）
+- 语言/框架（本轮实际主要涉及，多个逗号分隔；从轨迹/仓库推断，须人工确认）
 
 ## 会话轨迹与轮次识别（自取 SessionID / TurnID）
 

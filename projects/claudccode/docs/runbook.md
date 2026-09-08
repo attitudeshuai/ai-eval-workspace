@@ -140,12 +140,9 @@ records/solocc-0001-codegen/task-info.md
 
 ```text
 cc solocc-0001-codegen round 1
-（SessionID / User Prompt / TurnID(promptId) 由 agent 从本机轨迹自取，无需手动填）
-任务类型: 0-1代码生成
-任务难度: 困难
-语言/框架: JavaScript, Chrome MV3, Dexie
-人工确认: 是
 ```
+
+> 只写这一行即可：SessionID / User Prompt / TurnID 由 agent 从本机轨迹自取；任务类型（按本轮主要意图）、任务难度、语言/框架由 agent 从轨迹 + 仓库自动推断，有疑问才回问确认。
 
 ### AI 会执行
 
