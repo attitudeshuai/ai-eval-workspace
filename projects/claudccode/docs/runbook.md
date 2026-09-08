@@ -103,10 +103,14 @@ records/solocc-0001-codegen/task-info.md
 > Claude Code 跑在 docker 容器（`benzhi-claude-code`）里，**题号直接用任务 ID**，如 `cc solocc-0001-codegen`（Mac 文档里的 `cc 01` 只是演示题号）。这样一题一个 `/workspace/<题号>`，轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。Codex CLI 仍在本机跑，轨迹在本机 `~/.codex/sessions/`。
 >
 > 容器需已创建并运行（首次创建见 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md)第 3 步）。若容器启动/拉镜像/模型出错（`command not found: docker`、拉镜像超时、`model not found` / `403 key not allowed to access model`），按该文档「常见问题」Q1 / Q3 / Q8 处理。
+>
+> ⚠️ **`docker cp` 的「本机路径」必须是绝对路径**（否则报 `lstat /Users/xxx/sessions: no such file or directory`）。最稳妥：先 `cd` 进**工作台根目录**（= 本仓库克隆目录，`repos/` 与 `records/` 的上级），再按下方相对路径执行；或直接把路径写全。例：工作台根目录 `/Users/<你>/ai-eval-workspace`，任务工作副本在 `工作台根目录/{work_root}/{SESSION_NAME}/repos/<题号>`。注意路径含空格的目录要加引号。
 
-1. **把任务工作副本放进容器**（首次做该题，把本机 `repos/<repo>-<slug>`（= 任务 ID）复制进容器对应题号目录并修正归属，否则 Claude 只能读不能改）：
+1. **把任务工作副本放进容器**（首次做该题，把本机任务工作副本 `repos/<题号>`（= 任务 ID，即 `<repo>-<slug>`）复制进容器对应题号目录并修正归属，否则 Claude 只能读不能改）：
    ```bash
-   docker cp <本机 repos/<repo>-<slug> 路径>/. benzhi-claude-code:/workspace/<题号>/ \
+   # 先进入工作台根目录再复制（源路径相对工作台根目录）；或把下面路径换成绝对路径
+   cd <工作台根目录>   # 例如 /Users/<你>/ai-eval-workspace
+   docker cp "sessions/claudccode/{SESSION_NAME}/repos/<题号>/." benzhi-claude-code:/workspace/<题号>/ \
      && docker exec -u root benzhi-claude-code chown -R node:node /workspace/<题号>
    ```
    第一段末尾的 `/.` 表示复制目录**内容**（否则 `docker cp` 会把仓库目录本身作为子目录嵌套进去，如 `/workspace/<题号>/<题号>/`）。题号目录不存在时可用 `docker exec benzhi-claude-code mkdir -p /workspace/<题号>` 先建，或直接用 `cc <题号>` 进一次（目录自动创建）；但先用 `cc`/`mkdir` 建了目录再 `docker cp`，务必带 `/.`，否则会嵌成子目录。
@@ -118,9 +122,10 @@ records/solocc-0001-codegen/task-info.md
 3. **做本轮对话**（默认推荐：一个 `cc` 会话里连续发多轮，不退出）：
    - 第 1 轮：粘贴首轮提示词（见第 1 步产物 / `task-info.md` 的「首轮提示词」），开始对话。
    - 继续下一轮：直接在**同一个** `cc <题号>` 会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
-4. **把容器里的轨迹导出到本机**（推荐：另开一个终端窗口执行，**无需退出 Claude**；题号=任务 ID，故容器内目录为 `-workspace-<题号>`；导出到任务记录目录）：
+4. **把容器里的轨迹导出到本机**（推荐：另开一个终端窗口执行，**无需退出 Claude**；题号=任务 ID，故容器内目录为 `-workspace-<题号>`；导出到任务记录目录。**目标目录同样建议用绝对路径，或先 `cd` 进工作台根目录**，否则也会报 `lstat ... no such file or directory`）：
    ```bash
-   docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<题号>/. <本机 records/<题号>/>
+   cd <工作台根目录>   # 例如 /Users/<你>/ai-eval-workspace
+   docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<题号>/. "sessions/claudccode/{SESSION_NAME}/records/<题号>/"
    ```
    - `docker cp` 读的是容器文件系统，与正在进行的会话互不干扰：Claude 窗口照常开着、不用 `exit`。
    - ⚠️ 导出时机：等 Claude 把当前这轮答完、处于等待你输入的静止状态再拷（别在它正跑工具、消息还没落盘时拷，否则最新几条可能不完整）。

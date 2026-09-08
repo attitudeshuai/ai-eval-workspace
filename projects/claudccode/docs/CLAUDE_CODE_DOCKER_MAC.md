@@ -341,6 +341,8 @@ docker cp ~/Desktop/我的项目/. benzhi-claude-code:/workspace/01/ && docker e
 
 复制完成后执行 `docker exec -it benzhi-claude-code cc 01` 进入对话，Claude 即可读取和修改这些文件。
 
+> ⚠️ `docker cp` 的**源路径是宿主机路径**，必须用绝对路径，或先 `cd` 到包含它的目录再用相对路径。若从 `~` 直接跑 `docker cp 项目/...`，会报 `lstat /Users/<你>/项目: no such file or directory`。路径含空格时整段加引号。
+
 > 后半段的 `chown` 不能省。`docker cp` 复制进容器的文件会保留 Mac 上的文件归属信息，容器内的 Claude 只能读、不能改，动手修改时会报 `Permission denied`。这条命令把文件归属改成容器内的用户，Claude 才能正常编辑。
 >
 > 万一忘了执行，也不用担心：进入对话时会看到「工作目录中存在当前用户无权修改的文件」的警告，按提示退出后补执行一次即可。
