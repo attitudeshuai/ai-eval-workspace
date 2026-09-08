@@ -22,6 +22,16 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 **不负责**：在 Claude Code / Codex 中代跑对话；代替人工决定任务类型/难度。
 
+## ⚠️ 出题与埋点要求（create 必守）
+
+1. **首轮提示词必须「难」**：要能考出模型能力，做高难度、多需求、跨模块/多约束的题；严禁简单/单文件/纯函数级题目（对照 docs/annotate-guide.md §7 雷同题与「过于简单题判定」）。
+2. **Bug修复 = 先埋点**：由出题人在**初始化/打快照阶段**把 bug **写进仓库源码**，使其成为初始状态（模型要修的正是它）。要求：
+   - 埋的 bug 要**真实、可复现**，造成明显错误行为，但**不能加注释/标记说明「这是个 bug」**；
+   - 埋点做成一段看似正常的逻辑改动，藏在业务代码里，别一眼看穿；
+   - 首轮 prompt 只**以用户视角描述症状/现象**，不透露 bug 位置与根因；
+   - 埋点后的 commit 即初始环境快照（permalink 指向它）。
+3. **0-1代码生成 / Feature迭代**：首轮 prompt 作为**新项目/新模块或功能扩展**的最高要求，覆盖面要广、有明确的工程与质量约束（如 Docker、真实数据、禁 Mock、UI 规范等），体现难度。
+
 ## 命令
 
 | 命令 | 说明 |
@@ -51,13 +61,17 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 1. 确认路径存在且为 git 仓库。
 2. `git status` 检查：若已出现未提交改动 → 提示先提交或清理（快照必须是会话首轮前的基线）。
 3. **凭据检查**：确认 `.gitignore` 已覆盖 `.env` 以及各类密钥/连接串/token 文件；抽查 `git ls-files` 无凭据文件。有泄漏 → 中止并提示先处理，禁止带着凭据提交。
-4. 确认有可 push 的远端（评测团队可访问）。若远端为空 → 按 workspace 约定创建/关联远端。
+4. **新建独立远程仓库（关键前置，务必先做）**：被标注仓库的来源远端（如 `gsb0731-xxx`）通常是已使用/共享的仓库，**不能直接用它提交**。要为它**新建一个全新的远程仓库**，并只基于该新仓库走后续流程：
+   - 用 `github_username` + PAT（`secrets.toml [github] github_pat`）创建新仓库，命名建议 `claudccode-{REPO}`（`{REPO}`=仓库目录名，如 `claudccode-solocc-0001`）；
+   - 把本地远端（origin）指到该新仓库（`git remote set-url origin <新仓库>`)；
+   - 之后基线提交、初始快照、模型交互都基于这个新仓库；来源仓库只作为初始内容来源，不再向其提交。
+5. 确认新仓库可 push且评测团队可访问（公开或已加协作者）；如需才回退来源仓库，须人工确认。
 
 ### 2. 打初始环境快照
 
 1. 若工作区与基线有差异且无提交：`git add -A && git commit -m "<baseline: task init.>"`（保持一个干净基线 commit）。
-2. `git push` 到评测团队可访问远端。
-3. 取**完整 40 位 SHA**（`git rev-parse HEAD`），生成 permalink：`https://github.com/<org>/<repo>/commit/<40位完整SHA>`。
+2. `git push` 到**刚新建的独立远程仓库**。
+3. 取**完整 40 位 SHA**（`git rev-parse HEAD`），生成 permalink：`https://github.com/<owner>/<新仓库>/commit/<40位完整SHA>`。之后**禁止 force-push/rebase** 改写该快照。
    - 必须完整 SHA，禁止短 SHA/分支/tag。
    - 之后**禁止 force-push/rebase** 改写该快照。
 

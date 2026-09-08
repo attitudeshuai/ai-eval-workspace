@@ -103,8 +103,9 @@ active = "session-0907"
 task_prefix = "cc"
 
 [github]
-# GitHub 推送配置（预留，用于把快照推到评测团队可访问的远端）
-username = "attitudeshuai"
+# 为每个任务「新建独立远程仓库」并推送干净基线用。
+# username = 拥有创建仓库权限的 GitHub 账号；PAT 写在 secrets.toml [github] github_pat（敏感，不进 git）
+username = "qianmo317"
 
 [delivery]
 # 正式提交表命名：{delivery.filename_prefix}-{SESSION_NAME}-{date}.csv

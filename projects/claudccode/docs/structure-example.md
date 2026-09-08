@@ -79,13 +79,15 @@ ai-eval-workspace/
 ### Step 1: task-create（新建任务 solocc-0001，5 轮窗口）
 
 ```
+前置：
+  新建独立远程仓库 claudccode-solocc-0001（github_username + PAT 创建），把本地 origin 指向它（来源仓库仅作内容来源，不再向其提交）
 新增:
   records/solocc-0001/
     └── task-info.md          # 共享字段：Repo URL/快照/Harness/版本/OS/可复现等级/SessionID/轨迹根
-  repos/solocc-0001/          # 首轮交互前已提交并 push（快照 commit permalink 记入 task-info.md）
+  repos/solocc-0001/          # 首轮交互前已提交并把干净基线 commit push 到新仓库
 
 修改:
-  远端推送了初始快照 commit（40 位 SHA，不做 force-push/rebase）
+  qianmo317/claudccode-solocc-0001 推送了初始快照 commit（40 位 SHA，不做 force-push/rebase）
 ```
 
 ### Step 2: 第 1 轮交互后 round-capture（agent 自取 SessionID/TurnID）

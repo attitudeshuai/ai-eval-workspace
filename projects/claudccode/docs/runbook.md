@@ -46,7 +46,9 @@ annotator = "张三"
 
 将被标注仓库放到 `{work_root}/{SESSION_NAME}/repos/<repo>/`，或使用本机已有路径，需已 `git init` 且有可 push 的远端。
 
-> 快照要求：仓库需 push 到评测团队可访问的远端；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
+> **⚠️ 建任务前先建新远程仓库（前置）**：来源仓库（如 `gsb0731-xxx`）是已使用/共享仓库，**不能直接提交**。进入第 1 步前，先用 `github_username` + PAT 为它**新建一个全新的远程仓库**（命名建议 `claudccode-{REPO}`，如 `claudccode-solocc-0001`），并把本地远端（origin）指到该新仓库。之后快照、模型交互、提交都基于这个新仓库。
+>
+> 快照要求：仓库需 push 到评测团队可访问的**新**远端；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
 
 ---
 
@@ -67,10 +69,13 @@ Harness版本: 2.1.263
 ### AI 会执行
 
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）
-2. **打初始快照**：若工作区未到基线，先提交一个 baseline commit → push → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<org>/<repo>/commit/<40sha>`）
-3. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
-4. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
-5. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Claude Code/Codex 执行
+2. **新建独立远程仓库（前置）**：用 `github_username` + PAT 创建 `claudccode-{REPO}` 新仓库，把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
+3. **打初始快照**：提交一个 baseline commit → push 到**新仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/claudccode-{REPO}/commit/<40sha>`）
+4. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
+5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
+6. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Claude Code/Codex 执行
+
+> ⚠️ **出题要难**：首轮提示词做高难度、多需求、跨模块/多约束题，严禁简单题。**Bug修复先埋点**：在初始化/打快照阶段把 bug 写进源码（无注释标记、藏得深、可复现），埋点 commit 即初始快照；首轮 prompt 只描述症状、不透露 bug 位置。（详见 skills/01-task-create.md「出题与埋点要求」）
 
 ### 产物
 
@@ -113,6 +118,11 @@ cc solocc-0001 round 1
 ```text
 records/solocc-0001/solocc-0001-R01.md
 ```
+
+### 关于后续轮次（R02 起）
+
+- 第一轮不满意想接着跑：用户直接在 Claude Code 里发下一条消息（如「继续」或新的改动需求）。agent 从**同一个会话轨迹**里按「第几个 user 键入」定位这一轮，把那条消息原文作为 `records/solocc-0001/solocc-0001-R0N.md` 的 User Prompt 写入，`round N` 即可自动生成 `R0N.md`（N ≤ 10）。
+- 同一任务各轮**共用同一个轨迹文件**（一个 SessionID = 一个 `.jsonl`，随轮次增长）；但**每轮一个独立 promptId**——SessionID 各轮相同、TurnID/PromptID 各轮互不相同（导出处校验 TurnID 唯一）。
 
 ---
 
@@ -187,9 +197,11 @@ cc export feishu
 3. dry-run 通过后正式投递（每行 = 一轮 = 一条记录）：
    `python scripts/claudccode/append_delivery_feishu.py --csv <提交表> --submitter 张三`
 4. 输出每条追加的 record_id + 汇总（新增/已存在跳过/错误）
+5. **上传轨迹附件**：若记录目录已生成轨迹副本 `{REPO}-trajectory.jsonl`（round-capture 已复制），对每条记录自动把该文件作为「轨迹文件」字段的**附件**上传并关联（`upload_all` → `file_token` → 更新记录附件字段），让轨迹在表内可点开查看。
 
 > 目标表见 `config.toml [feishu]`（`Lg0mbjRpPaxjhmsj27MckrJLnec` / `tble0z2KnzCfjJmZ`）。
 > 凭证默认复用 `code-eval-gsb/secrets.toml [feishu]` 的 app_id/app_secret；命名差异（`feature迭代`、描述列空格等）由脚本自动映射。
+> 轨迹字段类型为「附件」(`type=17`)，因此不能写文本路径，须先上传文件得到 file_token 再写入。
 
 ### 产物
 

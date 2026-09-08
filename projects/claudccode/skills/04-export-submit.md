@@ -84,6 +84,11 @@ python scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --subm
 - 只读/关联字段（`父记录` 等）自动跳过；`提交时间` 自动填当前时间
 - 输出每条追加的 record_id + 汇总（新增/已存在跳过/错误）
 
+> **轨迹附件上传（可选但推荐）**：投递后可用同一套 app_id/app_secret 把 `records/{REPO}/{REPO}-trajectory.jsonl` 作为「轨迹文件」字段的**附件**上传并关联到对应记录：
+> - `POST /open-apis/drive/v1/medias/upload_all`：`file_type` / `file_name` / `parent_type` / `parent_node` / `size` **作为 multipart 表单字段放 body**（不是 query）；`parent_type=bitable_file`、`parent_node=app_token`、`file_type` 用合法值（如 `txt`）；用 `POST /open-apis/auth/v3/tenant_access_token/internal` 换 token；
+> - 返回 `data.file_token` 后，`PUT /open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/{record_id}`，body = `{"fields":{"轨迹文件":[{"file_token":"...","name":"...","size":...,"type":"file"}]}}`；
+> - 「轨迹文件」字段是**附件**类型(`type=17`)，不能写文本路径，故 append 脚本将该列留空（`MAPPING["轨迹文件"]=None`），由本步以附件写入。
+
 ### 步骤 5：交付核对
 
 - 当天 20:00 前执行的数据当天提交；20:00 后产生的数据次日 14:00 前提交（TPM 层面执行）。
