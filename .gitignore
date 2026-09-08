@@ -127,6 +127,14 @@ sessions/pairwise-gsb/demo/**/original.xlsx
 /.tmp
 /.npm-cache
 
-# claudccode: 保留标注 demo（session-0907/records/html-demo），repos 含嵌套 .git 仍忽略
+# claudccode: 仅保留 session-0907 的 html-demo（records 与 repos），其余同级内容仍忽略
 !/sessions/claudccode/
-/sessions/claudccode/*/repos/
+/sessions/claudccode/*
+!/sessions/claudccode/session-0907/
+/sessions/claudccode/session-0907/*
+!/sessions/claudccode/session-0907/records/
+/sessions/claudccode/session-0907/records/*
+!/sessions/claudccode/session-0907/records/html-demo/
+!/sessions/claudccode/session-0907/repos/
+/sessions/claudccode/session-0907/repos/*
+!/sessions/claudccode/session-0907/repos/html-demo/
