@@ -50,9 +50,10 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 ## 输入（create 需向用户确认）
 
-- **任务类型**（7 选 1，决定任务 ID 后缀 slug 与快照/埋点策略；首轮严禁「简单」难度）——用户只需给这一项 + 任务 ID
+- **仓库名 + 任务类型**（用户只需给这两项；任务类型 7 选 1，决定 slug 与快照/埋点策略；首轮严禁「简单」难度）
+- 任务 ID 由 agent 拼：`{仓库名}-{slug}`（`h5-demo` + 代码理解 → `h5-demo-understand`）
 - 以下由 agent 自动推断（用户未指定时用默认值，显式指定则覆盖）：
-  - 仓库路径（素材源）= 任务 ID 去掉类型 slug（`solocc-0001-codegen` → `repos/solocc-0001`）
+  - 仓库路径（素材源）= `repos/{仓库名}`
   - 目标说明 = 按任务类型 + 仓库内容起草（`prompt-architect` + `humanizer-zh`）
   - Harness = 默认 `Claude Code`（`Codex CLI` 需显式指定）；Harness 版本从 `secrets.toml [harness]` 按操作系统自动带入
   - 操作系统 = 当前机器（`MacOS/Linux` / `Windows`）

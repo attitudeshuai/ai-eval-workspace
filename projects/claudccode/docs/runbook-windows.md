@@ -28,7 +28,8 @@
 cc {任务ID} {操作}
 ```
 
-如：`cc solocc-0001-codegen create`、`cc solocc-0001-codegen round 1`、`cc solocc-0001-codegen score 1`、`cc export`
+- **create 用「仓库名 + 任务类型」**（不用带 slug）：`cc solocc-0001 create` + `任务类型: 0-1代码生成` → agent 生成任务 ID `solocc-0001-codegen`
+- **round / score / export 用「任务 ID（带 slug）」**：`cc solocc-0001-codegen round 1`、`cc solocc-0001-codegen score 1`、`cc export`
 
 > 这里的 `cc {任务ID} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Windows 容器里**没有** `cc` 快捷入口——进入容器后是手动敲 `claude`。两者不要混淆。
 
@@ -75,15 +76,25 @@ annotator = "张三"
 ### 指令模板
 
 ```text
-cc solocc-0001-codegen create
-任务类型: 0-1代码生成
+cc {仓库名} create
+任务类型: {7 选 1，见下}
 ```
 
-> **只需给「任务 ID + 任务类型」**，其余由 agent 自动推断，无需手填：
-> - 仓库（素材源）= 任务 ID 去掉类型 slug（`solocc-0001-codegen` → `repos/solocc-0001`）
-> - 目标/首轮提示词 = 按任务类型 + 仓库内容，经 `prompt-architect` 起草 + `humanizer-zh` 去 AI 化
-> - Harness 默认 `Claude Code`（要做 Codex 才显式指定）；操作系统取当前机器
-> - `Harness版本` 从 `secrets.toml [harness] claude_code_version_windows` 自动带入（当前 `2.1.236`，即镜像内 `claude --version` 输出），无需手填
+> **create 不用自己拼 slug**：agent 按「仓库名 + 类型 slug」自动生成任务 ID（`h5-demo` + 代码理解 → `h5-demo-understand`），并自动推断仓库路径（`repos/h5-demo`）、起草首轮提示词（`prompt-architect` + `humanizer-zh`）、带入 Harness 版本（`secrets.toml [harness] claude_code_version_windows`，当前 `2.1.236`，即镜像内 `claude --version` 输出）。
+
+**任务类型 7 选 1（复制需要的行，其余删掉）**：
+
+```text
+任务类型: 0-1代码生成
+任务类型: Feature迭代
+任务类型: Bug修复
+任务类型: 代码理解
+任务类型: 代码重构
+任务类型: 工程化
+任务类型: 代码测试
+```
+
+slug 对照：`0-1代码生成`→`codegen`、`Feature迭代`→`feat`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
 
 ### AI 会执行
 
