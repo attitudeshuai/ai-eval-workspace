@@ -63,7 +63,7 @@ def _load_config():
         "delivery.filename_prefix", "task_types.types",
         "difficulty.levels", "difficulty.first_round_forbidden",
         "scoring.dimensions", "scoring.score_min", "scoring.score_max",
-        "harness.claude_code_version",
+        "harness.claude_code_version_mac", "harness.claude_code_version_windows",
     }
     cfg = {}
     try:
@@ -82,7 +82,8 @@ def _load_config():
                     cfg["types"] = data.get("task_types", {}).get("types", cfg.get("types"))
                     cfg["dims"] = data.get("scoring", {}).get("dimensions", cfg.get("dims"))
                     cfg["first_forbidden"] = data.get("difficulty", {}).get("first_round_forbidden", cfg.get("first_forbidden"))
-                    cfg["claude_code_version"] = data.get("harness", {}).get("claude_code_version", cfg.get("claude_code_version"))
+                    cfg["claude_code_version_mac"] = data.get("harness", {}).get("claude_code_version_mac", cfg.get("claude_code_version_mac"))
+                    cfg["claude_code_version_windows"] = data.get("harness", {}).get("claude_code_version_windows", cfg.get("claude_code_version_windows"))
                     # secrets.toml 覆盖
                     if p == SECRETS_PATH:
                         cfg["active"] = data.get("active_session", cfg.get("active"))
@@ -97,7 +98,8 @@ def _load_config():
             "max_rounds": int(simple.get("limits.max_rounds", "10")),
             "filename_prefix": simple.get("delivery.filename_prefix", "正式提交表"),
             "types": None, "dims": None, "first_forbidden": ["简单"],
-            "claude_code_version": simple.get("harness.claude_code_version", ""),
+            "claude_code_version_mac": simple.get("harness.claude_code_version_mac", ""),
+            "claude_code_version_windows": simple.get("harness.claude_code_version_windows", ""),
         }
     cfg.setdefault("max_rounds", 10)
     cfg.setdefault("task_prefix", "cc")
@@ -108,7 +110,8 @@ def _load_config():
     cfg.setdefault("types", ["0-1代码生成", "Feature迭代", "Bug修复", "代码理解", "代码重构", "工程化", "代码测试"])
     cfg.setdefault("dims", ["交付完整性", "指令遵循", "任务规划", "推理能力", "执行能力"])
     cfg.setdefault("first_forbidden", ["简单"])
-    cfg.setdefault("claude_code_version", "")
+    cfg.setdefault("claude_code_version_mac", "")
+    cfg.setdefault("claude_code_version_windows", "")
     return cfg
 
 
@@ -171,7 +174,7 @@ NEG_ANY = STRONG_NEG + ("报错", "错误", "幻觉", "编造", "臆造", "瞎�
                         "冗余", "缺失", "遗漏", "漏掉", "滥用", "低效", "反复", "重复",
                         "卡住", "绕圈", "无效", "不符合", "多余", "越界", "擅自")
 
-# Harness → 轨迹根前缀：Codex CLI 的轨迹在 ~/.codex/sessions/；Claude Code 在容器里做，轨迹导出到本机 records/<REPO>/<REPO>-trajectory.jsonl
+# Harness → 轨迹根前缀：Codex CLI 的轨迹在 ~/.codex/sessions/；Claude Code 在容器里做，轨迹导出到本机 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl
 HARNESS_TRAJ_PREFIX = {
     "Codex CLI": "~/.codex/sessions",
     "Claude Code": "records/",
@@ -202,9 +205,11 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
     row["初始环境快照"] = info.get("初始环境快照", "")
     row["Harness"] = info.get("Harness", "")
     row["Harness版本"] = info.get("Harness版本", "")
-    # 导出自动带入配置里的 Claude Code 默认版本（避免每任务手填/填错；仅对 Claude Code）
-    if row["Harness"] == "Claude Code" and cfg.get("claude_code_version"):
-        row["Harness版本"] = cfg["claude_code_version"]
+    # 导出自动带入 secrets.toml 里的 Claude Code 默认版本（按操作系统分行；仅对 Claude Code）
+    if row["Harness"] == "Claude Code":
+        ver = cfg.get("claude_code_version_windows") if row["操作系统"] == "Windows" else cfg.get("claude_code_version_mac")
+        if ver:
+            row["Harness版本"] = ver
     row["操作系统"] = info.get("操作系统", "")
     row["环境可复现等级"] = info.get("环境可复现等级", "")
     row["SessionID"] = info.get("SessionID", "")
@@ -239,9 +244,9 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
             has_strong = any(t in dv for t in STRONG_NEG)
             has_neg = any(t in dv for t in NEG_ANY)
             if sc >= 4 and has_strong:
-                problems.append(f"[一致性提示] {tag} {s_title}={sc} 但描述含强失败词，请人工复核")
+                problems.append(f"[分数描述不一致] {tag} {s_title}={sc} 但描述含强失败词，须修正一致")
             if sc <= 2 and not has_neg:
-                problems.append(f"[一致性提示] {tag} {s_title}={sc} 但描述未见负面证据，请人工复核")
+                problems.append(f"[分数描述不一致] {tag} {s_title}={sc} 但描述未见负面证据，须修正一致")
 
     if round_no == 1 and row["任务难度"] in cfg.get("first_forbidden", ["简单"]):
         problems.append(f"[首轮难度] {tag} 首轮严禁「{row['任务难度']}」")
@@ -264,7 +269,7 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
     elif prefix and traj and not traj.startswith(prefix):
         problems.append(f"[轨迹路径] {tag} Harness={row['Harness']} 但轨迹文件不在 {prefix} 下：{traj[:80]}")
     elif not traj and row["SessionID"]:
-        problems.append(f"[轨迹缺失] {tag} 缺少轨迹文件（按 Harness 填 ~/.codex/sessions 或 records/<REPO>/<REPO>-trajectory.jsonl 下文件）")
+        problems.append(f"[轨迹缺失] {tag} 缺少轨迹文件（按 Harness 填 ~/.codex/sessions 或 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl 下文件）")
     return row, round_no
 
 
@@ -282,11 +287,25 @@ def main():
         print(f"[错误] records 目录不存在：{records_root}")
         sys.exit(2)
 
-    # 收集任务
-    tasks = sorted(d for d in os.listdir(records_root)
-                   if os.path.isdir(os.path.join(records_root, d)) and not d.startswith("."))
+    # 收集任务：含 task-info.md 的目录 = 任务（叶子目录名 = 任务 ID）；
+    # 不含 task-info.md 但有子目录的 = 项目分组，继续下钻。兼容「扁平 + 嵌套」两种布局。
+    def _collect_tasks(root):
+        out = []
+        for entry in sorted(os.listdir(root)):
+            if entry.startswith("."):
+                continue
+            p = os.path.join(root, entry)
+            if not os.path.isdir(p):
+                continue
+            if os.path.exists(os.path.join(p, "task-info.md")):
+                out.append((entry, p))
+            else:
+                out.extend(_collect_tasks(p))
+        return out
+
+    tasks = _collect_tasks(records_root)
     if args.task:
-        tasks = [t for t in tasks if t == args.task]
+        tasks = [(t, p) for t, p in tasks if t == args.task]
         if not tasks:
             print(f"[错误] 未找到任务 {args.task}")
             sys.exit(2)
@@ -296,8 +315,7 @@ def main():
     info_cache = {}
     per_task_rounds = {}
 
-    for task_id in tasks:
-        tdir = os.path.join(records_root, task_id)
+    for task_id, tdir in tasks:
         info_path = os.path.join(tdir, "task-info.md")
         info = parse_task_info(info_path) if os.path.exists(info_path) else {}
         info_cache[task_id] = info
@@ -323,10 +341,13 @@ def main():
         if len(rounds) > int(cfg.get("max_rounds", 10)):
             problems.append(f"[轮次超限] {task_id} 共 {len(rounds)} 轮 > {cfg.get('max_rounds')}")
 
-    # 排序：task_id 自然序 + 轮次序
+    # 排序：按任务分组（仓库号自然序 + 任务 ID + 轮次序）
     def nat_key(t):
-        m = re.search(r"(\d+)$", t[0])
-        return (int(m.group(1)) if m else 0, t[1])
+        task_id, rn = t[0], t[1]
+        # 任务 ID 形如 {REPO}-{类型slug}（如 solocc-0001-codegen）：取首个数字段作仓库号自然序
+        m = re.search(r"(\d+)", task_id)
+        repo_no = int(m.group(1)) if m else 0
+        return (repo_no, task_id, rn)
     rows.sort(key=nat_key)
 
     # 输出 CSV（UTF-8 BOM）

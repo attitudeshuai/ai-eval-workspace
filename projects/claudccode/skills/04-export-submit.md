@@ -21,7 +21,7 @@ description: "claudccode 导出提交表并投递飞书：把全部任务/轮次
 | 命令 | 说明 |
 |------|------|
 | export | 默认。扫描全部任务 → 生成 CSV → 质检报告 |
-| export <REPO> | 仅导出指定任务（REPO = 仓库目录名 = 任务 ID） |
+| export <TASK_ID> | 仅导出指定任务（TASK_ID = 任务 ID = 仓库目录名-类型slug） |
 | feishu | 把已导出的正式提交表 CSV 投递到飞书（先 --dry-run） |
 
 ## 执行流程
@@ -38,7 +38,7 @@ python scripts/claudccode/export_submit.py
 ```
 
 脚本行为：
-- 遍历 `{RECORD_DIR}/*/task-info.md`（共享字段）+ 各 `{REPO}-R*.md`（每轮一条；REPO = 仓库目录名，脚本以目录名=任务 ID 分组）
+- 递归遍历 `{RECORD_DIR}`（含 `task-info.md` 的目录 = 任务，叶子目录名 = 任务 ID；支持嵌套 `{REPO}/{TASK_ID}/` 与扁平 `{TASK_ID}/` 两种布局）+ 各 `{TASK_ID}-R*.md`（每轮一条）
 - 每轮拼一行：任务类型 / 任务难度 / 语言/框架 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照 / User Prompt / SessionID / TurnID/PromptID / 轨迹文件 / 五维分数与描述 / 其他问题
 - 表头见 `templates/submit-headers.csv`；TPM 内部字段（Repo URL/截图附件/备注/标注人）按配置追加在末尾
 - 输出 UTF-8 with BOM CSV（Excel 打开中文不乱码）
@@ -84,7 +84,7 @@ python scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --subm
 - 只读/关联字段（`父记录` 等）自动跳过；`提交时间` 自动填当前时间
 - 输出每条追加的 record_id + 汇总（新增/已存在跳过/错误）
 
-> **轨迹附件上传（可选但推荐）**：投递后可用同一套 app_id/app_secret 把 `records/{REPO}/{REPO}-trajectory.jsonl` 作为「轨迹文件」字段的**附件**上传并关联到对应记录：
+> **轨迹附件上传（可选但推荐）**：投递后可用同一套 app_id/app_secret 把 `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl` 作为「轨迹文件」字段的**附件**上传并关联到对应记录：
 > - `POST /open-apis/drive/v1/medias/upload_all`：`file_type` / `file_name` / `parent_type` / `parent_node` / `size` **作为 multipart 表单字段放 body**（不是 query）；`parent_type=bitable_file`、`parent_node=app_token`、`file_type` 用合法值（如 `txt`）；用 `POST /open-apis/auth/v3/tenant_access_token/internal` 换 token；
 > - 返回 `data.file_token` 后，`PUT /open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/{record_id}`，body = `{"fields":{"轨迹文件":[{"file_token":"...","name":"...","size":...,"type":"file"}]}}`；
 > - 「轨迹文件」字段是**附件**类型(`type=17`)，不能写文本路径，故 append 脚本将该列留空（`MAPPING["轨迹文件"]=None`），由本步以附件写入。

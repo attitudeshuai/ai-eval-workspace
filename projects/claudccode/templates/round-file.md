@@ -1,11 +1,11 @@
 # 单轮数据文件模板（round-file.md）
 
-> 每个有效轮次一个文件：`{REPO}-R{NN}.md`（NN 两位补零），**一个文件 = 一条数据**。`{REPO}` = 仓库目录名（= 任务 ID）。
+> 每个有效轮次一个文件：`{TASK_ID}-R{NN}.md`（NN 两位补零），**一个文件 = 一条数据**。`{TASK_ID}` = 任务 ID（= 仓库目录名-类型slug，如 `solocc-0001-codegen`）。
 > 运行环境共享字段不在此重复（导出时从 `task-info.md` 合并）。文件名即轮次。
 > 使用 `## 字段` 小标题结构，值可多行；导出脚本按 `## ` 切块解析，请勿改动标题文本。
 
 ```markdown
-# {REPO} 第 {N} 轮数据
+# {TASK_ID} 第 {N} 轮数据
 
 ## User Prompt
 <本轮发给模型的完整 prompt 原文，直接粘贴，不摘要不改写；带附件/图片/选中代码时，在末尾补一句说明>
@@ -20,7 +20,7 @@
 <本轮实际主要涉及的语言与框架，多个用逗号分隔，如 Go, Gin, PostgreSQL>
 
 ## TurnID/PromptID
-<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从本机 records/{REPO}/{REPO}-trajectory.jsonl（Claude Code 容器导出）或 ~/.codex/sessions 自取，可人工覆盖。>
+<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（Claude Code 容器导出；嵌套布局写作 records/{REPO}/{TASK_ID}/{TASK_ID}-trajectory.jsonl）或 ~/.codex/sessions 自取，可人工覆盖。>
 
 ## 模型回答存档（内部）
 <可选：粘贴/摘录本轮模型回答，或写轨迹定位说明；非提交字段>

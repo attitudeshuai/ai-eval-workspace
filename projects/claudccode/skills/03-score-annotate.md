@@ -1,27 +1,77 @@
 ---
 name: claudccode-score-annotate
-description: "claudccode 五维打分：对某一轮（一条数据）按交付完整性/指令遵循/任务规划/推理能力/执行能力 1-5 打分并录入依据描述，做机械校验。Use when: claudccode 打分, 五维打分, 录入评分依据, 满意度评分。"
+description: "claudccode 五维打分（分析+录入）：读轨迹文件还原第 N 轮对话 → 调用 implementation-reviewer 做代码产物评价 + 自行做对话过程分析 → 合成五维分数与依据（1-5），去 AI 化后落盘并做机械校验。Use when: claudccode 打分, 五维打分, 结果分析, 满意度评分, 轨迹分析。"
 ---
 
 ## ⚙️ 当前期配置
 
 > 配置从 `../config.toml` 读取。路径变量同 [01-task-create](01-task-create.md)。
-> 依赖 agent：`skills/humanizer-zh/SKILL.md`（去 AI 化，AI 起草依据必用）
+> 依赖 agent：`skills/implementation-reviewer/SKILL.md`（路线 A 代码产物评价，红线）、`skills/humanizer-zh/SKILL.md`（去 AI 化，AI 起草依据必用）
+> 分析方法参照：`projects/code-eval-solo/skills/02-result-analysis.md`（双路分析范式；本技能把它「读对话内容」一步适配为「读轨迹文件」）
 > 评分表/原因写法速查：`docs/annotate-guide.md`（源自 docx 第三步/存档）。
 
-# claudccode 五维打分（GSB 风格分档评分）
+# claudccode 五维打分（轨迹分析 + 五维录入）
 
 ## 功能概述
 
-对**某一轮**对话（一条数据）做五维打分与依据录入。打分依据来源二选一：**人工撰写**（原样录入）或 **AI 代打**（AI 起草 → **先经 humanizer-zh 去 AI 化** → 练习阶段直接落盘、无需人工确认；正式交付阶段再人工逐条核对/修改）。本技能负责：
+对**某一轮**对话（一条数据）做五维打分与依据录入。打分依据来源二选一：**人工撰写**（原样录入）或 **AI 代打**（默认，见下「分析调用链路」）。本技能负责：
 
-1. 收集该轮素材：人工提供，或读取 `模型回答存档`/真实轨迹（Claude Code→本机 `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器导出），Codex→`~/.codex/sessions`，按 SessionID/TurnID 定位）
-2. 录入/起草五维分数（1-5）与五条必填依据描述 + 其他问题
-3. AI 起草的内容**必须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**，再交人工确认
-4. 做**机械校验**（字段范围/非空/方向一致性/AI 痕迹提示）
-5. 辅助决定是否进入下一轮（≤ 10 轮）
+1. **读轨迹**（= solo 02-result-analysis 的「读对话内容」）：Claude Code→本机 `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（容器导出），Codex→`~/.codex/sessions`；按 SessionID/TurnID 定位第 N 轮的 User Prompt + 模型 thinking + tool_use/tool_result + 最终回答
+2. **读产物**：对照 `repos/{TASK_ID}` 的 git 变更（`git diff`/当前代码），核实模型声称的改动与真实改动
+3. **路线 A**：调用 `skills/implementation-reviewer/SKILL.md` 做代码产物质量评价（6 维度）
+4. **路线 B**：自行做对话过程分析（规划/推理/工具调用/虚假完成），映射到五维
+5. 合成五维分数（1-5）与五条必填依据 + 其他问题
+6. AI 起草内容**先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**，再做机械校验（字段范围/非空/方向一致性/AI 痕迹）
 
-**质量红线**：AI 代打的分数与依据文本，落盘/投递前**必须先经 humanizer-zh 去 AI 化**（练习阶段无需人工逐条确认；正式交付再人工复核），并严格按五维模式（1-5 整数、五条依据必填、含可核验证据）；人工撰写的原文不得被 AI 改写；依据必须可核验（详见 SKILL.md「质量红线」）。
+> 🔴 **分析是红线**：AI 代打**必须**读轨迹文件 + **必须**调用 implementation-reviewer，二者缺一即整批拒收；不得脱离轨迹/产物凭空打分（详见 SKILL.md「质量红线」）。
+
+## 分析调用链路（AI 代打必走，源自 code-eval-solo 02-result-analysis.md）
+
+```
+读轨迹 → 读产物 → 路线A(implementation-reviewer) → 路线B(过程分析) → 合成五维 → 去AI化 → 落盘
+```
+
+1. **读轨迹文件**：`records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（Claude Code）或 `~/.codex/sessions/<SessionID>`（Codex），按 `type==user` 且 content 为字符串定位第 N 轮起点，其 `promptId` = TurnID；该轮内 assistant 的 thinking / tool_use / tool_result / 最终 text 全归属本轮。（= solo 的「读取对话内容」，claudccode 里就是读轨迹）
+
+2. **读产物**：对照 `repos/{TASK_ID}` 的 git 变更（`git diff --stat` + `git diff`，或当前代码）核实模型实际改了什么、和它在轨迹里「宣称改了什么」是否一致（虚假完成判定）。
+
+3. **路线 A — 代码产物质量**（调用 `skills/implementation-reviewer/SKILL.md`）：
+   - 传入本轮 User Prompt + 轨迹 + 产物 diff 作为上下文
+   - 要求其覆盖 6 维度（Prompt理解度/实现逻辑完整性/验证完整性/会话反馈响应性/跨迭代协调性/代码架构质量）
+   - 输出：满意/不满意判定 + 不满意的点 + 过程满意度
+   - 第 1、2 轮用挑剔模式（7 角度逐一核查）
+   - **以 implementation-reviewer 结论为准**（红线）
+
+4. **路线 B — 对话过程质量**（自行分析，对应 solo 的 10 维度，映射到 claudccode 五维）：
+   - 从轨迹还原：拆解/状态追踪 → 任务规划；thinking 的推理路径/根因定位 → 推理能力；tool_use 的冗余/失败调用/高危操作 → 执行能力；总结声称 vs 实际 → 虚假完成
+
+5. **合成五维**（1-5 + 依据）：
+
+   | 五维 | 主要来源 |
+   |------|---------|
+   | 交付完整性 | 路线 A（实现逻辑完整性 + 验证完整性 + 架构质量） |
+   | 指令遵循 | 路线 A（Prompt理解度 + 会话反馈响应性）+ 轨迹逐条核对约束 |
+   | 任务规划 | 路线 B（拆解/状态/歧义求证/阶段总结） |
+   | 推理能力 | 路线 B（thinking 推理路径/根因定位） |
+   | 执行能力 | 路线 B（tool_use 冗余/失败/高危） |
+
+6. **去 AI 化 → 落盘**：合成文本先经 `skills/humanizer-zh/SKILL.md` 去 AI 化（练习无需人工确认，正式再复核），写入 `{TASK_ID}-R{NN}.md`。
+
+> 自然语言优先（同 solo）：依据用业务语义描述，禁止堆函数名/代码符号；可列「涉及文件」。
+
+## 🔍 分析自检清单（AI 代打落盘前必勾，红线）
+
+逐项确认后才可写 `{TASK_ID}-R{NN}.md`，任一未勾 → 不得落盘：
+
+- [ ] 已读轨迹文件并定位第 N 轮（User Prompt + thinking + tool_use/tool_result + 最终回答），TurnID/SessionID 与 02-round-capture 一致
+- [ ] 已核对产物（`git diff`/当前代码）与轨迹里「宣称改了什么」是否一致，虚假完成已判
+- [ ] 已调用 implementation-reviewer，其 6 维度（Prompt理解度/实现逻辑完整性/验证完整性/会话反馈响应性/跨迭代协调性/代码架构质量）逐一覆盖
+- [ ] implementation-reviewer 的满意/不满意结论 + 不满意的点已采纳（第 1、2 轮走挑剔模式）
+- [ ] 过程分析已覆盖 solo 10 维度（prompt理解/目标明确性/推理路径质量/输出质量/任务规划/工具使用/整体流程/高危操作/总结准确性/虚假完成）
+- [ ] 五维（交付完整性/指令遵循/任务规划/推理能力/执行能力）各维都有轨迹或产物证据，无「无证据」维度
+- [ ] 五维分数 1-5 整数，且与 implementation-reviewer 结论方向一致
+- [ ] 分数与依据描述方向一致（4/5 分不得含「未完成/失败/报错/虚假」等失败表述；1/2 分必须写明负面证据，无「低分写得像满分」）
+- [ ] 已 humanizer-zh 去 AI 化（28 条全查）
 
 ## 命令
 
@@ -54,18 +104,18 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 
 ## 执行流程
 
-1. 打开 `{RECORD_DIR}/{REPO}/{REPO}-R{NN}.md`（`{REPO}` = 仓库目录名 = 任务 ID），确认该轮已录入（有 User Prompt/TurnID）；缺 → 先执行 `02-round-capture round N`。
+1. 打开 `{RECORD_DIR}/{TASK_ID}/{TASK_ID}-R{NN}.md`（`{TASK_ID}` = 任务 ID = 仓库目录名-类型slug），确认该轮已录入（有 User Prompt/TurnID）；缺 → 先执行 `02-round-capture round N`。
 2. **录入方式**（先与用户确认，二选一）：
    - **人工打分**：向用户逐维度索要分数与依据（可一次给齐五维）：
      - 交付完整性 `<1-5>` + 描述（指明文件/报错/未实现点；虚假成功说明宣称 vs 实际）
      - 指令遵循 `<1-5>` + 描述；任务规划 `<1-5>` + 描述；推理能力 `<1-5>` + 描述；执行能力 `<1-5>` + 描述
      - 其他问题（未覆盖五维的其他问题，无可填「无」）
      → **原样录入**到数据文件对应字段，不改写措辞、不替用户补内容。
-   - **AI 代打（练习阶段默认）**：AI 读取该轮轨迹/产物素材起草分数与依据，严格按五维评分模式（1-5 整数、五条依据必填、含可核验证据）；**先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**后落盘（练习阶段无需人工确认；正式交付再人工复核）。
+   - **AI 代打（练习阶段默认）**：按上「分析调用链路」走完 读轨迹 → 读产物 → 路线A(implementation-reviewer) → 路线B(过程分析) → 合成五维，再**先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**后落盘（练习阶段无需人工确认；正式交付再人工复核）。
 3. **机械校验**（只校验，不改写/不改分）：
    - 分数为 1-5 整数；五个描述均非空
    - 描述过短/疑似笼统（如仅「表现一般」「还可以」等字样）→ 提示人工按硬性要求补充
-   - **方向一致性提示**：分数 ≥4 但描述含强失败词（未完成/失败/没改/报错/虚假等），或分数 ≤2 但描述无负面证据 → 提示人工复核
+   - **方向一致性（红线）**：分数 ≥4 但描述含强失败词（未完成/失败/没改/报错/虚假等），或分数 ≤2 但描述无负面证据 → 必须修正到一致，否则不得落盘
    - **评分-描述一致性（ai 代打必核）**：给 4+ 时描述须体现**真实**拆解/状态回报/纠错证据，不得写「无计划/无状态记录」这类与分数矛盾的表述；交付完整性避免「全部实现」绝对表述，有未验证项写「主体已实现，XX 尚未验证」；描述中文件数/行数/调用数要对照真实产物（`git diff --stat`、轨迹 tool_use）；写到的验证（tsc/构建/冒烟）须在轨迹/产物有据——见 docs/annotate-guide.md §9。
    - **AI 痕迹检查**：AI 起草内容须确认已去 AI 化且无残留痕迹（`——`、反引号、`「」`、`→`/`⇒`/`=>`/`->`、英文直引号等，humanizer-zh 强制项）
 4. 询问是否继续：满意且目标达成 → 结束本任务；否则进入下一轮（round N+1），但 **N+1 > 10 时强制结束**并提示开新任务。
@@ -73,7 +123,7 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 ## 路径规则
 
 ```
-第 N 轮数据：{RECORD_DIR}/{REPO}/{REPO}-R{NN}.md   （{REPO} = 仓库目录名 = 任务 ID）
+第 N 轮数据：{RECORD_DIR}/{TASK_ID}/{TASK_ID}-R{NN}.md   （{TASK_ID} = 任务 ID = 仓库目录名-类型slug；嵌套布局写作 {RECORD_DIR}/{REPO}/{TASK_ID}/，导出脚本两种都识别）
 ```
 
 ## 示例
@@ -81,7 +131,7 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 ### 输入
 
 ```
-任务 solocc-0001，score 1
+任务 solocc-0001-codegen，score 1
 交付完整性：4（描述：完成登录态修复…）
 指令遵循：5（描述：已逐条核对全部约束，未改动约束外文件）
 任务规划：3（描述：…）
@@ -93,7 +143,7 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 ### 输出
 
 ```
-已写入 records/solocc-0001/solocc-0001-R01.md 五维打分
+已写入 records/solocc-0001-codegen/solocc-0001-codegen-R01.md 五维打分
 机械校验通过：分数 1-5 且描述非空
 提示：描述中出现负面词但交付完整性=4，请人工复核方向一致性
 下一步：若满意且目标达成可结束任务，否则 round 2
@@ -104,6 +154,6 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 1. **去 AI 化门槛**：AI 起草的依据/分数说明无论在练习还是正式，落盘/投递前都须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化，且**须执行其完整流程（28 条规则全查），不得只手动删符号/避关键词**（练习阶段无需人工确认，正式交付补人工复核）；人工撰写的原文不得用 AI 改写。
 2. 每轮独立评分：不得因后续轮次修复给前几轮补高分。
 3. 只评价模型自身能力问题，不写环境/网络波动导致的请求失败。
-4. AI 起草的依据必须可核验（真实轨迹/产物证据），不得脱离依据编造；最终分数与文字由人工确认。
+4. AI 起草的依据必须可核验（真实轨迹/产物证据），不得脱离依据编造；**必须读轨迹 + 调用 implementation-reviewer（红线）**，最终分数与文字由人工确认。
 5. 若目标轮次已有打分内容 → 不覆盖，提示用户确认后由人工决定是否修正。
 6. 机械校验发现的问题只提示，最终由人工（专家/TPM）复核。

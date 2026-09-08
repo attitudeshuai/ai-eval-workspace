@@ -129,7 +129,7 @@ docker ps
 
 ### 5.1 把本地代码放进容器（首次做该题时）
 
-在 PowerShell 执行（把 `<REPO>` 换成题号 = 仓库目录名，下面用 `html-demo` 示例）：
+在 PowerShell 执行（把 `<题号>` 换成任务 ID = 仓库目录名-类型slug，下面用 `html-demo` 示例）：
 
 ```powershell
 docker exec benzhi-claude-code mkdir -p /workspace/html-demo

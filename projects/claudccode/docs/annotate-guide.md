@@ -10,7 +10,7 @@
 **运行环境（同一会话各轮填同一组值）**：`Harness`、`Harness版本`、`操作系统`、`环境可复现等级`、`初始环境快照`
 
 **会话与轨迹定位**：`User Prompt`、`SessionID`、`TurnID/PromptID`、`轨迹文件`
-> `轨迹文件` 按哪个 CLI 做的分行：Codex CLI → `~/.codex/sessions/<SessionID>`；Claude Code（容器做，题号 = 仓库目录名）→ `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器导出；容器入口见 runbook.md / runbook-windows.md）。
+> `轨迹文件` 按哪个 CLI 做的分行：Codex CLI → `~/.codex/sessions/<SessionID>`；Claude Code（容器做，题号 = 任务 ID）→ `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（来自容器导出；容器入口见 runbook.md / runbook-windows.md）。
 
 **五维打分与依据描述**：`交付完整性`(1-5)+`交付完整性-描述`、`指令遵循`+`指令遵循-描述`、`任务规划`+`任务规划-描述`、`推理能力`+`推理能力-描述`、`执行能力`+`执行能力-描述`、`其他问题`
 
