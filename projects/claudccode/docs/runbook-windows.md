@@ -1,10 +1,24 @@
-# claudccode 满意度标注 Runbook
+# claudccode 满意度标注 Runbook（Windows）
 
-本 Runbook 提供与 AI Agent 对话时的自然语言指令模板，一步一步完成「Claude Code / Codex 用户满意度标注」的全流程。
+本 Runbook 是 [runbook.md](runbook.md) 的 Windows 版。流程、指令模板、产物与 Mac 版完全一致，**只有「第 2 步：与模型交互」里操作 Claude Code 的终端命令按 Windows 版 Docker 用法改写**。Windows 版 Docker 的完整使用说明见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)。
 
 配置统一读取 `projects/claudccode/config.toml`，敏感信息在 `secrets.toml`（`.gitignore` 已排除）。
 
 > 技术细节见 `skills/01-task-create.md` 等 skill 文件；评分表/原因写法速查见 `docs/annotate-guide.md`。
+
+## 与 Mac 版的关键差异（速览）
+
+| 环节 | Mac 版 | Windows 版（本文档） |
+|---|---|---|
+| 镜像 | `adminfather/benzhi-claude-code` | `nicehey/benzhi-claude-code:1.0` |
+| 容器入口 | `docker exec -it benzhi-claude-code cc <题号>`（内置 `cc` 脚本自动建目录并拉起 Claude） | `mkdir -p` + `docker exec -it -w … bash` 进入后手动 `claude` |
+| 命令审批 | `cc` 内置 `--dangerously-skip-permissions`，Claude 自动执行命令 | 普通 `claude`，执行命令/改文件前会询问，需确认「允许」 |
+| 退出对话 | `/exit` 一次 | 先 `/exit` 退出 Claude，再 `exit` 退出容器 bash 回到 PowerShell |
+| 工作目录 | `/workspace/<题号>` | 相同 |
+| 轨迹目录 | `/home/node/.claude/projects/-workspace-<题号>/` | 相同 |
+| 轨迹导出 | `docker cp …` 到 `records/<REPO>/` | 相同，但需在 PowerShell（宿主）里执行 |
+
+> 除第 2 步的终端命令外，其余各步（建任务/出题/单轮录入/五维打分/导出提交表/投递飞书）与 Mac 版完全一致。第 3~7 步照抄 Mac 版即可。
 
 ---
 
@@ -16,6 +30,8 @@ cc {任务ID} {操作}
 
 如：`cc solocc-0001 create`、`cc solocc-0001 round 1`、`cc solocc-0001 score 1`、`cc export`
 
+> 这里的 `cc {任务ID} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Windows 容器里**没有** `cc` 快捷入口——进入容器后是手动敲 `claude`。两者不要混淆。
+
 > 任务 ID = **仓库目录名**（`repos/<repo>` 的目录名，如 `solocc-0001`），记录目录与轮次文件都以它为前缀，与仓库一一对应。
 
 > 📁 完整目录结构样例见 [structure-example.md](structure-example.md)
@@ -25,13 +41,14 @@ cc {任务ID} {操作}
 - **一个任务 = 一个会话窗口（≤10 轮）；一轮 = 一条数据**。
 - **AI 交付文本必须先经去 AI 化**：AI 起草的提示词/评分依据无论练习还是正式，落盘/投递前都须先经 `skills/humanizer-zh` 去 AI 化（练习阶段允许 AI 直接打分、无需人工确认；正式交付再人工复核），并严格按五维模式；人工撰写的原文保持原样。
 - 被标注模型跑在 **Claude Code / Codex CLI** 里，由用户在终端里操作，本 skill 不代跑。
+- Windows 下 Claude Code 跑在 Docker 容器里，**终端命令用 PowerShell 执行**；Codex CLI 仍在本机直接跑。
 
 ## 前置准备
 
 ### 1. 配置本地环境
 
-```bash
-cp projects/claudccode/secrets-simple.toml projects/claudccode/secrets.toml
+```powershell
+Copy-Item projects/claudccode/secrets-simple.toml projects/claudccode/secrets.toml
 ```
 
 编辑 `secrets.toml`：
@@ -44,7 +61,7 @@ annotator = "张三"
 
 ### 2. 准备候选仓库（工作区）
 
-将被标注仓库放到 `{work_root}/{SESSION_NAME}/repos/<repo>/`，或使用本机已有路径，需已 `git init` 且有可 push 的远端。
+将被标注仓库放到 `{work_root}/{SESSION_NAME}/repos/<repo>/`（Windows 下形如 `sessions\claudccode\session-0907\repos\solocc-0001`），或使用本机已有路径，需已 `git init` 且有可 push 的远端。
 
 > **⚠️ 建任务前先建新远程仓库（前置）**：来源仓库（如 `gsb0731-xxx`）是已使用/共享仓库，**不能直接提交**。进入第 1 步前，先用 `github_username` + PAT 为它**新建一个全新的远程仓库**（命名建议 `claudccode-{REPO}`，如 `claudccode-solocc-0001`），并把本地远端（origin）指到该新仓库。之后快照、模型交互、提交都基于这个新仓库。
 >
@@ -62,9 +79,11 @@ cc solocc-0001 create
 计划任务类型: 0-1代码生成
 目标: 在划词插件里从零构建完整生词管理系统
 Harness: Claude Code
-Harness版本: 2.1.263
-操作系统: MacOS/Linux
+Harness版本: 1.0
+操作系统: Windows
 ```
+
+> Windows 下 `Harness版本` 填 Windows 镜像 `nicehey/benzhi-claude-code:1.0` 对应的 Claude Code 实际版本（以 `claude --version` 输出为准）。
 
 ### AI 会执行
 
@@ -73,7 +92,7 @@ Harness版本: 2.1.263
 3. **打初始快照**：提交一个 baseline commit → push 到**新仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/claudccode-{REPO}/commit/<40sha>`）
 4. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`；Claude Code→本次导出到本机的 `records/{REPO}/{REPO}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace-<REPO>/`）
 5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
-6. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到容器内 Claude Code（`cc <REPO>`）/ 本机 Codex 执行
+6. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Windows 容器内 Claude Code / 本机 Codex 执行
 
 > ⚠️ **出题要难**：首轮提示词做高难度、多需求、跨模块/多约束题，严禁简单题。**Bug修复先埋点**：在初始化/打快照阶段把 bug 写进源码（无注释标记、藏得深、可复现），埋点 commit 即初始快照；首轮 prompt 只描述症状、不透露 bug 位置。（详见 skills/01-task-create.md「出题与埋点要求」）
 
@@ -85,28 +104,53 @@ records/solocc-0001/task-info.md
 
 ---
 
-## 第 2 步：与模型交互（用户在容器内的 Claude Code / 本机 Codex 中）
+## 第 2 步：与模型交互（用户在 Windows 容器内的 Claude Code / 本机 Codex 中）
 
-> Claude Code 跑在 docker 容器（`benzhi-claude-code`）里，**题号直接用仓库目录名（任务 ID）**，如 `cc solocc-0001`（Mac 文档里的 `cc 01` 只是演示题号）。这样一题一个 `/workspace/<题号>`，轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。Codex CLI 仍在本机跑，轨迹在本机 `~/.codex/sessions/`。
+> Claude Code 跑在 Windows 的 Docker 容器（`benzhi-claude-code`，镜像 `nicehey/benzhi-claude-code:1.0`）里，**题号直接用仓库目录名（任务 ID）**，即容器内工作目录 `/workspace/<REPO>`。这样一题一个 `/workspace/<题号>`，轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。Codex CLI 仍在本机跑，轨迹在本机 `~/.codex/sessions/`。
+>
+> 与 Mac 版不同：Windows 镜像**没有 `cc` 快捷入口**，需要 `bash` 进入容器、手动 `claude` 启动；且普通 `claude` 未跳过权限确认，执行命令/改文件前会询问。
+>
+> 若复用的是别人已建好的容器、名称不是 `benzhi-claude-code`（如 `benzhi-claude-code-test-20260907`），请把下面所有命令里的 `benzhi-claude-code` 换成实际容器名（`docker ps -a` 可查）。
+>
+> ⚠️ **模型名可能需覆盖**：镜像默认固化某个模型名（如 `ark/urm-01`）。若网关实际只允许别的模型（如 `auto_model/urm`），进入后 Claude 会报 `403 … not allowed to access model`。此时重建容器时用 `-e ANTHROPIC_MODEL=…`（连同 `ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL`、`CLAUDE_CODE_SUBAGENT_MODEL`）覆盖为网关允许的模型名。
 
-1. **把仓库放进容器**（首次做该题，把本机 `repos/<repo>` 复制进容器对应题号目录并修正归属，否则 Claude 只能读不能改）：
-   ```bash
-   docker cp <本机 repos/<repo> 路径>/. benzhi-claude-code:/workspace/<REPO>/ \
-     && docker exec -u root benzhi-claude-code chown -R node:node /workspace/<REPO>
+1. **把仓库放进容器**（首次做该题，把本机 `repos/<repo>` 复制进容器对应题号目录；在 PowerShell 中执行）：
+   ```powershell
+   docker exec benzhi-claude-code mkdir -p /workspace/<REPO>
+   docker cp <本机 repos\<REPO> 路径>/. benzhi-claude-code:/workspace/<REPO>/
+   docker exec -u root benzhi-claude-code chown -R node:node /workspace/<REPO>
    ```
-   第一段末尾的 `/.` 表示复制目录**内容**（否则 `docker cp` 会把仓库目录本身作为子目录嵌套进去，如 `/workspace/<REPO>/<REPO>/`）。题号目录不存在时可用 `docker exec benzhi-claude-code mkdir -p /workspace/<REPO>` 先建，或直接用 `cc <REPO>` 进一次（目录自动创建）；但先用 `cc`/`mkdir` 建了目录再 `docker cp`，务必带 `/.`，否则会嵌成子目录。
-2. **进入容器做题**：
-   ```bash
-   docker exec -it benzhi-claude-code cc <REPO>
+   第二条末尾的 `/.` 表示复制目录**内容**（否则 `docker cp` 会把仓库目录本身作为子目录嵌套进去，如 `/workspace/<REPO>/<REPO>/`）。第三条 `chown` 是把 `docker cp` 进来的文件归属改为容器内用户 `node`，否则 Claude 只能读、不能改（改文件时报 `Permission denied`）。建议连着执行；若忘了，出现「无权修改文件」警告或 `Permission denied` 时补执行这一条即可。
+2. **进入容器并启动 Claude**：
+   ```powershell
+   docker exec -it -w /workspace/<REPO> benzhi-claude-code bash
    ```
-   粘贴首轮提示词，开始对话；多轮直接在 Claude 里继续发消息即可。
-3. **把容器里的轨迹导出到本机**（题号=仓库名，故容器内目录为 `-workspace-<REPO>`；导出到任务记录目录）：
+   看到提示符类似 `node@…:/workspace/<REPO>$` 后，在容器内输入：
    ```bash
-   docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<REPO>/. <本机 records/<REPO>/>
+   claude
+   ```
+   首次进入可能询问界面主题、显示安全提示、或询问是否信任当前目录（选择信任，路径应与 `/workspace/<REPO>` 一致）。粘贴首轮提示词，开始对话；多轮直接在 Claude 里继续发消息即可。
+   > ⚠️ Windows 镜像未启用 `--dangerously-skip-permissions`，Claude 每次执行命令、创建/修改文件前都会询问，**确认操作内容后选择「允许」**。若不确认、拒绝或漏点，Claude 会停在那里等你处理。
+3. **退出对话，回到 PowerShell**（需要退出两次）：
+   - 在 Claude 对话框输入 `/exit` 回车 → 回到 `node@…:/workspace/<REPO>$` 容器提示符
+   - 再输入 `exit` 回车 → 回到以 `PS` 开头、含 Windows 路径的 PowerShell
+4. **把容器里的轨迹导出到本机**（在 PowerShell 中执行；题号=仓库名，故容器内目录为 `-workspace-<REPO>`，导出到任务记录目录）：
+   ```powershell
+   docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<REPO>/. <本机 records\<REPO> 路径>
    ```
    导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
+   > 请保留整个文件夹结构，不要只挑一个 JSONL：目录里可能还有同名会话文件夹（子代理记录、工具输出），交付/上传需要它们。若提示「找不到目录」，先确认已在对应工作目录启动过 Claude、发过消息并按上一步正常退出，再用 `docker exec benzhi-claude-code ls -1 /home/node/.claude/projects` 核对实际轨迹目录名。
 
-> **会话处理（重要，Mac/Windows 相同）**：一个任务的几轮对话必须落在同一个 SessionID（一个会话窗口）。**推荐进入后不退出**，一个 `cc <题号>` 会话里连发多轮；导出轨迹**另开一个终端窗口**执行上面的 `docker cp` 即可，无需 `exit`（等 Claude 处于等待输入的静止状态再拷）。若确实要退出再接，下次用 `cc <题号> --continue`（或 `cc <题号> --resume <SessionID>`）恢复同一会话；不要用裸 `cc <题号>`——否则新建会话、换 SessionID，打破「一个任务 = 一个会话窗口」。
+   ### 会话处理：推荐「不退出 + 另开窗口」模式（重要）
+
+   一套会话（一个任务）的几轮对话必须落在**同一个 SessionID**（一个会话窗口）里。核心规则与推荐做法：
+
+   - **默认推荐：进入后不退出 Claude**。一个 `claude` 会话里连续发多轮消息（第 1 轮 → 第 2 轮 → …，如直接输入「继续」「再改成…」），轮次随会话递增、SessionID 不变；所有轮次做完后再按上面的第 3 步退出一次。
+   - **导出轨迹用另一个窗口**：`docker cp` 读的是容器文件系统，与正在进行的会话互不干扰。另开一个 PowerShell 窗口执行上面第 4 步的 `docker cp` 即可，Claude 窗口照常开着，无需 `/exit`。
+     > ⚠️ 导出时机：等 Claude 把当前这轮答完、处于等待你输入的静止状态再拷（别在它正跑工具、消息还没落盘时拷，否则最新几条可能不完整）。
+   - **为什么不能退出后直接 `claude`**：退出后再执行裸 `claude`（不带参数）会新建一个会话（新 SessionID），把「一个任务 = 一个会话窗口」打破，导致该任务的轮次分散在不同 SessionID，round-capture 无法按「同一会话」聚合成一道题。
+
+   **如果确实要退出再接**：下次进入容器后**不要用裸 `claude`**，改用 `claude --continue`（恢复当前目录最近一次会话，同 SessionID）或 `claude --resume <SessionID>`。详见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「如何恢复历史会话」。
 
 ---
 

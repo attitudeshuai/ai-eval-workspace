@@ -40,7 +40,7 @@ description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据
 
 轨迹文件按「哪个 CLI 做的」分行存放（`config.toml [trajectory]`）：
 
-- **Claude Code（在 docker 容器 `benzhi-claude-code` 里做）**：用户把容器内 `/home/node/.claude/projects/-workspace-<题号>/` 导出到本机任务记录目录 `{RECORD_DIR}/{REPO}/`（见 runbook 第 2 步第 3 条），本题的会话文件是**一个 `.jsonl`**，文件名 UUID = `SessionID`。题号 = 仓库目录名（任务 ID）。
+- **Claude Code（在 docker 容器 `benzhi-claude-code` 里做）**：用户把容器内 `/home/node/.claude/projects/-workspace-<题号>/` 导出到本机任务记录目录 `{RECORD_DIR}/{REPO}/`（见 runbook.md / runbook-windows.md 第 2 步的「轨迹导出」），本题的会话文件是**一个 `.jsonl`**，文件名 UUID = `SessionID`。题号 = 仓库目录名（任务 ID）。
 - **Codex CLI（本机做）** → `~/.codex/sessions/<SessionID>/`（里面是该会话的会话文件）
 
 ### 1. 定位会话（SessionID）
@@ -48,8 +48,8 @@ description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据
 Claude Code（容器）的轨迹是**一个 `.jsonl` 文件**，文件名 UUID 就是 `SessionID`。题号 = 仓库目录名（任务 ID），容器内工作目录为 `/workspace/<题号>`，轨迹目录为 `-workspace-<题号>`。例如：
 
 ```
-cc solocc-0001  →  容器内 /workspace/solocc-0001
-→ 容器内 /home/node/.claude/projects/-workspace-solocc-0001/
+题号 solocc-0001  →  容器内工作目录 /workspace/solocc-0001
+→ 容器内轨迹目录 /home/node/.claude/projects/-workspace-solocc-0001/
 → 导出到本机 records/solocc-0001/91598858-1626-4537-a317-e397e3aaf56d.jsonl
 → SessionID = 91598858-1626-4537-a317-e397e3aaf56d
 ```

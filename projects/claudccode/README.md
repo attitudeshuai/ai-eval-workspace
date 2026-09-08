@@ -22,9 +22,11 @@ projects/claudccode/
 ├── secrets.toml                # 本地敏感配置（gitignore，不提交）
 ├── README.md                   # 本文件
 ├── docs/
-│   ├── runbook.md              # 逐步操作手册
+│   ├── runbook.md              # 逐步操作手册（Mac）
+│   ├── runbook-windows.md      # 逐步操作手册（Windows）
 │   ├── structure-example.md    # 目录结构样例
-│   └── annotate-guide.md       # 评分表/原因写法速查
+│   ├── annotate-guide.md       # 评分表/原因写法速查
+│   └── CLAUDE_CODE_DOCKER_*.md # Claude Code Docker 使用说明（Mac/Windows）
 └── templates/                  # task-info / round-file / 提交表表头
 ```
 
@@ -51,7 +53,7 @@ annotator = "你的名字"
 ```
 使用 claudccode 技能，新建任务，仓库 <本地路径或远端 URL>，
 计划做「Bug修复」，目标模块/现象 <一句话描述>，
-Harness=Claude Code，Harness版本=<版本>，操作系统=MacOS/Linux
+Harness=Claude Code，Harness版本=<版本>，操作系统=<MacOS/Linux 或 Windows>
 ```
 
 AI 会：校验仓库、检查凭据不入库、打初始快照并 push、填环境字段、起草首轮提示词（人工确认后写入）。

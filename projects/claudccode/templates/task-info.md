@@ -46,7 +46,7 @@
 <整个会话窗口 ID，所有轮同一值；首轮完成后回填>
 
 ## 轨迹根目录（轨迹文件）
-<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器 `cc <题号>` 做）→ records/{REPO}/{REPO}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>.jsonl）；首轮 SessionID 回填后定位>
+<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器做，题号 = 仓库目录名）→ records/{REPO}/{REPO}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>.jsonl）；首轮 SessionID 回填后定位>
 ```
 
 ## 字段说明

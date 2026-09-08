@@ -21,8 +21,11 @@ ai-eval-workspace/
 │   │   └── 04-export-submit.md
 │   ├── docs/
 │   │   ├── runbook.md
+│   │   ├── runbook-windows.md
 │   │   ├── structure-example.md
 │   │   ├── annotate-guide.md
+│   │   ├── CLAUDE_CODE_DOCKER_MAC.md
+│   │   ├── CLAUDE_CODE_DOCKER_windows.md
 │   │   └── ClaudeCcode 用户满意度标注.docx
 │   └── templates/
 │       ├── task-info.md
@@ -52,7 +55,7 @@ ai-eval-workspace/
                 └── solocc-0001-trajectory.jsonl   #   真实轨迹副本（从容器 /home/node/.claude/projects/-workspace-<题号>/.jsonl 导出，交付上传用）
 ```
 
-> 真实轨迹**复制一份**到 `records/{REPO}/{REPO}-trajectory.jsonl`（交付/上传用；重命名为仓库名，避免与原始 SessionID 文件名混淆）。Claude Code 在容器 `cc <题号>` 里做，轨迹先导出到本机（来源容器 `/home/node/.claude/projects/-workspace-<题号>/`）再复制为 `{REPO}-trajectory.jsonl`；Codex 在本机 `~/.codex/sessions/`。轨迹目录按 Harness 分行：Codex CLI→`~/.codex/sessions/`，Claude Code→`records/{REPO}/{REPO}-trajectory.jsonl`，不许填串。
+> 真实轨迹**复制一份**到 `records/{REPO}/{REPO}-trajectory.jsonl`（交付/上传用；重命名为仓库名，避免与原始 SessionID 文件名混淆）。Claude Code 在容器里做（题号 = 仓库目录名），轨迹先导出到本机（来源容器 `/home/node/.claude/projects/-workspace-<题号>/`）再复制为 `{REPO}-trajectory.jsonl`；Codex 在本机 `~/.codex/sessions/`。轨迹目录按 Harness 分行：Codex CLI→`~/.codex/sessions/`，Claude Code→`records/{REPO}/{REPO}-trajectory.jsonl`，不许填串。
 
 ---
 

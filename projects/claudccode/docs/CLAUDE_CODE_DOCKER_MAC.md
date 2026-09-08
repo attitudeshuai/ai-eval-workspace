@@ -336,7 +336,7 @@ Claude 会自行创建文件、执行命令并读取结果。生成的文件位�
 用 `docker cp` 把 Mac 上的文件或文件夹复制进**对应题号的目录**。以第 1 题为例，**请连着后半段一起复制执行**：
 
 ```bash
-docker cp ~/Desktop/我的项目 benzhi-claude-code:/workspace/01/ && docker exec -u root benzhi-claude-code chown -R node:node /workspace/01
+docker cp ~/Desktop/我的项目/. benzhi-claude-code:/workspace/01/ && docker exec -u root benzhi-claude-code chown -R node:node /workspace/01
 ```
 
 复制完成后执行 `docker exec -it benzhi-claude-code cc 01` 进入对话，Claude 即可读取和修改这些文件。
@@ -345,7 +345,7 @@ docker cp ~/Desktop/我的项目 benzhi-claude-code:/workspace/01/ && docker exe
 >
 > 万一忘了执行，也不用担心：进入对话时会看到「工作目录中存在当前用户无权修改的文件」的警告，按提示退出后补执行一次即可。
 
-> 若目标题号目录尚未创建，先执行一次 `docker exec benzhi-claude-code mkdir -p /workspace/01`，或者先用 `cc 01` 进一次对话（目录会自动创建）再复制。
+> 若目标题号目录尚未创建，先执行一次 `docker exec benzhi-claude-code mkdir -p /workspace/01`，或者先用 `cc 01` 进一次对话（目录会自动创建）再复制。注意：若目标目录已存在，`docker cp` 的源目录名后要带 `/.`（复制内容，而不是把目录本身嵌成子目录）。
 
 ### 查看容器里有哪些文件
 
@@ -691,16 +691,28 @@ Key 填错时无法直接修改，需要按 [Q4](#q4conflict-the-container-name-
 
 **③** 以上均正常仍失败时，联系管理员确认 Key 是否有效、过期或用量超额。
 
-### Q8：报 `model not found` 或 `invalid model`
+### Q8：报 `model not found` / `invalid model` / `403 key not allowed to access model`
 
-网关侧模型名称已变更，镜像内固化的模型名失效。请联系管理员发布新版镜像。
+镜像内固化的模型名与网关/Key 实际可用的模型不一致。三种典型报错：
 
-临时处理方式：删除容器后重建时追加 `-e ANTHROPIC_MODEL=新模型名` 覆盖：
+- `model not found` / `invalid model`：网关侧模型名已变更，镜像内固化的模型名失效。
+- `403 key not allowed to access model`：形如 `This key can only access models=['…']. Tried to access X`。你手上的 Key 只允许访问另一个模型名，而镜像固化的 `X` 不在允许列表里。
+
+临时处理方式：删除容器后重建，把所有模型相关环境变量覆盖为网关允许的模型名（只改 `ANTHROPIC_MODEL` 不够，Opus/Sonnet/Haiku 与子代理模型也要一起改）：
 
 ```bash
 docker rm -f benzhi-claude-code
-docker run -d --name benzhi-claude-code -e apikey=你的Key -e ANTHROPIC_MODEL=新模型名 adminfather/benzhi-claude-code
+docker run -d --name benzhi-claude-code \
+  -e apikey=你的Key \
+  -e ANTHROPIC_MODEL=新模型名 \
+  -e ANTHROPIC_DEFAULT_OPUS_MODEL=新模型名 \
+  -e ANTHROPIC_DEFAULT_SONNET_MODEL=新模型名 \
+  -e ANTHROPIC_DEFAULT_HAIKU_MODEL=新模型名 \
+  -e CLAUDE_CODE_SUBAGENT_MODEL=新模型名 \
+  adminfather/benzhi-claude-code
 ```
+
+模型名以管理员发放为准。可用 `docker exec benzhi-claude-code printenv ANTHROPIC_MODEL` 看当前固化值，再决定是否覆盖。
 
 ### Q9（仅 Intel 芯片 💻）：Docker Desktop 无法安装或打开即闪退
 
@@ -800,7 +812,7 @@ docker cp benzhi-claude-code:/home/node/.claude/projects ~/Desktop/claude-轨迹
 | 恢复某题上次的对话 | `docker exec -it benzhi-claude-code cc 01 --continue` |
 | 查看已做过哪些题 | `docker exec benzhi-claude-code ls -lh /workspace` |
 | 查看某题的文件 | `docker exec benzhi-claude-code ls -lh /workspace/01` |
-| 把本地代码放进某题 | `docker cp ~/Desktop/我的项目 benzhi-claude-code:/workspace/01/ && docker exec -u root benzhi-claude-code chown -R node:node /workspace/01` |
+| 把本地代码放进某题 | `docker cp ~/Desktop/我的项目/. benzhi-claude-code:/workspace/01/ && docker exec -u root benzhi-claude-code chown -R node:node /workspace/01` |
 | 导出某题的轨迹 | `docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-01 ~/Desktop/题01-轨迹` |
 | 导出某题的代码 | `docker cp benzhi-claude-code:/workspace/01 ~/Desktop/题01-代码` |
 | 修复某题的文件权限（报 `Permission denied` 时） | `docker exec -u root benzhi-claude-code chown -R node:node /workspace/01` |

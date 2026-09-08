@@ -22,7 +22,7 @@ description: "Claude Code / Codex 用户满意度标注。一个会话（任务�
 - **任务 = 会话**：同一个 `SessionID` 下的一个会话窗口。运行环境字段（Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照）同一会话各轮填**同一组值**。
 - **一轮 = 一条数据**：一次交互（用户提问 + 模型回答）。每条数据独立按五维打分，独立提交、独立验收。
 - **多数据归属**：一个任务可提交多条数据，每条来自该会话中的一轮对话；导出一轮一行。
-- **SessionID / TurnID**：`SessionID` 同一道题所有轮次填同一个值（把多轮聚合回一道题）；`TurnID/PromptID` 每轮唯一（Codex 取本轮 `task_started` 的 turn_id，Claude Code 取本轮 user 消息的 promptId）。**两者 agent 可从轨迹自取，无需用户手动回填**：Claude Code → 本机 `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器 `cc <题号>` 导出；`type==user` 且 content 为字符串的条目 promptId = TurnID；**一轮 = 一次用户键入**）；Codex CLI → `~/.codex/sessions/<SessionID>/`。多轮识别详见 [skills/02-round-capture.md](skills/02-round-capture.md)。
+- **SessionID / TurnID**：`SessionID` 同一道题所有轮次填同一个值（把多轮聚合回一道题）；`TurnID/PromptID` 每轮唯一（Codex 取本轮 `task_started` 的 turn_id，Claude Code 取本轮 user 消息的 promptId）。**两者 agent 可从轨迹自取，无需用户手动回填**：Claude Code → 本机 `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器导出，容器入口按操作系统见 runbook.md / runbook-windows.md；`type==user` 且 content 为字符串的条目 promptId = TurnID；**一轮 = 一次用户键入**）；Codex CLI → `~/.codex/sessions/<SessionID>/`。多轮识别详见 [skills/02-round-capture.md](skills/02-round-capture.md)。
 
 ## 技能列表
 
@@ -101,7 +101,10 @@ deliverables/claudccode/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv
 
 | 文档 | 说明 |
 |------|------|
-| [runbook.md](docs/runbook.md) | 逐步操作手册（指令模板） |
+| [runbook.md](docs/runbook.md) | 逐步操作手册（指令模板，Mac） |
+| [runbook-windows.md](docs/runbook-windows.md) | 逐步操作手册（指令模板，Windows） |
+| [CLAUDE_CODE_DOCKER_MAC.md](docs/CLAUDE_CODE_DOCKER_MAC.md) | Claude Code Docker 使用说明（Mac） |
+| [CLAUDE_CODE_DOCKER_windows.md](docs/CLAUDE_CODE_DOCKER_windows.md) | Claude Code Docker 使用说明（Windows） |
 | [structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 | [annotate-guide.md](docs/annotate-guide.md) | 评分表 / 原因写法 / 雷同题清单速查 |
 | [ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx) | 项目源规范 |

@@ -44,7 +44,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 > 任务 ID = **仓库目录名**（`repos/<repo>` 的目录名，如 `solocc-0001`）。记录目录与轮次文件都以它为前缀，便于与 `repos/` 一一对应。
 > 任务目录：`{RECORD_DIR}/{REPO}/`；共享字段文件：`{RECORD_DIR}/{REPO}/task-info.md`
 > 仓库：用户给的本地/远端路径（如 `{REPO_BASE_PATH}/{REPO}`）；记录目录名取该仓库目录名。
-> Claude Code 在 docker 容器（`benzhi-claude-code`）里以 `cc <题号>` 运行，**题号 = 仓库目录名（任务 ID）**，轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`；做题后需导出到本机 `records/{REPO}/` 供 `02-round-capture` 读取。
+> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**题号 = 仓库目录名（任务 ID）**，工作目录 `/workspace/<题号>`、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。做题后需导出到本机 `records/{REPO}/` 供 `02-round-capture` 读取。
 
 ## 输入（create 需向用户确认）
 
@@ -139,7 +139,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 <整个会话窗口 ID，所有轮同一值；首轮后回填>
 
 ## 轨迹根目录（轨迹文件）
-<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器 `cc <题号>` 做）→ 本机 records/{REPO}/{REPO}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
+<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器做，题号 = 仓库目录名）→ 本机 records/{REPO}/{REPO}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
 
 ## 首轮提示词（已确认）
 <首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {REPO}-R01.md>

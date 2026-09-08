@@ -179,6 +179,52 @@ docker cp benzhi-claude-code:/workspace/. ./all-projects-code
 
 确认 Docker Desktop 引擎已经启动，并处于 Linux 容器模式。下载超时需要检查访问 Docker Hub 的网络；出现 `toomanyrequests` 时，可登录 Docker Desktop 后重试。
 
+**启动 Docker 后，容器命令仍报「The system cannot find the file specified」（PIPE 连不上引擎）**
+
+报错形如 `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; The system cannot find the file specified`。意思是 `docker` 命令找不到正在运行的引擎，通常是 **Docker Desktop 没启动，或启动了但引擎还没就绪**。
+
+处理：
+
+1. 打开 Docker Desktop，等它启动完成、状态变为 running（Windows 任务栏/托盘图标稳定）。
+2. 用 `docker info` 确认能返回 `ServerVersion` 再继续；`docker version` 的 server 段非空即就绪。
+3. 确认处于 **Linux 容器模式**（本镜像为 linux/amd64，Windows 上须用 Linux 容器）。
+4. 重新执行 `docker run` 即可。
+
+**直连 Docker Hub 拉镜像超时 / 报网络错误**
+
+报错形如 `failed to resolve reference "docker.io/nicehey/benzhi-claude-code:1.0": … dialing registry-1.docker.io:443 … connection attempt failed`，是国内网络直连 Docker Hub 不通的典型表现。
+
+处理（任选其一）：
+
+1. 配置镜像加速器：Docker Desktop → Settings → Docker Engine → 在 JSON 里加 `"registry-mirrors": ["https://docker.1ms.run", "https://docker.xuanyuan.me"]` → Apply & restart。
+2. 不改配置，直接用加速地址拉取再打回标准标签：
+   ```powershell
+   docker manifest inspect docker.1ms.run/nicehey/benzhi-claude-code:1.0   # 先探测该加速源是否有此镜像
+   docker pull docker.1ms.run/nicehey/benzhi-claude-code:1.0
+   docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-code:1.0
+   ```
+   之后文档里的 `docker run … nicehey/benzhi-claude-code:1.0` 依然可用。
+
+**进容器后 Claude 报「key not allowed to access model」（403）**
+
+报错形如 `403 key not allowed to access model. This key can only access models=['auto_model/urm']. Tried to access ark/urm-01`。说明镜像里固化的模型名和你的 Key 实际可访问的模型对不上。
+
+处理：重建容器，把所有模型相关环境变量覆盖成网关允许的模型名（以 `auto_model/urm` 为例）：
+
+```powershell
+docker rm -f benzhi-claude-code
+docker run -d --name benzhi-claude-code `
+  -e "apikey=你的Key" `
+  -e "ANTHROPIC_MODEL=auto_model/urm" `
+  -e "ANTHROPIC_DEFAULT_OPUS_MODEL=auto_model/urm" `
+  -e "ANTHROPIC_DEFAULT_SONNET_MODEL=auto_model/urm" `
+  -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=auto_model/urm" `
+  -e "CLAUDE_CODE_SUBAGENT_MODEL=auto_model/urm" `
+  nicehey/benzhi-claude-code:1.0
+```
+
+模型名以管理员发放为准；可先用 `docker exec benzhi-claude-code printenv ANTHROPIC_MODEL` 看镜像固化值，再决定是否覆盖。
+
 **提示 key 中有换行（Invalid auth token / contains a line break）**
 
 这表示复制 key 时混入了换行或多余内容，请求还没有发出去。例如，报错中的 `contains a line break at character 26` 表示第 26 个字符处有换行。
