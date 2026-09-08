@@ -65,7 +65,7 @@ annotator = "张三"
 
 > **⚠️ 建任务前先建新远程仓库（前置）**：来源仓库（如 `gsb0731-xxx`）是已使用/共享仓库，**不能直接提交**。进入第 1 步前，先用 `github_username` + PAT 为它**新建一个全新的远程仓库**（命名建议 `claudccode-{REPO}`，如 `claudccode-solocc-0001`），并把本地远端（origin）指到该新仓库。之后快照、模型交互、提交都基于这个新仓库。
 >
-> 快照要求：仓库需 push 到评测团队可访问的**新**远端；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
+> 快照要求：仓库需 push 到评测团队可访问的**新**远端（设为 **public** 公开仓库，或至少加协作者）；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
 
 ---
 
@@ -111,8 +111,22 @@ records/solocc-0001/task-info.md
 > 与 Mac 版不同：Windows 镜像**没有 `cc` 快捷入口**，需要 `bash` 进入容器、手动 `claude` 启动；且普通 `claude` 未跳过权限确认，执行命令/改文件前会询问。
 >
 > 若复用的是别人已建好的容器、名称不是 `benzhi-claude-code`（如 `benzhi-claude-code-test-20260907`），请把下面所有命令里的 `benzhi-claude-code` 换成实际容器名（`docker ps -a` 可查）。
->
-> ⚠️ **模型名可能需覆盖**：镜像默认固化某个模型名（如 `ark/urm-01`）。若网关实际只允许别的模型（如 `auto_model/urm`），进入后 Claude 会报 `403 … not allowed to access model`。此时重建容器时用 `-e ANTHROPIC_MODEL=…`（连同 `ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL`、`CLAUDE_CODE_SUBAGENT_MODEL`）覆盖为网关允许的模型名。
+
+### 前置：确保容器可用（首次启动 + 三个踩坑）
+
+首次启动容器（之后复用只需 `docker start benzhi-claude-code`）：
+
+```powershell
+docker run -d --name benzhi-claude-code -e "apikey=你的Key" nicehey/benzhi-claude-code:1.0
+```
+
+跑之前先看这三个最常踩的坑，出事按序处理：
+
+- **PIPE 连不上引擎**：报错 `failed to connect to the docker API at npipe://… dockerDesktopLinuxEngine … The system cannot find the file specified`，说明 Docker Desktop 没启动或引擎未就绪。打开 Docker Desktop，等 `docker info` 能返回 `ServerVersion`，确认处于 **Linux 容器模式**，再执行 `docker run`。
+- **直连 Docker Hub 拉镜像超时**：报错 `dialing registry-1.docker.io:443 … connection attempt failed`，是国内网络访问 Docker Hub 不通。或在 Docker Desktop 配 `registry-mirrors`，或改用加速地址拉取再打回标准标签，例如 `docker pull docker.1ms.run/nicehey/benzhi-claude-code:1.0` → `docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-code:1.0`。
+- **进容器后 Claude 报 `403 key not allowed to access model`**（`can only access models=['…']. Tried to access ark/urm-01`）：镜像固化的模型名与 Key 实际可访问的模型不一致。重建容器时把所有模型环境变量覆盖成网关允许的模型名（`-e ANTHROPIC_MODEL=…` 连同 `-e ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL=…`、`-e CLAUDE_CODE_SUBAGENT_MODEL=…`）。
+
+详细排障见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「常见问题」。
 
 1. **把仓库放进容器**（首次做该题，把本机 `repos/<repo>` 复制进容器对应题号目录；在 PowerShell 中执行）：
    ```powershell
@@ -129,28 +143,24 @@ records/solocc-0001/task-info.md
    ```bash
    claude
    ```
-   首次进入可能询问界面主题、显示安全提示、或询问是否信任当前目录（选择信任，路径应与 `/workspace/<REPO>` 一致）。粘贴首轮提示词，开始对话；多轮直接在 Claude 里继续发消息即可。
-   > ⚠️ Windows 镜像未启用 `--dangerously-skip-permissions`，Claude 每次执行命令、创建/修改文件前都会询问，**确认操作内容后选择「允许」**。若不确认、拒绝或漏点，Claude 会停在那里等你处理。
-3. **退出对话，回到 PowerShell**（需要退出两次）：
-   - 在 Claude 对话框输入 `/exit` 回车 → 回到 `node@…:/workspace/<REPO>$` 容器提示符
-   - 再输入 `exit` 回车 → 回到以 `PS` 开头、含 Windows 路径的 PowerShell
-4. **把容器里的轨迹导出到本机**（在 PowerShell 中执行；题号=仓库名，故容器内目录为 `-workspace-<REPO>`，导出到任务记录目录）：
+   首次进入可能询问界面主题、显示安全提示、或询问是否信任当前目录（选择信任，路径应与 `/workspace/<REPO>` 一致）。
+3. **做本轮对话**（默认推荐：一个 Claude 会话里连续发多轮，不退出）：
+   - 第 1 轮：粘贴首轮提示词（见第 1 步产物 / `task-info.md` 的「首轮提示词」），开始对话。
+   - 继续下一轮：直接在**同一个** Claude 会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
+   - ⚠️ Windows 镜像未启用 `--dangerously-skip-permissions`，Claude 每次执行命令、创建/修改文件前都会询问，**确认操作内容后选择「允许」**。
+4. **把容器里的轨迹导出到本机**（推荐：另开一个 PowerShell 窗口执行，**无需退出 Claude**；题号=仓库名，故容器内目录为 `-workspace-<REPO>`，导出到任务记录目录）：
    ```powershell
    docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<REPO>/. <本机 records\<REPO> 路径>
    ```
-   导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
-   > 请保留整个文件夹结构，不要只挑一个 JSONL：目录里可能还有同名会话文件夹（子代理记录、工具输出），交付/上传需要它们。若提示「找不到目录」，先确认已在对应工作目录启动过 Claude、发过消息并按上一步正常退出，再用 `docker exec benzhi-claude-code ls -1 /home/node/.claude/projects` 核对实际轨迹目录名。
+   - `docker cp` 读的是容器文件系统，与正在进行的会话互不干扰：Claude 窗口照常开着、不用 `/exit`。
+   - ⚠️ 导出时机：等 Claude 把当前这轮答完、处于等待你输入的静止状态再拷（别在它正跑工具、消息还没落盘时拷，否则最新几条可能不完整）。
+   - 导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
+   - 请保留整个文件夹结构，不要只挑一个 JSONL：目录里可能还有同名会话文件夹（子代理记录、工具输出），交付/上传需要它们。若提示「找不到目录」，先确认已在对应工作目录启动过 Claude、发过消息（轨迹才会生成），再用 `docker exec benzhi-claude-code ls -1 /home/node/.claude/projects` 核对实际轨迹目录名。
+5. **（可选）退出会话 + 下次怎么接着做**：如果确实想退出 Claude：
+   - 退出两次：Claude 对话框输入 `/exit` 回车 → 回到 `node@…:/workspace/<REPO>$` 容器提示符；再输入 `exit` 回车 → 回到以 `PS` 开头、含 Windows 路径的 PowerShell。
+   - **下次继续下一轮**：进容器后**不要用裸 `claude`**（会新建一个 SessionID，打破「一个任务 = 一个会话窗口」），改用 `claude --continue`（恢复当前目录最近一次会话，同一 SessionID）或 `claude --resume <SessionID>`。详见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「如何恢复历史会话」。
 
-   ### 会话处理：推荐「不退出 + 另开窗口」模式（重要）
-
-   一套会话（一个任务）的几轮对话必须落在**同一个 SessionID**（一个会话窗口）里。核心规则与推荐做法：
-
-   - **默认推荐：进入后不退出 Claude**。一个 `claude` 会话里连续发多轮消息（第 1 轮 → 第 2 轮 → …，如直接输入「继续」「再改成…」），轮次随会话递增、SessionID 不变；所有轮次做完后再按上面的第 3 步退出一次。
-   - **导出轨迹用另一个窗口**：`docker cp` 读的是容器文件系统，与正在进行的会话互不干扰。另开一个 PowerShell 窗口执行上面第 4 步的 `docker cp` 即可，Claude 窗口照常开着，无需 `/exit`。
-     > ⚠️ 导出时机：等 Claude 把当前这轮答完、处于等待你输入的静止状态再拷（别在它正跑工具、消息还没落盘时拷，否则最新几条可能不完整）。
-   - **为什么不能退出后直接 `claude`**：退出后再执行裸 `claude`（不带参数）会新建一个会话（新 SessionID），把「一个任务 = 一个会话窗口」打破，导致该任务的轮次分散在不同 SessionID，round-capture 无法按「同一会话」聚合成一道题。
-
-   **如果确实要退出再接**：下次进入容器后**不要用裸 `claude`**，改用 `claude --continue`（恢复当前目录最近一次会话，同 SessionID）或 `claude --resume <SessionID>`。详见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「如何恢复历史会话」。
+> 💡 一句话：**一个任务的几轮对话必须落在同一个 SessionID（一个会话窗口）里。** 默认就**别退出**，一个 `claude` 会话连发多轮；导出轨迹**另开窗口**跑 `docker cp`，不用 `/exit`。要退出就记住用 `claude --continue` 恢复。
 
 ---
 

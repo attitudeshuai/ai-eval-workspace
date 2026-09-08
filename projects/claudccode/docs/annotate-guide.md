@@ -107,7 +107,7 @@
 - 用户输入「继续」的轮次：prompt 可写「继续」，任务类型/难度综合上一轮原始需求判断；评价标准仍是上一轮用户希望模型完成的任务。
 - 前几轮翻车但最后一轮修正：前几轮通常低分，最后一轮按本轮表现单独评（反复自纠磕绊→体感差；高效回归→可高分）。
 - 多模态 prompt：除 prompt 外需另传「prompt附件」字段（本模板内部字段可承载）。
-- 快照：填 commit permalink（`https://github.com/<org>/<repo>/commit/<40位完整SHA>`），用完整 SHA；仓库 push 到评测团队可访问远端；禁止 force-push/rebase 改写已提交快照；凭据（.env、密钥、token）不得进仓库。
+- 快照：填 commit permalink（`https://github.com/<org>/<repo>/commit/<40位完整SHA>`），用完整 SHA；仓库 push 到评测团队可访问远端（设为 public 公开仓库，或至少加协作者）；禁止 force-push/rebase 改写已提交快照；凭据（.env、密钥、token）不得进仓库。
 
 ## 9. 评分与描述一致性自查（质检红线，避免自相矛盾）
 

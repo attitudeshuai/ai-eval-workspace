@@ -66,7 +66,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
    - 用 `github_username` + PAT（`secrets.toml [github] github_pat`）创建新仓库，命名建议 `claudccode-{REPO}`（`{REPO}`=仓库目录名，如 `claudccode-solocc-0001`）；
    - 把本地远端（origin）指到该新仓库（`git remote set-url origin <新仓库>`)；
    - 之后基线提交、初始快照、模型交互都基于这个新仓库；来源仓库只作为初始内容来源，不再向其提交。
-5. 确认新仓库可 push且评测团队可访问（公开或已加协作者）；如需才回退来源仓库，须人工确认。
+5. 确认新仓库可 push且评测团队可访问（设为 **public** 公开仓库，或至少加协作者）；如需才回退来源仓库，须人工确认。
 
 ### 2. 打初始环境快照
 

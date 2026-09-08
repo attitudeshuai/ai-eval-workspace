@@ -48,7 +48,7 @@ annotator = "张三"
 
 > **⚠️ 建任务前先建新远程仓库（前置）**：来源仓库（如 `gsb0731-xxx`）是已使用/共享仓库，**不能直接提交**。进入第 1 步前，先用 `github_username` + PAT 为它**新建一个全新的远程仓库**（命名建议 `claudccode-{REPO}`，如 `claudccode-solocc-0001`），并把本地远端（origin）指到该新仓库。之后快照、模型交互、提交都基于这个新仓库。
 >
-> 快照要求：仓库需 push 到评测团队可访问的**新**远端；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
+> 快照要求：仓库需 push 到评测团队可访问的**新**远端（设为 **public** 公开仓库，或至少加协作者）；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
 
 ---
 
@@ -88,6 +88,8 @@ records/solocc-0001/task-info.md
 ## 第 2 步：与模型交互（用户在容器内的 Claude Code / 本机 Codex 中）
 
 > Claude Code 跑在 docker 容器（`benzhi-claude-code`）里，**题号直接用仓库目录名（任务 ID）**，如 `cc solocc-0001`（Mac 文档里的 `cc 01` 只是演示题号）。这样一题一个 `/workspace/<题号>`，轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。Codex CLI 仍在本机跑，轨迹在本机 `~/.codex/sessions/`。
+>
+> 容器需已创建并运行（首次创建见 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md)第 3 步）。若容器启动/拉镜像/模型出错（`command not found: docker`、拉镜像超时、`model not found` / `403 key not allowed to access model`），按该文档「常见问题」Q1 / Q3 / Q8 处理。
 
 1. **把仓库放进容器**（首次做该题，把本机 `repos/<repo>` 复制进容器对应题号目录并修正归属，否则 Claude 只能读不能改）：
    ```bash
@@ -99,14 +101,23 @@ records/solocc-0001/task-info.md
    ```bash
    docker exec -it benzhi-claude-code cc <REPO>
    ```
-   粘贴首轮提示词，开始对话；多轮直接在 Claude 里继续发消息即可。
-3. **把容器里的轨迹导出到本机**（题号=仓库名，故容器内目录为 `-workspace-<REPO>`；导出到任务记录目录）：
+   首次进入可能询问是否信任当前目录，选信任（路径应与 `/workspace/<REPO>` 一致）。
+3. **做本轮对话**（默认推荐：一个 `cc` 会话里连续发多轮，不退出）：
+   - 第 1 轮：粘贴首轮提示词（见第 1 步产物 / `task-info.md` 的「首轮提示词」），开始对话。
+   - 继续下一轮：直接在**同一个** `cc <REPO>` 会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
+4. **把容器里的轨迹导出到本机**（推荐：另开一个终端窗口执行，**无需退出 Claude**；题号=仓库名，故容器内目录为 `-workspace-<REPO>`；导出到任务记录目录）：
    ```bash
    docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<REPO>/. <本机 records/<REPO>/>
    ```
-   导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
+   - `docker cp` 读的是容器文件系统，与正在进行的会话互不干扰：Claude 窗口照常开着、不用 `exit`。
+   - ⚠️ 导出时机：等 Claude 把当前这轮答完、处于等待你输入的静止状态再拷（别在它正跑工具、消息还没落盘时拷，否则最新几条可能不完整）。
+   - 导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
+   - 请保留整个文件夹结构，不要只挑一个 JSONL：目录里可能还有同名会话文件夹（子代理记录、工具输出），交付/上传需要它们。若提示「找不到目录」，先确认已在对应工作目录启动过 Claude、发过消息（轨迹才会生成），再用 `docker exec benzhi-claude-code ls -1 /home/node/.claude/projects` 核对实际轨迹目录名。
+5. **（可选）退出会话 + 下次怎么接着做**：如果确实想退出 Claude：
+   - 在 Claude 对话框输入 `/exit` 回车，退回 Mac 主机终端（Mac 端这一步即可，容器仍在后台运行）。
+   - **下次继续下一轮**：进容器后**不要用裸 `cc <REPO>`**（会新建一个 SessionID，打破「一个任务 = 一个会话窗口」），改用 `cc <REPO> --continue`（恢复当前目录最近一次会话，同一 SessionID）或 `cc <REPO> --resume <SessionID>`。详见 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md)「常用操作」中的 `--continue` / `--resume`。
 
-> **会话处理（重要，Mac/Windows 相同）**：一个任务的几轮对话必须落在同一个 SessionID（一个会话窗口）。**推荐进入后不退出**，一个 `cc <题号>` 会话里连发多轮；导出轨迹**另开一个终端窗口**执行上面的 `docker cp` 即可，无需 `exit`（等 Claude 处于等待输入的静止状态再拷）。若确实要退出再接，下次用 `cc <题号> --continue`（或 `cc <题号> --resume <SessionID>`）恢复同一会话；不要用裸 `cc <题号>`——否则新建会话、换 SessionID，打破「一个任务 = 一个会话窗口」。
+> 💡 一句话：**一个任务的几轮对话必须落在同一个 SessionID（一个会话窗口）里。** 默认就**别退出**，一个 `cc <题号>` 会话连发多轮；导出轨迹**另开窗口**跑 `docker cp`，不用 `exit`。要退出就记住用 `cc <题号> --continue` 恢复。
 
 ---
 
