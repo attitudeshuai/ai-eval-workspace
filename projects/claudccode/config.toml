@@ -1,0 +1,135 @@
+[project]
+id = "claudccode"
+name = "Claude Code / Codex 用户满意度标注"
+description = "还原真实 Coding Agent 使用反馈信号：在 Claude Code / Codex CLI 中按真实用户口径出题与交互，一个会话（任务）内至多 10 轮，每一轮对话为一条数据，按五维打分并输出正式提交表。"
+owner = "ai-evaluation-workspace"
+created_at = "2026-09-07T00:00:00Z"
+
+# ============================================================
+# 项目模式说明
+# ============================================================
+#   1. 任务 = 一个会话窗口（Harness：Claude Code 或 Codex CLI），窗口内 ≤ 10 轮
+#   2. 一轮 = 一次交互（用户提问 + 模型回答）= 一条数据
+#   3. 运行环境字段（Harness/版本/OS/可复现等级/快照）同一会话各轮填同一组值
+#   4. 打分：对每一轮单独按五维（交付完整性/指令遵循/任务规划/推理能力/执行能力）1-5 打分
+#   5. 提交表：每个有效轮次导出为一行
+#   6. 质量红线：AI 生成的提示词与交付文本必须先经 humanizer-zh 去 AI 化 + 人工复核后再使用/投递
+# ============================================================
+
+[paths]
+# ---- 所有路径以 ai-eval-workspace 为基准（工作台内闭环，不引用外部） ----
+# work_root: session 工作数据根目录，拼接为 work_root/{SESSION_NAME}/
+work_root = "sessions/claudccode"
+# repo_base_path: 会话内被标注仓库的工作副本根，拼接为 work_root/{SESSION_NAME}/{repo_base_path}/
+repo_base_path = "repos"
+# records_dir: 会话内任务记录根，拼接为 work_root/{SESSION_NAME}/{records_dir}/
+records_dir = "records"
+# deliverables: 正式提交表输出根
+deliverables_root = "deliverables/claudccode"
+
+# 任务信息文件（每个任务目录下一份，存共享的会话/环境字段）
+session_task_info = "task-info.md"
+# 每轮数据文件命名：{REPO}-R{NN}.md（NN 两位补零；REPO = 仓库目录名 = 任务 ID）
+round_file_prefix = "R"
+
+[task_types]
+# 支持的 7 种任务类型（按本轮对话的主要意图归类，一轮只选一个）
+types = [
+    "0-1代码生成",
+    "Feature迭代",
+    "Bug修复",
+    "代码理解",
+    "代码重构",
+    "工程化",
+    "代码测试"
+]
+# 类型别名映射（用户输入简写 → 标准名称）
+aliases = { "codegen" = "0-1代码生成", "feature" = "Feature迭代", "bugfix" = "Bug修复", "understand" = "代码理解", "refactor" = "代码重构", "engineering" = "工程化", "test" = "代码测试" }
+
+# 按天维度的分布偏序（优先级从高到低分组）：
+#   0-1代码生成 / Feature迭代 / Bug修复 > 代码理解 ≈ 代码重构 > 其他
+distribution_priority = [
+    ["0-1代码生成", "Feature迭代", "Bug修复"],
+    ["代码理解", "代码重构"],
+    ["工程化", "代码测试"]
+]
+
+[difficulty]
+# 任务难度（从人类执行的视角判断）
+levels = ["简单", "中等", "困难", "地狱"]
+# 首轮任务严禁提交「简单」；后续轮次中因模型产物质量不佳而产生的简单 bugfix 可提交
+first_round_forbidden = ["简单"]
+
+[harness]
+# 承载模型的客户端；决定 system prompt、工具集与 agent loop
+# 同一模型在不同 Harness 下的表现不可直接互比
+options = ["Claude Code", "Codex CLI"]
+
+[os]
+options = ["MacOS/Linux", "Windows"]
+
+[trajectory]
+# 轨迹文件按「哪个 CLI 做的」分行存放，须与 Harness 对应：
+#   Codex CLI   → ~/.codex/sessions/<SessionID>/
+#   Claude Code → ~/.claude/projects/<项目目录名>/<SessionID>/
+# task-info「轨迹根目录（轨迹文件）」填对应前缀下目录；导出/质检校验前缀一致性
+codex_root = "~/.codex/sessions"
+claude_root = "~/.claude/projects"
+
+[reproducibility]
+# 环境可复现等级：用于筛选可做同题双跑的样本
+#   无外部依赖：clone 后即可运行
+#   有外部依赖，未容器化：依赖数据库/外部服务/本机特定配置，无法直接重跑
+#   已容器化，可一键起环境：仓库内提供 docker-compose 或等价一键启动方式
+levels = ["无外部依赖", "有外部依赖，未容器化", "已容器化，可一键起环境"]
+
+[scoring]
+# 五维打分（每轮单独打分，1-5 整数；五个「-描述」均必填）
+dimensions = ["交付完整性", "指令遵循", "任务规划", "推理能力", "执行能力"]
+score_min = 1
+score_max = 5
+
+[limits]
+# 一个会话窗口内不超过 10 轮对话；对话满 10 轮后无论是否完成任务都不应继续引导
+max_rounds = 10
+
+[sessions]
+# 当前活跃的 session 名称，切换时只需改这一行
+active = "session-0907"
+
+[naming]
+# 任务 ID 现直接用仓库目录名（repos/<repo> 的目录名，如 solocc-0001），记录目录与轮次文件都以它为前缀。
+# 保留 task_prefix 仅为兼容旧写法/命名提示；新建任务不再拼成 cc-N。
+task_prefix = "cc"
+
+[github]
+# 为每个任务「新建独立远程仓库」并推送干净基线用。
+# username = 拥有创建仓库权限的 GitHub 账号；PAT 写在 secrets.toml [github] github_pat（敏感，不进 git）
+username = "qianmo317"
+
+[delivery]
+# 正式提交表命名：{delivery.filename_prefix}-{SESSION_NAME}-{date}.csv
+filename_prefix = "正式提交表"
+
+# ============================================================
+# 飞书多维表格（正式提交表投递目标，每轮一条数据=追加一条记录）
+# ============================================================
+# 文档地址：https://hcnmzflgf8a7.feishu.cn/base/Lg0mbjRpPaxjhmsj27MckrJLnec?table=tble0z2KnzCfjJmZ&view=vewsm2UFiX
+# 表头：User Prompt/SessionID/TurnID/PromptID/初始环境快照/环境可复现等级/Harness/
+#   Harness 版本/操作系统/任务类型/任务难度/语言/框架/五维分数与「X - 描述」/其他问题/提交人/提交时间/父记录
+# 注意命名差异：描述列带空格（如「交付完整性 - 描述」）、任务类型选项用「feature迭代」
+# app_id / app_secret 属敏感信息：默认复用 projects/code-eval-gsb/secrets.toml [feishu]，
+#   也可写在 projects/claudccode/secrets.toml [feishu] 覆盖
+# 前置要求：
+#   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
+#   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
+[feishu]
+app_token = "Lg0mbjRpPaxjhmsj27MckrJLnec"
+table_id = "tble0z2KnzCfjJmZ"
+view_id = "vewsm2UFiX"
+
+[secrets]
+# 敏感配置集中管理文件（已加入 .gitignore，不提交）
+# 首次使用请复制 secrets-simple.toml → secrets.toml 并填入真实值
+file = "secrets.toml"
+template = "secrets-simple.toml"
