@@ -126,3 +126,7 @@ sessions/pairwise-gsb/demo/**/original.xlsx
 
 /.tmp
 /.npm-cache
+
+# claudccode: 保留标注 demo（session-0907/records/html-demo），repos 含嵌套 .git 仍忽略
+!/sessions/claudccode/
+/sessions/claudccode/*/repos/
