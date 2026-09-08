@@ -63,6 +63,7 @@ def _load_config():
         "delivery.filename_prefix", "task_types.types",
         "difficulty.levels", "difficulty.first_round_forbidden",
         "scoring.dimensions", "scoring.score_min", "scoring.score_max",
+        "harness.claude_code_version",
     }
     cfg = {}
     try:
@@ -81,6 +82,7 @@ def _load_config():
                     cfg["types"] = data.get("task_types", {}).get("types", cfg.get("types"))
                     cfg["dims"] = data.get("scoring", {}).get("dimensions", cfg.get("dims"))
                     cfg["first_forbidden"] = data.get("difficulty", {}).get("first_round_forbidden", cfg.get("first_forbidden"))
+                    cfg["claude_code_version"] = data.get("harness", {}).get("claude_code_version", cfg.get("claude_code_version"))
                     # secrets.toml 覆盖
                     if p == SECRETS_PATH:
                         cfg["active"] = data.get("active_session", cfg.get("active"))
@@ -95,6 +97,7 @@ def _load_config():
             "max_rounds": int(simple.get("limits.max_rounds", "10")),
             "filename_prefix": simple.get("delivery.filename_prefix", "正式提交表"),
             "types": None, "dims": None, "first_forbidden": ["简单"],
+            "claude_code_version": simple.get("harness.claude_code_version", ""),
         }
     cfg.setdefault("max_rounds", 10)
     cfg.setdefault("task_prefix", "cc")
@@ -105,6 +108,7 @@ def _load_config():
     cfg.setdefault("types", ["0-1代码生成", "Feature迭代", "Bug修复", "代码理解", "代码重构", "工程化", "代码测试"])
     cfg.setdefault("dims", ["交付完整性", "指令遵循", "任务规划", "推理能力", "执行能力"])
     cfg.setdefault("first_forbidden", ["简单"])
+    cfg.setdefault("claude_code_version", "")
     return cfg
 
 
@@ -198,6 +202,9 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
     row["初始环境快照"] = info.get("初始环境快照", "")
     row["Harness"] = info.get("Harness", "")
     row["Harness版本"] = info.get("Harness版本", "")
+    # 导出自动带入配置里的 Claude Code 默认版本（避免每任务手填/填错；仅对 Claude Code）
+    if row["Harness"] == "Claude Code" and cfg.get("claude_code_version"):
+        row["Harness版本"] = cfg["claude_code_version"]
     row["操作系统"] = info.get("操作系统", "")
     row["环境可复现等级"] = info.get("环境可复现等级", "")
     row["SessionID"] = info.get("SessionID", "")

@@ -64,6 +64,9 @@ first_round_forbidden = ["简单"]
 # 承载模型的客户端；决定 system prompt、工具集与 agent loop
 # 同一模型在不同 Harness 下的表现不可直接互比
 options = ["Claude Code", "Codex CLI"]
+# Claude Code 默认客户端版本：导出提交表时自动带入「Harness版本」列，避免每任务手填/填错
+# 以容器内 `claude --version` 输出为准；换容器/升级后改这里
+claude_code_version = "2.1.236"
 
 [os]
 options = ["MacOS/Linux", "Windows"]
@@ -105,7 +108,7 @@ task_prefix = "cc"
 [github]
 # 为每个任务「新建独立远程仓库」并推送干净基线用。
 # username = 拥有创建仓库权限的 GitHub 账号；PAT 写在 secrets.toml [github] github_pat（敏感，不进 git）
-username = "qianmo317"
+username = ""
 
 [delivery]
 # 正式提交表命名：{delivery.filename_prefix}-{SESSION_NAME}-{date}.csv

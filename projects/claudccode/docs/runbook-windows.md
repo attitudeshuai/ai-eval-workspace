@@ -79,11 +79,11 @@ cc solocc-0001 create
 计划任务类型: 0-1代码生成
 目标: 在划词插件里从零构建完整生词管理系统
 Harness: Claude Code
-Harness版本: 1.0
+Harness版本: 2.1.236
 操作系统: Windows
 ```
 
-> Windows 下 `Harness版本` 填 Windows 镜像 `nicehey/benzhi-claude-code:1.0` 对应的 Claude Code 实际版本（以 `claude --version` 输出为准）。
+> Windows 下 `Harness版本` 默认读取 `config.toml [harness] claude_code_version`（当前 `2.1.236`，即镜像内 `claude --version` 输出）；导出提交表时自动带入，无需手填。
 
 ### AI 会执行
 

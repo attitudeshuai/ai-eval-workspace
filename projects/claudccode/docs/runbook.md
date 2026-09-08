@@ -62,9 +62,11 @@ cc solocc-0001 create
 计划任务类型: 0-1代码生成
 目标: 在划词插件里从零构建完整生词管理系统
 Harness: Claude Code
-Harness版本: 2.1.263
+Harness版本: 2.1.236
 操作系统: MacOS/Linux
 ```
+
+> **`Harness版本`**：默认读取 `config.toml [harness] claude_code_version`（当前 `2.1.236`），导出提交表时自动带入，无需手填。
 
 ### AI 会执行
 
