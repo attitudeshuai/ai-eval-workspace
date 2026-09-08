@@ -92,7 +92,7 @@ swe restic-01 run
 ### AI 会执行（用户粘贴对话后）
 
 1. **取证**：trajectory（`.trae/cli/sessions/` → `evidence/trajectory.jsonl` 等）+ `evidence/model.patch`（diff 基准 = base_commit）+ `evidence/screenshots/`
-2. **验证 + 截图**：在 worktree 里复跑验证（pytest / go test，复用会话里命令与 PYTHONPATH/GOPROXY），确认成功与回归；把验证结果渲染成 PNG 存 `evidence/screenshots/`（至少 1 张）
+2. **验证 + 截图**：在 worktree 里复跑验证（pytest / go test，复用会话里命令与 PYTHONPATH/GOPROXY），确认成功与回归；把验证结果渲染成 PNG 存 `evidence/screenshots/`（至少 1 张）。若用 Docker 容器复跑验证，**同一仓库多分支并行验证时容器名与挂载目录必须按分支名区分**（如 `--name caddy-06`），共享可写的 Go module cache 用 `-v <host ModCache>:/go/pkg/mod` 挂载且多分支并发时只读或按分支隔离，避免同名容器/并发写缓存互相干扰。
 3. **算有效轮数**：有效轮数 = 有效 TC，TraeCode CN/Trae 用 Hook、TraeX 用 `count_steps.py`、miniswe 取 `api_calls`（见 `skills/02-step-count.md`）
 4. **填 task.toml**：`trae_session_id`、`effective_turns`、`harness`、`seed_model`
 5. **commit 到 fork**：只含模型改动的单独 commit，push 后记 commit URL（见 `docs/内部规范-v1.md`）

@@ -11,7 +11,7 @@ description: "多模型代码对比评估（GSB）。源码推送 GitHub → 创
 
 | 序号 | 技能 | 文件 | 说明 |
 |:--:|------|------|------|
-| 1 | **提示词生成** | [skills/01-prompt-generate.md](skills/01-prompt-generate.md) | 源码推送 GitHub → 创建分支 → 生成提示词 → 写入结果文件 |
+| 1 | **提示词生成** | [skills/01-prompt-generate.md](skills/01-prompt-generate.md) | 源码推送 GitHub → 创建分支（含 ignore 文件 / 固定端口环境检查）→ 生成提示词 → 写入结果文件 |
 | 2 | **轮次分析** | [skills/02-round-review.md](skills/02-round-review.md) | 逐轮评价模型回答，满意/不满意判定，追问提示词生成 |
 | 3 | **汇总** | [skills/03-summary-analysis.md](skills/03-summary-analysis.md) | 读取全部对话+代码变更，5 基础维度打分 + 4 Add-on 维度，GSB对比结论，生成汇总表单 |
 | 4 | **交付导出** | [skills/04-export-delivery.md](skills/04-export-delivery.md) | 汇总确认后，把表单追加为一条记录到飞书多维表格（地址见 config.toml `[feishu]`） |

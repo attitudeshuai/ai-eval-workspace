@@ -38,7 +38,8 @@ description: "SWE 题目创建：给定一个 Repo，独立出一道真实且有
 - 每个 repo 一次出 **10 个候选提示词**，集中写入 `sessions/swe-like/<session>/tasks/{repo}/prompt-candidates.md`；不同 repo 不混放。
 - 候选入池前三重自检：①本地代码验证功能不存在（grep 证据）；②公开 Issues 查重（open + closed，见下）；③难度门槛自检（见下）。
 - 池内每条记录：题名、base_commit、复杂度要点（命中的难度维度）、查重证据（搜索词 + issue 编号 + 排除理由）、提示词正文。
-- 候选**通过需求预检后**才落地：用户反馈通过编号（如 `swe {repo} create 通过：候选 1、2`），AI 逐条把正文复制进任务目录的 instruction.md，补齐 rubric / Dockerfile / task.toml，检查分支与 worktree 是否就位，并跑 `preflight_check.py --stage create` 自检。
+- 候选**通过需求预检后**才落地：用户反馈通过编号（如 `swe {repo} create 通过：候选 1、2`），AI 逐条把正文复制进任务目录的 instruction.md，补齐 rubric / Dockerfile / task.toml，检查分支与 worktree 是否就位（缺则在 base_commit 上创建），并跑 `preflight_check.py --stage create` 自检。
+- **建分支/worktree 后，确保工作台产物被 git 忽略**：每个 worktree 里 `.trae/`、`evidence/`（含验证截图/日志）必须被忽略，否则会混进 commit/推送到 fork。优先写入该 worktree 的 `.git/info/exclude`（本地、不跟踪、不污染 diff），不要改 tracked 的 `.gitignore`。可用 `scripts/swe-like/prepare_worktree.py <worktree> <分支名>` 自动完成并顺带打印该分支专属端口。
 - 被击毙的方向（撞 issue / base 已实现 / 超出 repo 能力）记入该文件末尾的「调研阵亡名单」，防止重复踩坑。
 
 ## 执行流程

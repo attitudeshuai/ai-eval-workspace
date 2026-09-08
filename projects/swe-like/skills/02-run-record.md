@@ -39,6 +39,8 @@ description: "SWE 运行记录：把 instruction.md 需求 Prompt 提交给 Trae
    - screenshots：至少 1 张运行结果截图，放 `evidence/screenshots/`
 4. **验证 + 截图（AI 执行，用户粘贴对话后触发）**：
    - 在对应 worktree 里**运行验证**：Python 跑 pytest / Go 跑 go test，优先复用会话里模型自跑的命令与环境（如 `PYTHONPATH=src`、`GOPROXY` 指向国内源），确认实现是否成功、回归是否通过
+   - **若用 Docker 容器复跑验证**：同一仓库的不同分支**并行验证时，容器名与挂载目录必须按分支名区分**（如 `--name caddy-06`、`docker run --name <branch>`）；把共享可写的 Go module cache 通过 `-v <host ModCache>:/go/pkg/mod` 挂载，但**多分支并发时对同一 module cache 只读或按分支隔离**（否则并发写 GOMODCACHE 会互相干扰、污染结果）；不要对不同分支复用同一个容器名或同一个可写缓存路径
+   - **验证含固定端口的集成测试时，按分支注入专属端口**：仓库测试里写死的端口（如 Caddy 的 9080/9443/2999）多分支同时跑会抢端口。验证时在容器内临时替换为分支专属端口（不改宿主 worktree 的 tracked 文件）。端口规则：分支序号 N（取分支名末尾数字）→ 偏移 N×1000，即 9080→9080+N×1000、9443→9443+N×1000、2999→2999+N×1000；用 `scripts/swe-like/branch_ports.py <分支名>` 查映射
    - 把验证结果**截图**（终端输出渲染成 PNG）保存到 `evidence/screenshots/`，至少 1 张，用于底稿「产物截图」附件与验收证据
    - 验证跑不通时，如实记录失败项，不要伪造通过截图
 5. **算有效轮数**：按 [02-step-count.md](02-step-count.md) 的有效 TC 口径得 `effective_turns`。

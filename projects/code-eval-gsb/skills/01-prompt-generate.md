@@ -61,7 +61,7 @@ GSB 多模型对比评测的第一步。核心目标：为参与对比的多个�
 
    **类型未经用户确认，禁止进行后续任何操作。**
 
-6. 用户确认类型后，根据类型走不同分支：
+4. 用户确认类型后，根据类型走不同分支：
 
    **若类型为『Bug 修复』：**
    - 调用 `prompt-architect` agent，根据代码设计一个想实际线上会出现的 bug（逻辑、业务、状态、权限等）。
@@ -81,9 +81,18 @@ GSB 多模型对比评测的第一步。核心目标：为参与对比的多个�
    **若类型为其他 5 种：**
    - origin 仓保持原样，直接进入下一步。
 
-7. 在 origin 仓目录内，配置 GitHub 远程地址、首次推送到 `<项目名>` 仓库。
+5. **【环境检查 1】检查 ignore 文件（推送前）**：origin 仓根目录必须有 ignore 文件。检查是否存在 `.gitignore` / `.dockerignore` / `.npmignore` / `.git/info/exclude` 中任一：
+   - **已存在**：记录文件名与类型，直接进入下一步。
+   - **缺失**：按扫描到的技术栈（`package.json` / `requirements.txt` / `pom.xml` / `go.mod` / `Cargo.toml` 等）自动生成通用 `.gitignore`，至少覆盖：OS 文件（`.DS_Store`、`Thumbs.db`）、IDE 目录（`.idea/`、`.vscode/`）、依赖目录（`node_modules/`、`__pycache__/`、`.venv/`、`venv/`、`target/`）、构建产物（`dist/`、`build/`、`out/`）、环境文件（`.env`、`.env.*`）、日志（`*.log`）。生成后把内容展示给用户确认，再提交：
+     ```bash
+     git add .gitignore
+     git commit -m "chore: add .gitignore"
+     ```
+   - **0-1 代码生成**：origin 仓只有 `README.md`，同样生成 `.gitignore`（可按 README 所述技术栈补齐依赖/build 目录），避免模型交付时把 `node_modules` 等提交进 GitHub。
 
-8. 推送完成后，在 GitHub 上从 main 创建各模型对比分支（分支名 = 模型 slug）：
+6. 在 origin 仓目录内，配置 GitHub 远程地址、首次推送到 `<项目名>` 仓库。
+
+7. 推送完成后，在 GitHub 上从 main 创建各模型对比分支（分支名 = 模型 slug）：
 
    ```bash
    git push origin main:odysseus
@@ -94,15 +103,24 @@ GSB 多模型对比评测的第一步。核心目标：为参与对比的多个�
 
    > 若类型为 Bug 修复，各分支因继承自 main 而自动包含相同的 bug。
 
-9. 将各分支分别 clone 到本地独立目录（从 GitHub 拉取）：
+8. 将各分支分别 clone 到本地独立目录（从 GitHub 拉取）：
 
    ```bash
    git clone -b odysseus git@github.com:attitudeshuai/<项目名>.git \
      "{work_root}/{session}/source code/<项目名>/<项目名>-odysseus"
    ```
 
+9. **【环境检查 2】检查固定端口并按分支调整（仅本地，不提交）**：
+   - **检测固定端口**：在各分支（任一分支即可，代码相同）扫描端口写死的位置——`package.json` scripts（`--port` / `-p` / `PORT=xxxx`）、`vite.config.*` / `next.config.*` / `webpack.config.*`（`server.port` / `port`）、`docker-compose*.yml` / `Dockerfile`（`ports:` / `EXPOSE`）、`application.yml` / `application.properties`（`server.port`）、`.env` / `.env.example`（`PORT=`）、服务端源码（`app.listen(...)` / `http.ListenAndServe(":3000", ...)` / `server.port(...)`）。
+   - **未检测到固定端口**：报告「未检测到固定端口，无需调整」，跳过本步。
+   - **检测到固定端口**：向用户报告检测到的端口及其位置，**请用户逐分支指定各模型端口**（可先给出「基准端口 + 序号偏移」建议值，如固定 3000 → odysseus 3001 / athena 3002 / poseidon 3003 / cyclops 3004，以用户最终确认为准）。
+   - **落地方式（不提交、不 push）**：
+     - 优先写入**已被 ignore 的配置**（如 `.env`、`.env.local`、`.env.<slug>`），并确认框架会读取该文件，保证 `git diff main` 干净。
+     - 若端口写死在受版本控制的代码/配置里，则只改本地工作区文件、**不 commit**，并在汇总里注明该文件为「环境准备」未提交状态。
+   - 记录各分支实际端口（供运行 / 分析对照）。端口改动**不进入任何分支的 git 历史**；analyze 阶段 `git diff main` 若出现这处未提交改动，属环境准备，reviewer 忽略、不计入打分。
+
 10. 验证所有本地目录均存在（origin + 各分支）。
-11. 输出汇总：GitHub 地址、本地目录列表、分支状态、**确认的任务类型**。
+11. 输出汇总：GitHub 地址、本地目录列表、分支状态、**确认的任务类型**、ignore 文件检查结果、各分支端口分配结果。
 12. **setup 完成后，立即自动执行 generate 流程**，无需用户再次输入命令。
 
 ### generate
@@ -240,3 +258,4 @@ GSB 多模型对比评测的第一步。核心目标：为参与对比的多个�
 8. 0825 期交互轮次 ≤ 3（无最低轮数），题目可单轮完成；首轮未完成时由轮次分析阶段按差距引导追问。
 9. 0825 期 Max 模式 60/40 分布：出题时确定本题是否开启 Max（更复杂/更长程开启），同一任务所有横评模型必须一致，任务窗口内不可中途切换。
 10. 0-1 代码生成：origin 仓只含标准命名 `README.md` 需求规格书（项目名 = 需求 md 文件名）；首轮提示词统一为"通读 README、按文档开发整套系统"口径，第 2 轮起按模型交付与 README 的差距追问。
+11. setup 阶段必须完成两项环境检查：① origin 仓必须有 ignore 文件（缺失则按技术栈生成通用 `.gitignore` 并 commit）；② 检测固定端口，有则请用户逐分支指定端口并只改本地（不提交），避免多分支同时跑端口冲突。端口改动属环境准备，不进入 git 历史、不计入打分。

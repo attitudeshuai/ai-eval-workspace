@@ -38,6 +38,8 @@ python3 toml2base.py <题目目录>
 - 环境里没有 `lark-cli` 或未完成 `auth login`（无底稿编辑权限）
 - 底稿「需求预检记录」需先录入并通过，脚本写不进去
 
+> 人工回填路径**只生成 `docs/底稿必填字段.md`，不打包 zip**——zip 是 `toml2base.py` 自动回填时上传「交付包（zip）」列才需要的。若提交人不走脚本，交付包 zip 由提交人按底稿要求自行处理，AI 不用代打包。
+
 生成内容：把底稿**必填字段**（标 `*`）按「基础与仓库信息 / 出题内容与产物 / 运行记录」三组列出，值取自 `task.toml`、`instruction.md`、`tests/nl_rubric.yaml`，并标注截图、轨迹、预检记录这几项由提交人自行处理。注意：**每个字段的值直接内联在对应单元格里**（多行内容用 `<br>` 展开），不要用「见第 X 节」之类引用让提交人滚动查找各处正文。
 
 注意：`repo_url`、`Fork Repo Commit URL` 依赖远程仓库，本地项目需提交人补填；`base_commit` 仍须与 `environment/Dockerfile` 的 `ARG BASE_SHA` 一致；`run_result` 须逐条对应 rubric（`<id> <通过|未通过> <原因>`），与人工作「是否完成需求」保持一致。
