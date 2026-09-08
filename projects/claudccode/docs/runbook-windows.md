@@ -1,6 +1,6 @@
 # claudccode 满意度标注 Runbook（Windows）
 
-本 Runbook 是 [runbook.md](runbook.md) 的 Windows 版。流程、指令模板、产物与 Mac 版完全一致，**只有「第 2 步：与模型交互」里操作 Claude Code 的终端命令按 Windows 版 Docker 用法改写**。Windows 版 Docker 的完整使用说明见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)。
+本 Runbook 是 [runbook.md](runbook.md) 的 Windows 版。流程、指令模板、产物与 Mac 版完全一致，**只有「第 2 步：与模型交互」里操作 Claude Code 的终端命令按 Windows 版 Docker 用法改写**。Windows 版 Docker 的完整使用说明见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)；**从安装 Docker 到导出轨迹**的完整操作见 [WINDOWS_DOCKER_SETUP.md](WINDOWS_DOCKER_SETUP.md)。
 
 配置统一读取 `projects/claudccode/config.toml`，敏感信息在 `secrets.toml`（`.gitignore` 已排除）。
 
