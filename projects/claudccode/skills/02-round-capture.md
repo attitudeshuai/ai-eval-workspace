@@ -1,6 +1,6 @@
 ---
 name: claudccode-round-capture
-description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据文件（一轮=一条数据），含 User Prompt/TurnID/任务类型/难度/语言框架。SessionID 与 TurnID 可由 agent 从本机轨迹（~/.claude/projects 或 ~/.codex/sessions）自取，也支持人工覆盖。Use when: claudccode 录入单轮, 回填对话, TurnID, 每轮一条数据。"
+description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据文件（一轮=一条数据），含 User Prompt/TurnID/任务类型/难度/语言框架。SessionID 与 TurnID 可由 agent 从轨迹自取（Claude Code 读容器导出到本机的 `{REPO}-trajectory.jsonl`，Codex 读本机 `~/.codex/sessions`），也支持人工覆盖。Use when: claudccode 录入单轮, 回填对话, TurnID, 每轮一条数据。"
 ---
 
 ## ⚙️ 当前期配置
@@ -16,7 +16,7 @@ description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据
 
 每轮创建/更新一个数据文件 = 后续导出一行。
 
-**关键**：SessionID 与 TurnID/PromptID **不必用户手动回填**——agent 可直接读取本机轨迹文件定位（见下「会话轨迹与轮次识别」）。仅在轨迹无法读取或用户要求时，才人工补充这三项。
+**关键**：SessionID 与 TurnID/PromptID **不必用户手动回填**——agent 可直接读取轨迹文件定位（Claude Code 读容器导出到本机的轨迹；Codex 读本机 `~/.codex/sessions`，见下「会话轨迹与轮次识别」）。仅在轨迹无法读取或用户要求时，才人工补充这三项。
 
 **不负责**：在 Claude Code / Codex 中代跑对话；撰写五维打分与依据（那是 `03-score-annotate`：人工撰写或 AI 起草→去 AI 化→人工复核）。
 
@@ -40,21 +40,21 @@ description: "claudccode 单轮录入：一轮交互后创建/回填该轮数据
 
 轨迹文件按「哪个 CLI 做的」分行存放（`config.toml [trajectory]`）：
 
-- **Claude Code** → `~/.claude/projects/<项目目录名>/<SessionID>.jsonl`
-- **Codex CLI** → `~/.codex/sessions/<SessionID>/`（里面是该会话的会话文件）
+- **Claude Code（在 docker 容器 `benzhi-claude-code` 里做）**：用户把容器内 `/home/node/.claude/projects/-workspace-<题号>/` 导出到本机任务记录目录 `{RECORD_DIR}/{REPO}/`（见 runbook 第 2 步第 3 条），本题的会话文件是**一个 `.jsonl`**，文件名 UUID = `SessionID`。题号 = 仓库目录名（任务 ID）。
+- **Codex CLI（本机做）** → `~/.codex/sessions/<SessionID>/`（里面是该会话的会话文件）
 
 ### 1. 定位会话（SessionID）
 
-Claude Code 的记录是**一个 `.jsonl` 文件**，文件名 UUID 就是 `SessionID`。项目目录名 = 启动 Claude Code 时的工作目录，`/`、`.`、空格等换成 `-`。例如：
+Claude Code（容器）的轨迹是**一个 `.jsonl` 文件**，文件名 UUID 就是 `SessionID`。题号 = 仓库目录名（任务 ID），容器内工作目录为 `/workspace/<题号>`，轨迹目录为 `-workspace-<题号>`。例如：
 
 ```
-工作目录 sessions/claudccode/session-0907/repos/solocc-0001
-→ ~/.claude/projects/-Users-lilixian------AI-ai-eval-workspace-sessions-claudccode-session-0907-repos-solocc-0001/
-→ 里面放 91598858-1626-4537-a317-e397e3aaf56d.jsonl
+cc solocc-0001  →  容器内 /workspace/solocc-0001
+→ 容器内 /home/node/.claude/projects/-workspace-solocc-0001/
+→ 导出到本机 records/solocc-0001/91598858-1626-4537-a317-e397e3aaf56d.jsonl
 → SessionID = 91598858-1626-4537-a317-e397e3aaf56d
 ```
 
-> 用 `find ~/.claude/projects -iname '*.jsonl' -path "*<repo>*"` 可快速命中该仓库的会话文件（相对路径含 `-repos-<repo>`）。
+> 找不到时，先 `docker exec benzhi-claude-code ls -lh /home/node/.claude/projects/` 看容器内有哪些题目录，再核对导出到本机的路径。
 
 ### 2. 拆轮次（一轮 = 一次用户键入）
 
@@ -84,16 +84,16 @@ type == "user" 且 message.content 是字符串（用户实际输入的那段文
 1. **确认任务与轮次**：读 `{RECORD_DIR}/{REPO}/task-info.md` 校验存在；计算已有轮次。
    - 若 N > 已有最大轮次 + 1 → 提示中间有缺失轮次。
    - 若 N > `[limits].max_rounds`（10）→ **中止**：会话满 10 轮必须开新任务，不再录入。
-2. **定位本轮**：读取 `~/.claude/projects/<项目目录名>/<SessionID>.jsonl`（Claude Code）或 `~/.codex/sessions/<SessionID>`（Codex），按上面「拆轮次」找到第 N 轮的用户键入条目，取其 prompt 原文与 promptId；SessionID 取该轨迹所归属的会话。
+2. **定位本轮**：读取本机轨迹（Claude Code：`{RECORD_DIR}/{REPO}/` 下用户从容器导出的 `<SessionID>.jsonl`；Codex：`~/.codex/sessions/<SessionID>`），按上面「拆轮次」找到第 N 轮的用户键入条目，取其 prompt 原文与 promptId；SessionID 取该轨迹所归属的会话。
    - 读取失败或用户明确要求 → 回到「输入」，向用户索要 SessionID/TurnID/User Prompt。
-   - 把该会话的 `.jsonl` **复制一份**到 `{RECORD_DIR}/{REPO}/{REPO}-trajectory.jsonl`（重命名为仓库名，交付/上传用；`~/.claude/projects/...` 原始文件保留）。
+   - 把该会话的 `.jsonl` **复制一份**到 `{RECORD_DIR}/{REPO}/{REPO}-trajectory.jsonl`（重命名为仓库名，交付/上传用；容器/`~/.codex` 原始文件保留）。
 3. **创建/回填数据文件** `{RECORD_DIR}/{REPO}/{REPO}-R{NN}.md`（NN 两位补零），按模板 `templates/round-file.md` 写入：User Prompt（原文）、任务类型、任务难度、语言/框架、TurnID/PromptID、模型回答存档（可选）。
-4. **SessionID/轨迹根目录回填**：若 `task-info.md` 中 SessionID 为空 → 用本步解析到的 SessionID 回填，并按 Harness 分行定位「轨迹根目录」（Claude Code → `~/.claude/projects/<项目目录名>/<SessionID>`；Codex → `~/.codex/sessions/<SessionID>`），同任务所有轮同一值。
+4. **SessionID/轨迹根目录回填**：若 `task-info.md` 中 SessionID 为空 → 用本步解析到的 SessionID 回填，并按 Harness 分行定位「轨迹根目录」（Claude Code → 本机 `records/{REPO}/{REPO}-trajectory.jsonl`，来源容器 `/home/node/.claude/projects/-workspace-<题号>/<SessionID>`；Codex → `~/.codex/sessions/<SessionID>`），同任务所有轮同一值。
 5. **校验**（机械性）：
    - 任务类型在 7 类内；难度在 4 级内；语言/框架非空
    - 首轮（N=1）难度≠「简单」；后续轮难度可为「简单」（仅限因模型产物差产生的简单 bugfix）
    - TurnID 在该任务内唯一（不同轮次取值互不相同）
-   - 轨迹根目录与 Harness 前缀对应（Codex→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
+   - 轨迹根目录与 Harness 前缀对应（Codex→`~/.codex/sessions`、Claude Code→本机导出的 `{REPO}-trajectory.jsonl`）
    - User Prompt 非空且为原文长度（过短 → 提示可能被摘要）
 6. 输出文件路径，提示用户执行 `score <N>` 打分。
 
@@ -110,7 +110,7 @@ type == "user" 且 message.content 是字符串（用户实际输入的那段文
 ```
 任务信息：{RECORD_DIR}/{REPO}/task-info.md
 第 N 轮数据：{RECORD_DIR}/{REPO}/{REPO}-R{NN}.md
-轨迹文件副本：{RECORD_DIR}/{REPO}/{REPO}-trajectory.jsonl   （交付/上传用；复制自真实轨迹并重命名为仓库名）
+轨迹文件副本：{RECORD_DIR}/{REPO}/{REPO}-trajectory.jsonl   （交付/上传用；Claude Code 复制自已导出到本机的容器轨迹并重命名，Codex 复制自 ~/.codex/sessions）
 其中 {REPO} = 记录目录名 = 仓库目录名（repos/<repo> 的目录名），即本任务 ID。
 ```
 

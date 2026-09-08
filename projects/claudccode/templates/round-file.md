@@ -20,7 +20,7 @@
 <本轮实际主要涉及的语言与框架，多个用逗号分隔，如 Go, Gin, PostgreSQL>
 
 ## TurnID/PromptID
-<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从 ~/.claude/projects 或 ~/.codex/sessions 自取，可人工覆盖。>
+<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从本机 records/{REPO}/{REPO}-trajectory.jsonl（Claude Code 容器导出）或 ~/.codex/sessions 自取，可人工覆盖。>
 
 ## 模型回答存档（内部）
 <可选：粘贴/摘录本轮模型回答，或写轨迹定位说明；非提交字段>

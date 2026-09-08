@@ -22,7 +22,7 @@ description: "Claude Code / Codex 用户满意度标注。一个会话（任务�
 - **任务 = 会话**：同一个 `SessionID` 下的一个会话窗口。运行环境字段（Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照）同一会话各轮填**同一组值**。
 - **一轮 = 一条数据**：一次交互（用户提问 + 模型回答）。每条数据独立按五维打分，独立提交、独立验收。
 - **多数据归属**：一个任务可提交多条数据，每条来自该会话中的一轮对话；导出一轮一行。
-- **SessionID / TurnID**：`SessionID` 同一道题所有轮次填同一个值（把多轮聚合回一道题）；`TurnID/PromptID` 每轮唯一（Codex 取本轮 `task_started` 的 turn_id，Claude Code 取本轮 user 消息的 promptId）。**两者 agent 可从本机轨迹自取，无需用户手动回填**：Claude Code → `~/.claude/projects/<项目目录名>/<SessionID>.jsonl`（文件名 = SessionID；`type==user` 且 content 为字符串的条目 promptId = TurnID；**一轮 = 一次用户键入**）；Codex CLI → `~/.codex/sessions/<SessionID>/`。多轮识别详见 [skills/02-round-capture.md](skills/02-round-capture.md)。
+- **SessionID / TurnID**：`SessionID` 同一道题所有轮次填同一个值（把多轮聚合回一道题）；`TurnID/PromptID` 每轮唯一（Codex 取本轮 `task_started` 的 turn_id，Claude Code 取本轮 user 消息的 promptId）。**两者 agent 可从轨迹自取，无需用户手动回填**：Claude Code → 本机 `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器 `cc <题号>` 导出；`type==user` 且 content 为字符串的条目 promptId = TurnID；**一轮 = 一次用户键入**）；Codex CLI → `~/.codex/sessions/<SessionID>/`。多轮识别详见 [skills/02-round-capture.md](skills/02-round-capture.md)。
 
 ## 技能列表
 
@@ -92,7 +92,7 @@ sessions/claudccode/{SESSION_NAME}/            # 工作数据（gitignore）
 └── records/<REPO>/              # 每任务一个目录；REPO = 仓库目录名 = 任务 ID
     ├── task-info.md             # 共享会话/环境字段
     ├── <REPO>-R01.md ...        # 每轮一条数据文件（R01..R10），与会话交互一一对应
-    └── <REPO>-trajectory.jsonl  # 真实轨迹副本（交付/上传用，重命名为仓库名；原始仍在 ~/.claude/projects 或 ~/.codex/sessions）
+    └── <REPO>-trajectory.jsonl  # 真实轨迹副本（交付/上传用，重命名为仓库名；Claude Code 来自容器导出，Codex 来自 ~/.codex/sessions）
 
 deliverables/claudccode/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv
 ```

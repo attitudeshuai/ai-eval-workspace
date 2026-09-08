@@ -46,7 +46,7 @@
 <整个会话窗口 ID，所有轮同一值；首轮完成后回填>
 
 ## 轨迹根目录（轨迹文件）
-<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code → ~/.claude/projects/<项目目录名>/<SessionID>；首轮 SessionID 回填后定位>
+<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器 `cc <题号>` 做）→ records/{REPO}/{REPO}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>.jsonl）；首轮 SessionID 回填后定位>
 ```
 
 ## 字段说明
@@ -57,7 +57,7 @@
 | 初始环境快照 | 会话首轮前的工作区 commit permalink；完整 40 位 SHA；同一任务各轮同一值 |
 | Harness/版本/OS/可复现等级 | 运行环境字段；Harness 升级会改 system prompt/工具集，版本必填 |
 | SessionID | 首轮完成后由 `02-round-capture` 回填 |
-| 轨迹根目录 | 轨迹目录须与 Harness 对应分行（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）；提交表「轨迹文件」列据此生成 |
+| 轨迹根目录 | 轨迹目录须与 Harness 对应分行（Codex CLI→`~/.codex/sessions`、Claude Code→`records/{REPO}/{REPO}-trajectory.jsonl`，来自容器导出）；提交表「轨迹文件」列据此生成 |
 
 ## 注意事项
 

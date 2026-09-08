@@ -15,7 +15,7 @@ description: "claudccode 五维打分：对某一轮（一条数据）按交付�
 
 对**某一轮**对话（一条数据）做五维打分与依据录入。打分依据来源二选一：**人工撰写**（原样录入）或 **AI 代打**（AI 起草 → **先经 humanizer-zh 去 AI 化** → 练习阶段直接落盘、无需人工确认；正式交付阶段再人工逐条核对/修改）。本技能负责：
 
-1. 收集该轮素材：人工提供，或读取 `模型回答存档`/真实轨迹（`~/.codex/sessions`、`~/.claude/projects`，按 SessionID/TurnID 定位）
+1. 收集该轮素材：人工提供，或读取 `模型回答存档`/真实轨迹（Claude Code→本机 `records/{REPO}/{REPO}-trajectory.jsonl`（来自容器导出），Codex→`~/.codex/sessions`，按 SessionID/TurnID 定位）
 2. 录入/起草五维分数（1-5）与五条必填依据描述 + 其他问题
 3. AI 起草的内容**必须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**，再交人工确认
 4. 做**机械校验**（字段范围/非空/方向一致性/AI 痕迹提示）

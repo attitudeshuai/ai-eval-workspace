@@ -71,9 +71,9 @@ Harness版本: 2.1.263
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）
 2. **新建独立远程仓库（前置）**：用 `github_username` + PAT 创建 `claudccode-{REPO}` 新仓库，把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
 3. **打初始快照**：提交一个 baseline commit → push 到**新仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/claudccode-{REPO}/commit/<40sha>`）
-4. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`、Claude Code→`~/.claude/projects`）
+4. 创建 `records/solocc-0001/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 仓库目录名（任务 ID）。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Codex CLI→`~/.codex/sessions`；Claude Code→本次导出到本机的 `records/{REPO}/{REPO}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace-<REPO>/`）
 5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
-6. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Claude Code/Codex 执行
+6. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到容器内 Claude Code（`cc <REPO>`）/ 本机 Codex 执行
 
 > ⚠️ **出题要难**：首轮提示词做高难度、多需求、跨模块/多约束题，严禁简单题。**Bug修复先埋点**：在初始化/打快照阶段把 bug 写进源码（无注释标记、藏得深、可复现），埋点 commit 即初始快照；首轮 prompt 只描述症状、不透露 bug 位置。（详见 skills/01-task-create.md「出题与埋点要求」）
 
@@ -85,11 +85,26 @@ records/solocc-0001/task-info.md
 
 ---
 
-## 第 2 步：与模型交互（用户在 Claude Code / Codex 中）
+## 第 2 步：与模型交互（用户在容器内的 Claude Code / 本机 Codex 中）
 
-1. 打开任务仓库目录（如 `repos/solocc-0001`），进入 Claude Code 或 Codex CLI
-2. 粘贴首轮提示词，开始对话
-3. 完成一轮后**无需手动带回 SessionID/TurnID**——agent 直接从本机轨迹自动定位并拆轮：Claude Code → `~/.claude/projects/<项目目录名>/<SessionID>.jsonl`（文件名=SessionID，一条 user 键入=一轮，promptId=TurnID）；Codex CLI → `~/.codex/sessions/<SessionID>/`。agent 同时会把该会话 `.jsonl` 复制一份到 `records/{REPO}/{REPO}-trajectory.jsonl`（重命名为仓库名，交付/上传用）。仅在读取失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
+> Claude Code 跑在 docker 容器（`benzhi-claude-code`）里，**题号直接用仓库目录名（任务 ID）**，如 `cc solocc-0001`（Mac 文档里的 `cc 01` 只是演示题号）。这样一题一个 `/workspace/<题号>`，轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。Codex CLI 仍在本机跑，轨迹在本机 `~/.codex/sessions/`。
+
+1. **把仓库放进容器**（首次做该题，把本机 `repos/<repo>` 复制进容器对应题号目录并修正归属，否则 Claude 只能读不能改）：
+   ```bash
+   docker cp <本机 repos/<repo> 路径> benzhi-claude-code:/workspace/<REPO>/ \
+     && docker exec -u root benzhi-claude-code chown -R node:node /workspace/<REPO>
+   ```
+   题号目录不存在时可用 `docker exec benzhi-claude-code mkdir -p /workspace/<REPO>` 先建，或直接用 `cc <REPO>` 进一次（目录自动创建）。
+2. **进入容器做题**：
+   ```bash
+   docker exec -it benzhi-claude-code cc <REPO>
+   ```
+   粘贴首轮提示词，开始对话；多轮直接在 Claude 里继续发消息即可。
+3. **把容器里的轨迹导出到本机**（题号=仓库名，故容器内目录为 `-workspace-<REPO>`；导出到任务记录目录）：
+   ```bash
+   docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<REPO>/. <本机 records/<REPO>/>
+   ```
+   导出后 agent 从 `records/{REPO}/{REPO}-trajectory.jsonl` 解析 SessionID / TurnID（`sessionId` 字段=SessionID，一条 user 键入=一轮、其 `promptId`=TurnID），无需用户手动回填。仅当解析失败时，再把 **SessionID / TurnID(promptId) / 轨迹位置 / 模型回答** 带回给 agent。
 
 ---
 
@@ -108,7 +123,7 @@ cc solocc-0001 round 1
 
 ### AI 会执行
 
-1. 读取本机轨迹，定位本任务会话并拆出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId
+1. 读取本任务已导出到本机的轨迹（`records/{REPO}/{REPO}-trajectory.jsonl`；Claude Code 来自容器导出），定位本任务会话并拆出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId
 2. 创建 `records/solocc-0001/solocc-0001-R01.md`，回填 User Prompt、任务类型/难度、语言/框架、TurnID
 3. 从 `task-info.md` 继承 SessionID 等共享字段（导出时合并），并按 Harness 分行回填轨迹根目录
 4. 校验：轮次 ≤ 10；TurnID 在任务内唯一；SessionID 与任务一致

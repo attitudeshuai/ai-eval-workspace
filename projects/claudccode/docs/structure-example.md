@@ -49,10 +49,10 @@ ai-eval-workspace/
                 ├── solocc-0001-R03.md
                 ├── solocc-0001-R04.md
                 ├── solocc-0001-R05.md
-                └── solocc-0001-trajectory.jsonl   #   真实轨迹副本（从 ~/.claude/projects/.../.jsonl 复制，交付上传用）
+                └── solocc-0001-trajectory.jsonl   #   真实轨迹副本（从容器 /home/node/.claude/projects/-workspace-<题号>/.jsonl 导出，交付上传用）
 ```
 
-> 真实轨迹**复制一份**到 `records/{REPO}/{REPO}-trajectory.jsonl`（交付/上传用；重命名为仓库名，避免与原始 SessionID 文件名混淆）；原始 `~/.claude/projects/.../` 或 `~/.codex/sessions/.../` 仍保留，质检按 SessionID/TurnID 回看。轨迹目录按 Harness 分行：Codex CLI→`~/.codex/sessions/`，Claude Code→`~/.claude/projects/`，不许填串。
+> 真实轨迹**复制一份**到 `records/{REPO}/{REPO}-trajectory.jsonl`（交付/上传用；重命名为仓库名，避免与原始 SessionID 文件名混淆）。Claude Code 在容器 `cc <题号>` 里做，轨迹先导出到本机（来源容器 `/home/node/.claude/projects/-workspace-<题号>/`）再复制为 `{REPO}-trajectory.jsonl`；Codex 在本机 `~/.codex/sessions/`。轨迹目录按 Harness 分行：Codex CLI→`~/.codex/sessions/`，Claude Code→`records/{REPO}/{REPO}-trajectory.jsonl`，不许填串。
 
 ---
 
@@ -134,6 +134,6 @@ ai-eval-workspace/
 
 | 任务类型 | 任务难度 | 语言/框架 | Harness | Harness版本 | 操作系统 | 环境可复现等级 | 初始环境快照 | User Prompt | SessionID | TurnID/PromptID | 轨迹文件 | 交付完整性 | 交付完整性-描述 | … | 其他问题 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Bug修复 | 中等 | Python, FastAPI | Claude Code | 1.0.x | MacOS/Linux | 无外部依赖 | https://github.com/…/commit/<40sha> | 修复 xx… | 3f9a… | <promptId> | ~/.claude/projects/… | 4 | 完成… | … | 无 |
+| Bug修复 | 中等 | Python, FastAPI | Claude Code | 1.0.x | MacOS/Linux | 无外部依赖 | https://github.com/…/commit/<40sha> | 修复 xx… | 3f9a… | <promptId> | records/solocc-0001/solocc-0001-trajectory.jsonl | 4 | 完成… | … | 无 |
 
 > 同一任务各行 `Harness/版本/OS/可复现/快照/SessionID` 相同，仅 `User Prompt/TurnID/类型/难度/语言/五维` 不同。
