@@ -20,7 +20,7 @@
 <本轮实际主要涉及的语言与框架，多个用逗号分隔，如 Go, Gin, PostgreSQL>
 
 ## TurnID/PromptID
-<Codex：本轮 task_started 事件的 turn_id；Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（Claude Code 容器导出；嵌套布局写作 records/{REPO}/{TASK_ID}/{TASK_ID}-trajectory.jsonl）或 ~/.codex/sessions 自取，可人工覆盖。>
+<Claude Code：本轮 user 消息的 promptId；任务内唯一。agent 从本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（Claude Code 容器导出；嵌套布局写作 records/{REPO}/{TASK_ID}/{TASK_ID}-trajectory.jsonl）自取，可人工覆盖。>
 
 ## 模型回答存档（内部）
 <可选：粘贴/摘录本轮模型回答，或写轨迹定位说明；非提交字段>
@@ -54,6 +54,10 @@
 
 ## 执行能力-描述
 <必填：指出具体冗余/失败调用，如被重复读取的文件名、反复失败的命令>
+
+## 不满意
+过程不满意：<过程层面没做好的核心问题；满意写「无」>。
+产物不满意：<代码/结果层面没做对的核心问题，≤3 条，一句一条；满意写「无」>。
 
 ## 其他问题
 <未被五维覆盖的其他问题；无可填「无」>

@@ -174,9 +174,8 @@ NEG_ANY = STRONG_NEG + ("报错", "错误", "幻觉", "编造", "臆造", "瞎�
                         "冗余", "缺失", "遗漏", "漏掉", "滥用", "低效", "反复", "重复",
                         "卡住", "绕圈", "无效", "不符合", "多余", "越界", "擅自")
 
-# Harness → 轨迹根前缀：Codex CLI 的轨迹在 ~/.codex/sessions/；Claude Code 在容器里做，轨迹导出到本机 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl
+# Harness → 轨迹根前缀：Claude Code 在容器里做，轨迹导出到本机 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl
 HARNESS_TRAJ_PREFIX = {
-    "Codex CLI": "~/.codex/sessions",
     "Claude Code": "records/",
 }
 
@@ -195,6 +194,7 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
     row["User Prompt"] = b.get("User Prompt", "")
     row["TurnID/PromptID"] = b.get("TurnID/PromptID", "")
     row["其他问题"] = b.get("其他问题", "")
+    row["不满意"] = b.get("不满意", "")
     # 内部字段
     row["截图附件"] = b.get("截图附件（内部）", "")
     row["备注"] = b.get("备注（内部）", "")
@@ -269,7 +269,7 @@ def build_row(task_id, info, rfile, headers, cfg, problems):
     elif prefix and traj and not traj.startswith(prefix):
         problems.append(f"[轨迹路径] {tag} Harness={row['Harness']} 但轨迹文件不在 {prefix} 下：{traj[:80]}")
     elif not traj and row["SessionID"]:
-        problems.append(f"[轨迹缺失] {tag} 缺少轨迹文件（按 Harness 填 ~/.codex/sessions 或 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl 下文件）")
+        problems.append(f"[轨迹缺失] {tag} 缺少轨迹文件（填 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl 下文件）")
     return row, round_no
 
 

@@ -10,7 +10,7 @@
 **运行环境（同一会话各轮填同一组值）**：`Harness`、`Harness版本`、`操作系统`、`环境可复现等级`、`初始环境快照`
 
 **会话与轨迹定位**：`User Prompt`、`SessionID`、`TurnID/PromptID`、`轨迹文件`
-> `轨迹文件` 按哪个 CLI 做的分行：Codex CLI → `~/.codex/sessions/<SessionID>`；Claude Code（容器做，题号 = 任务 ID）→ `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（来自容器导出；容器入口见 runbook.md / runbook-windows.md）。
+> `轨迹文件`：Claude Code（容器做，题号 = 任务 ID）→ `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（来自容器导出；容器入口见 runbook.md / runbook-windows.md）。
 
 **五维打分与依据描述**：`交付完整性`(1-5)+`交付完整性-描述`、`指令遵循`+`指令遵循-描述`、`任务规划`+`任务规划-描述`、`推理能力`+`推理能力-描述`、`执行能力`+`执行能力-描述`、`其他问题`
 
@@ -62,7 +62,7 @@
 
 > 每档完整锚点见 `docx` 第三步；此处为 1/3/5 关键锚点速查。每条数据的五个「-描述」均必填。
 
-> **任务规划校准（agentic 会话要点）**：Claude Code / Codex 这类自动轮常用 `TaskCreate/TaskUpdate` 建正式计划并持续更新状态，**必须先数工具调用再下结论**（§10 第 5 条），不能凭「没看到文字计划」就写「无计划」。打分时：
+> **任务规划校准（agentic 会话要点）**：Claude Code 这类自动轮常用 `TaskCreate/TaskUpdate` 建正式计划并持续更新状态，**必须先数工具调用再下结论**（§10 第 5 条），不能凭「没看到文字计划」就写「无计划」。打分时：
 > - **5**：开局用 TaskCreate 给出清晰分阶段拆解、TaskUpdate 全程持续更新（各任务 in_progress→completed）、遇歧义主动求证，返工极少；
 > - **4**：有 TaskCreate/TaskUpdate（拆解+状态维护），偶有状态更新不及时、少量返工（返工须为**模型自身**问题，不能是环境故障）；
 > - **3**：**无任务清单跟踪**（TaskCreate=0）、一次到位的 find→fix→verify，方向清楚但无显式状态跟踪；

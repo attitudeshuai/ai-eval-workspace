@@ -27,28 +27,31 @@ ai-eval-workspace/
     └── session-0907/                   # {SESSION_NAME}
         │
         ├── repos/                      # 素材源 + 各任务工作副本
-        │   ├── html-demo/              #   素材源（上游内容，只读）
-        │   ├── html-demo-feat/         #   任务工作副本：Feature迭代
-        │   ├── html-demo-bugfix/       #   任务工作副本：Bug修复
-        │   ├── python-helloworld/      #   素材源
-        │   └── python-helloworld-feat/ #   任务工作副本：Feature迭代
+        │   ├── html-demo/              #   素材源（上游内容，只读；同时是项目分组）
+        │   │   ├── html-demo-feat/         #   baseline（模型输入）
+        │   │   └── html-demo-bugfix/       #   baseline
+        │   │       └── html-demo-bugfix-R01/  # 第 1 轮代码产物（容器导回，含 .git）
+        │   └── python-helloworld/      #   素材源
+        │       └── python-helloworld-feat/  # baseline
         │
         └── records/                    # 任务记录（嵌套：项目分组 → 任务）
             ├── html-demo/              #   项目分组（不含 task-info.md）
             │   ├── html-demo-feat/     #     任务：Feature迭代
             │   │   ├── task-info.md
             │   │   ├── html-demo-feat-R01.md
-            │   │   └── html-demo-feat-trajectory.jsonl
+            │   │   ├── html-demo-feat-R01-trajectory.jsonl   # 第 1 轮轨迹切片
+            │   │   └── html-demo-feat-trajectory.jsonl        # 完整轨迹
             │   └── html-demo-bugfix/   #     任务：Bug修复
             │       ├── task-info.md
             │       ├── html-demo-bugfix-R01.md ~ -R03.md
+            │       ├── html-demo-bugfix-R01-trajectory.jsonl ~ -R03-trajectory.jsonl
             │       └── html-demo-bugfix-trajectory.jsonl
             └── python-helloworld/      #   项目分组
                 └── python-helloworld-feat/  # 任务：Feature迭代
                     └── task-info.md
 ```
 
-> 真实轨迹**复制一份**到 `records/{REPO}/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（交付/上传用）。Claude Code 在容器里做（题号 = 任务 ID），轨迹来源容器 `/home/node/.claude/projects/-workspace-<题号>/`；Codex 在本机 `~/.codex/sessions/`。轨迹目录按 Harness 分行，不许填串。
+> **轨迹**：每轮把当前完整轨迹从容器导出后，切出第 N 轮存 `{TASK_ID}-R{NN}-trajectory.jsonl`（本轮打分用），完整文件保留为 `{TASK_ID}-trajectory.jsonl`（交付/上传用）。**代码**：每轮把容器 `/workspace/<题号>` 导回 `repos/{REPO}/{TASK_ID}-R{NN}/`（供本地跑/审 + `git diff`）。Claude Code 在容器里做（题号 = 任务 ID，导出由 agent 执行 docker 命令）。
 
 ---
 
@@ -95,11 +98,14 @@ ai-eval-workspace/
 | 用途 | 公式 | 实际路径 |
 |------|------|---------|
 | 素材源 | `{REPO_BASE_PATH}/{REPO}/` | `…/repos/html-demo/` |
-| 任务工作副本 | `{REPO_BASE_PATH}/{TASK_ID}/` | `…/repos/html-demo-bugfix/` |
+| baseline（任务工作副本） | `{REPO_BASE_PATH}/{REPO}/{TASK_ID}/` | `…/repos/html-demo/html-demo-bugfix/` |
+| 第 N 轮代码产物 | `{REPO_BASE_PATH}/{REPO}/{TASK_ID}-R{NN}/` | `…/repos/html-demo/html-demo-bugfix-R01/` |
 | 任务记录（嵌套） | `{RECORD_DIR}/{REPO}/{TASK_ID}/` | `…/records/html-demo/html-demo-bugfix/` |
 | 任务记录（扁平） | `{RECORD_DIR}/{TASK_ID}/` | `…/records/html-demo-bugfix/` |
 | 任务信息文件 | `…/task-info.md` | `…/records/html-demo/html-demo-bugfix/task-info.md` |
 | 第 N 轮数据 | `…/{TASK_ID}-R{NN}.md` | `…/html-demo-bugfix/html-demo-bugfix-R01.md` |
+| 第 N 轮轨迹切片 | `…/{TASK_ID}-R{NN}-trajectory.jsonl` | `…/html-demo-bugfix/html-demo-bugfix-R01-trajectory.jsonl` |
+| 完整轨迹 | `…/{TASK_ID}-trajectory.jsonl` | `…/html-demo-bugfix/html-demo-bugfix-trajectory.jsonl` |
 | 正式提交表 | `deliverables/claudccode/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv` | `deliverables/claudccode/session-0907/正式提交表-session-0907-2026-09-08.csv` |
 
 ---
@@ -109,7 +115,7 @@ ai-eval-workspace/
 - `records/html-demo/`（原 Feature 任务，扁平）→ `records/html-demo/html-demo-feat/`，轮次/轨迹文件重命名为 `html-demo-feat-*`。
 - `records/html-demo-bugfix/` → `records/html-demo/html-demo-bugfix/`（叶子名不变，文件名不变）。
 - `records/python-helloworld/` → `records/python-helloworld/python-helloworld-feat/`。
-- `repos/` 下的素材源（`{repo}`）与任务工作副本（`{repo}-{slug}`）命名未变。
+- `repos/` 改为嵌套：素材源 `repos/<repo>/` 下挂 baseline（`repos/<repo>/<repo>-<slug>/`）和每轮代码产物（`repos/<repo>/<repo>-<slug>-R{NN}/`）。
 
 ---
 

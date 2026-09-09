@@ -20,7 +20,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 3. 建任务目录与 `task-info.md`（共享运行环境字段）
 4. 起草**首轮提示词**（真实用户口径：AI 起草须先 humanizer-zh 去 AI 化，再人工确认后写盘）
 
-**不负责**：在 Claude Code / Codex 中代跑对话；代替人工决定任务类型/难度。
+**不负责**：在 Claude Code 中代跑对话；代替人工决定任务类型/难度。
 
 ## ⚠️ 出题与埋点要求（create 必守）
 
@@ -43,10 +43,10 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 > 任务 ID = **`{REPO}-{类型slug}`**（如 `solocc-0001-codegen`）。记录目录与轮次文件都以它为前缀。同一仓库可开多个不同类型任务，各任务独立目录、独立快照、独立远程仓库。
 > 类型 slug 对照（`config.toml [task_types].aliases`）：`0-1代码生成`→`codegen`、`Feature迭代`→`feat`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
-> 任务目录：`{RECORD_DIR}/{TASK_ID}/`；共享字段文件：`{RECORD_DIR}/{TASK_ID}/task-info.md`
+> 任务目录：`{RECORD_DIR}/{REPO}/{TASK_ID}/`（嵌套，推荐）；共享字段文件：`{RECORD_DIR}/{REPO}/{TASK_ID}/task-info.md`
 > records 支持两层（可选）：`{RECORD_DIR}/{REPO}/{TASK_ID}/`（项目分组）或扁平 `{RECORD_DIR}/{TASK_ID}/`；导出脚本两种都认（含 `task-info.md` 的目录 = 任务）。任务 ID/题号始终扁平 `{REPO}-{slug}`。
-> 仓库：用户给的**素材源**本地/远端路径（如 `{REPO_BASE_PATH}/{REPO}`，只读内容来源）；任务工作副本为 `{REPO_BASE_PATH}/{TASK_ID}`（按任务 baseline 检出，origin 指向新建远程仓库）。
-> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**题号 = 任务 ID**，工作目录 `/workspace/<题号>`、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。做题后需导出到本机 `records/{TASK_ID}/` 供 `02-round-capture` 读取。
+> 仓库：用户给的**素材源**本地/远端路径（如 `{REPO_BASE_PATH}/{REPO}`，只读内容来源）；任务工作副本（baseline）为 `{REPO_BASE_PATH}/{REPO}/{TASK_ID}`（按任务 baseline 检出，origin 指向新建远程仓库）。
+> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**题号 = 任务 ID**，工作目录 `/workspace/<题号>`、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。每轮由 agent 执行 docker 命令导回轨迹（`records/{TASK_ID}/`）和代码产物（`{REPO_BASE_PATH}/{REPO}/{TASK_ID}-R{NN}/`），供 `02-round-capture` 读取。
 
 ## 输入（create 需向用户确认）
 
@@ -55,7 +55,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 - 以下由 agent 自动推断（用户未指定时用默认值，显式指定则覆盖）：
   - 仓库路径（素材源）= `repos/{仓库名}`
   - 目标说明 = 按任务类型 + 仓库内容起草（`prompt-architect` + `humanizer-zh`）
-  - Harness = 默认 `Claude Code`（`Codex CLI` 需显式指定）；Harness 版本从 `secrets.toml [harness]` 按操作系统自动带入
+  - Harness = `Claude Code`；Harness 版本从 `secrets.toml [harness]` 按操作系统自动带入
   - 操作系统 = 当前机器（`MacOS/Linux` / `Windows`）
   - 环境可复现等级 = 默认 `无外部依赖`（有依赖时需确认）
 
@@ -84,7 +84,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 - 记录目录名 = 任务 ID = `{REPO}-{类型slug}`（如 `solocc-0001-codegen`）；同仓库同类型需多个窗口时再加 `-2`/`-3` 后缀（如 `solocc-0001-codegen-2`），人工确认。
 - 用模板 `templates/task-info.md` 生成，填入共享字段：
-  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后按 Harness 分行定位：Codex→~/.codex/sessions、Claude Code→本机导出的 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace-<题号>/) / annotator / 创建日期`。
+  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后定位：Claude Code→本机导出的 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace-<题号>/) / annotator / 创建日期`。
 - 共享字段整个会话各轮不变。
 
 ### 4. 起草首轮提示词（出题，需去 AI 化）
@@ -96,7 +96,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 ### 5. 输出摘要
 
 - 任务目录路径、快照 permalink、共享字段一览、首轮提示词。
-- 提示用户下一步：到 Claude Code / Codex 打开工作区执行首轮提示词，完成后执行 `02-round-capture`。
+- 提示用户下一步：到 Claude Code 打开工作区执行首轮提示词，完成后执行 `02-round-capture`。
 
 ## 输出模板（task-info.md，字段标题与 `templates/task-info.md` 一致，导出脚本按 `## ` 切块解析）
 
@@ -131,7 +131,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 <https://github.com/<org>/<repo>/commit/<40位完整SHA>>
 
 ## Harness
-<Claude Code / Codex CLI>
+<Claude Code>
 
 ## Harness版本
 <版本号>
@@ -146,7 +146,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 <整个会话窗口 ID，所有轮同一值；首轮后回填>
 
 ## 轨迹根目录（轨迹文件）
-<按哪个 CLI 做的分行：Codex CLI → ~/.codex/sessions/<SessionID>；Claude Code（容器做，题号 = 任务 ID）→ 本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
+<Claude Code（容器做，题号 = 任务 ID）→ 本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
 
 ## 首轮提示词（已确认）
 <首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {TASK_ID}-R01.md>
