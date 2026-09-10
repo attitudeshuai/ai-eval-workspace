@@ -78,9 +78,11 @@ annotator = "张三"
 
 将被标注仓库（素材源）放到 `{work_root}/{SESSION_NAME}/source-code/{项目}/`（Windows 下形如 `sessions\cc-solo\session-0907\source-code\app-12`），或使用本机已有路径，需已 `git init` 且有可 push 的远端。
 
-> **⚠️ 仓库结构规范（generate 第一步必检）**：素材源（项目根 = 唯一 git 仓库 = base commit 快照）固定在 `source-code/{项目}/`（如 `app-12`），其下再嵌套任务副本（`{项目}-{类型}/{项目}-{类型}-{索引}/`，全局索引累加）。若结构不规范：`generate` 第一步先把实际结构 vs 规范差异列出来，**提示用户确认**，确认后整理成该格式再继续（未确认不移动文件）。
+> **⚠️ generate 第一步必检两件事**：
+> ① **雷同题红线**——素材源项目若落在 `docs/annotate-guide.md` §7「不被允许的雷同题」清单（经典小游戏与变种、塔防/2D 解谜/潜行/平台跳跃、粒子物理、喂食小动物、CLI 工具、CRUD/后台/电商/预约系统、报表看板、番茄钟/天气/记账等），**命中即中止**、提示换素材，不得建副本/出题/打快照；
+> ② **仓库结构规范**——素材源（项目根 = 唯一 git 仓库 = base commit 快照）固定在 `source-code/{项目}/`（如 `app-12`），其下再嵌套任务副本（`{项目}-{类型}/{项目}-{类型}-{索引}/`，全局索引累加）。结构不规范 → 先列「实际结构 vs 规范结构」差异，**提示用户确认**，确认后整理成该格式再继续（未确认不移动文件）。
 >
-> 快照要求：仓库需 push 到评测团队可访问的**新**远端（设为 **public** 公开仓库，或至少加协作者）；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
+> 快照要求：**一个素材源 = 一个 base commit 快照，所有任务副本共用同一个地址**（不必每任务新建仓库）；仓库需 push 到评测团队可访问的远端（设为 **public** 公开仓库，或至少加协作者）；push 前确认 `.gitignore` 已覆盖 `.env`、密钥/连接串/token；已提交快照禁止 force-push / rebase。
 
 ---
 
@@ -105,9 +107,10 @@ test*1
 
 ### AI 会执行
 
+0. **雷同题红线（第一步必检）**：对照 `docs/annotate-guide.md` §7「不被允许的雷同题」逐项核查素材源项目主题。**命中即中止**，提示用户换素材，不得继续建副本/出题/打快照。
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）；**并校验仓库结构**：素材源是否位于 `source-code/{项目}/`（唯一 git 仓库），任务副本是否按类型分组 `{项目}-{类型}/{项目}-{类型}-{索引}/` 嵌套其下。结构不规范 → 先列「实际结构 vs 规范结构」差异 → **提示用户确认** → 确认后整理成该格式再继续（未确认不移动文件）。
-2. **新建独立远程仓库（前置）**：用 `github_username` + PAT 创建 `cc-solo-{任务}` 新仓库，把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
-3. **打初始快照**：提交一个 baseline commit → push 到**新仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/cc-solo-{任务}/commit/<40sha>`）
+2. **准备远端（一个素材源 = 一个 base commit 快照）**：用 `github_username` + PAT 为**该素材源**新建（或复用）**一个** GitHub 仓库（`cc-solo-{项目}`，如 `cc-solo-app-12`），把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
+3. **打初始快照**：提交一个 baseline commit → push 到**该仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/cc-solo-{项目}/commit/<40sha>`）。**该素材源下所有任务副本共用这同一个快照地址。**
 4. 创建 `records/app-12/app-12-codegen/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 任务 ID。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Claude Code→本次导出到本机的 `records/{任务}/{任务}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace/`）
 5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
 6. **准备容器挂载源（Windows）**：任务副本目录就是模型工作目录。Windows 直接把本机任务副本目录 `{REPO_BASE_PATH}\{项目}\{项目}-{类型}\{项目}-{类型}-{索引}\` 挂载为容器的 `/workspace`（见第 2 步 `docker run -d --mount type=bind,source=<副本目录>,target=/workspace`），**不需要 `docker cp` 把代码放进容器，也不需要 chown**。⚠️ 挂载目录里**不要放依赖包**（node_modules/.venv/__pycache__/dist 等，体积大），副本应只含被 git 跟踪的源码文件；任务结束后按 `.gitignore` 清理模型新装的依赖。

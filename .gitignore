@@ -132,4 +132,6 @@ sessions/pairwise-gsb/demo/**/original.xlsx
 /sessions/cc-solo/*
 !/sessions/cc-solo/session-0909/
 # demo 里素材源自带嵌套 git 仓库，不纳入工作台 git（避免被当成 gitlink）；其余文件正常跟踪
-/sessions/cc-solo/session-0909/source-code/h5-demo/h5-demo/.git/
+/sessions/cc-solo/session-0909/*
+!/sessions/cc-solo/session-0909/source-code/h5-demo/
+!/sessions/cc-solo/session-0909/records/h5-demo/

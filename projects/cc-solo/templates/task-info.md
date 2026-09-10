@@ -58,7 +58,7 @@
 |------|------|
 | 任务名 | `{项目}-{类型}-{索引}`（如 `app-12-bugfix-01`）= 记录目录名 = 副本目录名；容器名 `cc-solo-{任务}`，容器内工作目录恒为 `/workspace` |
 | 项目（素材源） | 素材源目录名（`source-code/{项目}/`，如 `app-12`）；一份素材源按类型复制多份任务副本 |
-| 初始环境快照 | 会话首轮前的工作区 commit permalink；完整 40 位 SHA；同一任务各轮同一值；不同任务（即使同仓库）各指向自己的 baseline commit |
+| 初始环境快照 | 会话首轮前的工作区 commit permalink；完整 40 位 SHA；同一任务各轮同一值；**同一素材源（`source-code/{项目}/`）下的所有任务副本/提示词共用一个 base commit 快照地址** |
 | Harness/版本/OS/可复现等级 | 运行环境字段；Harness 升级会改 system prompt/工具集，版本必填 |
 | SessionID | 首轮完成后由 `02-round-capture` 回填 |
 | 轨迹根目录 | Claude Code→`records/{任务}/{任务}-trajectory.jsonl`（嵌套布局写作 `records/{项目}/{任务}/{任务}-trajectory.jsonl`，来自容器 `/home/node/.claude/projects/-workspace/` 导出）；提交表「轨迹文件」列据此生成 |
