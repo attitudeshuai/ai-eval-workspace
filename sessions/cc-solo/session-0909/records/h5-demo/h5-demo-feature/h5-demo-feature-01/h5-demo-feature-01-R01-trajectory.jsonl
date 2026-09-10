@@ -1,0 +1,6 @@
+{"message":{"content":"把页面上的 \"Hello, World!\" 改成 \"Hello, World! charles\"。","role":"user"},"sessionId":"mock-session-h5demo-0001","type":"user","promptId":"mock-turn-r01-0001"}
+{"message":{"content":[{"thinking":"读取 index.html，改问候语文本。","type":"thinking"},{"input":{"file_path":"/workspace/h5-demo/h5-demo-feature/h5-demo-feature-01/index.html"},"name":"Read","type":"tool_use"}],"role":"assistant"},"type":"assistant"}
+{"message":{"content":[{"content":"\u003ch1\u003eHello, World!\u003c/h1\u003e","type":"tool_result"}],"role":"user"},"type":"user"}
+{"message":{"content":[{"input":{"old_string":"\u003ch1\u003eHello, World!\u003c/h1\u003e","new_string":"\u003ch1\u003eHello, World! charles\u003c/h1\u003e","file_path":"/workspace/h5-demo/h5-demo-feature/h5-demo-feature-01/index.html"},"name":"Edit","type":"tool_use"}],"role":"assistant"},"type":"assistant"}
+{"message":{"content":[{"content":"The file has been updated successfully.","type":"tool_result"}],"role":"user"},"type":"user"}
+{"message":{"content":[{"text":"完成，已把页面问候语改为 Hello, World! charles。","type":"text"}],"role":"assistant"},"type":"assistant"}

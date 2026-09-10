@@ -93,17 +93,20 @@ projects/cc-solo/
 ├── skills/                      # 01-task-create / 02-round-capture / 03-score-annotate / 04-export-submit
 └── templates/                   # task-info.md / round-file.md / submit-headers.csv
 
-sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore）
+sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore；仅 demo 例子例外）
 ├── source-code/                 # 素材源 + 任务副本（由 "source code/" 改名）
-│   └── {项目}/                  # 项目根（唯一 git 仓库 = base commit 快照）
-│       ├── src/、README.md、.git  # 素材源内容
+│   └── {项目}/                  # 项目根
+│       ├── {项目}/              # 素材源（唯一 git 仓库 = base commit 快照，原始源码）
+│       │   ├── src/、README.md、.gitignore
+│       │   └── .git/
 │       ├── {项目}-bugfix/       # 类型分组（按类型 + 全局索引累加）
-│       │   ├── {项目}-bugfix-01/  # 任务副本 = 复制素材源内容 + 目录名改为任务名（无 .git）
+│       │   ├── {项目}-bugfix-01/  # 任务副本 = 复制素材源内容 + 改名（无 .git）
 │       │   └── {项目}-bugfix-02/
 │       ├── {项目}-codegen/
 │       │   └── {项目}-codegen-06/
 │       ├── {项目}-feature/
-│       │   └── {项目}-feature-11/
+│       │   ├── {项目}-feature-11/
+│       │   └── {项目}-feature-12/
 │       ├── {项目}-understand/{项目}-understand-16/
 │       ├── {项目}-refactor/{项目}-refactor-17/
 │       ├── {项目}-engineering/{项目}-engineering-18/

@@ -98,7 +98,7 @@ max_rounds = 10
 
 [sessions]
 # 当前活跃的 session 名称，切换时只需改这一行
-active = "session-0907"
+active = "session-0909"
 
 [naming]
 # 任务名 = {项目}-{类型}-{索引}（如 app-12-bugfix-01），记录目录与轮次文件都以它为前缀。

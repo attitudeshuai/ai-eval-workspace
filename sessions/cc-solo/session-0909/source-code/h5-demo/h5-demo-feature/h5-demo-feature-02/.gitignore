@@ -1,0 +1,21 @@
+# 依赖与缓存
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+dist/
+build/
+
+# 环境与密钥
+.env
+.env.*
+*.key
+*.token
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

@@ -25,23 +25,22 @@ ai-eval-workspace/
     └── cc-solo-0909/                  # {SESSION_NAME}
         │
         ├── source-code/                # 素材源 + 任务副本（由 "source code/" 改名）
-        │   └── app-12/                 # 项目根（唯一 git 仓库 = base commit 快照）
-        │       ├── src/、README.md、.git   # 素材源内容（原始源码）
-        │       ├── app-12-bugfix/      # 类型分组（按类型 + 全局索引累加）
-        │       │   ├── app-12-bugfix-01/   # 任务副本 = 复制素材源内容 + 目录名改为任务名（无 .git）
+        │   └── app-12/                 # 项目根
+        │       ├── app-12/             #   素材源（唯一 git 仓库 = base commit 快照，原始源码）
+        │       │   ├── src/、README.md、.gitignore
+        │       │   └── .git/
+        │       ├── app-12-bugfix/      #   类型分组（按类型 + 全局索引累加）
+        │       │   ├── app-12-bugfix-01/   #   任务副本 = 复制素材源内容 + 改名（无 .git）
         │       │   └── app-12-bugfix-02/
         │       ├── app-12-codegen/
         │       │   └── app-12-codegen-06/
         │       ├── app-12-feature/
-        │       │   └── app-12-feature-11/
-        │       ├── app-12-understand/
-        │       │   └── app-12-understand-16/
-        │       ├── app-12-refactor/
-        │       │   └── app-12-refactor-17/
-        │       ├── app-12-engineering/
-        │       │   └── app-12-engineering-18/
-        │       └── app-12-test/
-        │           └── app-12-test-19/
+        │       │   ├── app-12-feature-11/
+        │       │   └── app-12-feature-12/
+        │       ├── app-12-understand/app-12-understand-16/
+        │       ├── app-12-refactor/app-12-refactor-17/
+        │       ├── app-12-engineering/app-12-engineering-18/
+        │       └── app-12-test/app-12-test-19/
         │
         └── records/                    # 任务记录（R0N 模型：每任务一个目录，每轮一条数据）
             └── app-12/
@@ -60,13 +59,15 @@ ai-eval-workspace/
 ```
 /workspace/
 └── app-12/                            # 项目根（= 本地 source-code/app-12/）
+    ├── app-12/                        # 素材源（可选拷入）
     ├── app-12-bugfix/
     │   ├── app-12-bugfix-01/          # 每份 = 一个独立工作目录（模型在此执行）
     │   └── app-12-bugfix-02/
     ├── app-12-codegen/
     │   └── app-12-codegen-06/
     ├── app-12-feature/
-    │   └── app-12-feature-11/
+    │   ├── app-12-feature-11/
+    │   └── app-12-feature-12/
     └── …
 ```
 
@@ -99,7 +100,8 @@ ai-eval-workspace/
 
 | 用途 | 公式 | 实际路径 |
 |------|------|---------|
-| 素材源 | `{REPO_BASE_PATH}/{PROJECT}/` | `…/source-code/app-12/` |
+| 项目根 | `{REPO_BASE_PATH}/{PROJECT}/` | `…/source-code/app-12/` |
+| 素材源（唯一 git 仓库） | `{REPO_BASE_PATH}/{PROJECT}/{PROJECT}/` | `…/source-code/app-12/app-12/` |
 | 任务副本 | `{REPO_BASE_PATH}/{PROJECT}/{PROJECT}-{类型}/{PROJECT}-{类型}-{索引}/` | `…/source-code/app-12/app-12-bugfix/app-12-bugfix-01/` |
 | 任务记录目录 | `{RECORD_DIR}/{PROJECT}/{PROJECT}-{类型}/{PROJECT}-{类型}-{索引}/` | `…/records/app-12/app-12-bugfix/app-12-bugfix-01/` |
 | 第 N 轮数据 | `…/{PROJECT}-{类型}-{索引}-R{NN}.md` | `…/records/app-12/app-12-bugfix/app-12-bugfix-01/app-12-bugfix-01-R01.md` |
@@ -110,9 +112,11 @@ ai-eval-workspace/
 
 ### Step 1: 生成（建副本 + 出题）
 ```
+已有:
+  source-code/app-12/app-12/                       # 素材源（唯一 git 仓库）
 新增:
   source-code/app-12/
-    ├── app-12-bugfix/app-12-bugfix-01/ ~ 05/     # 5 份任务副本（复制源 + 改名 + 按类型埋点）
+    ├── app-12-bugfix/app-12-bugfix-01/ ~ 05/     # 5 份任务副本（复制素材源 + 改名 + 按类型埋点）
     ├── app-12-codegen/app-12-codegen-06/ ~ 10/
     ├── app-12-feature/app-12-feature-11/ ~ 15/
     ├── app-12-understand/app-12-understand-16/
