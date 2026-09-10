@@ -1,281 +1,360 @@
 # Claude Code 使用说明（Windows）
 
-我们使用 Docker，是为了让大家使用相同的 Claude Code 版本、配置和基础运行环境，减少各自安装、配置时出现的差异。使用前，需要先安装并打开 Docker Desktop。
+这份说明介绍如何在 Windows 电脑上在Docker中使用 Claude Code。你只需要打开 Docker Desktop，准备好管理员提供的 key 和完整 model 名称，然后按顺序完成“准备本题文件夹、创建本题容器、开始对话、取出轨迹”这几个步骤。
 
-Claude Code 实际运行在你自己电脑上的 Docker 容器中，不是在 Docker Hub 上运行。Docker Hub 只负责提供镜像下载；模型请求通过已配置的网关发送到远端服务。
+**一道题使用一个独立文件夹和一个新容器。** 同一道题中断后可以继续使用自己的容器；换一道题时，必须新建文件夹和容器。每题复用同一个干净镜像，不需要重新安装 Claude Code。代码和导出的轨迹放在哪个盘，由你自己选择。
 
-Docker Desktop 已经打开后，按下面的步骤操作即可。Claude 客户端、网关和模型已经配好；首次创建容器需要邮件中的个人 key。业务项目的语言依赖和数据库等条件仍需按项目准备。
 
-下文用 `/workspace/my-project` 作为容器内工作目录的示例，请替换成实际需要使用的路径。workspace 就是工作目录；新建目录不会自动获取代码，也不会重置已有代码。
 
-整个流程是：**启动容器 → 进入工作目录 → 与 Claude 对话 → 导出轨迹。**
+## 快速开始
 
-本教程只说明镜像和客户端操作。
-## 1. 打开命令窗口
+如果你以前用过 Docker，可以按下面三步操作。如果是第一次接触，建议跳到“需要准备的东西”，按后面的详细步骤往下做。
 
-1. 在桌面新建一个文件夹，命名为 `Claude资料`，然后打开它。
-2. 点击文件夹窗口顶部的地址栏，输入 `powershell`，按 Enter。
-3. 弹出的窗口就是接下来输入命令的地方。每复制一条命令，都按一次 Enter 执行。
+**1. 准备本题文件夹，创建本题容器。**
 
-后面导出的文件会放在这个 `Claude资料` 文件夹里。
+先在自己选择的位置新建本题文件夹，例如 `01`。有现成代码就放入本题需要的代码和附件；从零开始开发则保持为空。打开 `01` 文件夹，在资源管理器的地址栏输入 `powershell`，按 Enter。不要从包含全部题目的总文件夹打开窗口。
 
-## 2. 启动容器（第一次使用时操作）
-
-如果机器已经配置过镜像，先在 PowerShell 查看现有容器：
+执行 `Get-Location`，确认显示的是本题文件夹。下面前三行分别填写本题的容器名、key 和 model；容器名不能与其他题目重复。其余配置会自动引用这些值：
 
 ```powershell
-docker ps -a --format "{{.Names}} | {{.Image}} | {{.Status}}"
+$containerName = 'benzhi-claude-01'
+$apiKey = '这里填写本次使用的key'
+$model = 'ark/urm-01'
+
+docker run -d --name $containerName `
+  --mount "type=bind,source=$($PWD.Path),target=/workspace" `
+  -e "apikey=$apiKey" `
+  -e "ANTHROPIC_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+  -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+  nicehey/benzhi-claude-code:1.0
+
+docker ps --filter "name=$containerName"
 ```
 
-找到使用 `nicehey/benzhi-claude-code:1.0` 的目标容器后，复用该容器。下文命令里的 `benzhi-claude-code` 都要替换成实际名称。例如容器名是 `benzhi-claude-code-test-20260907`，就统一使用这个名字。确认已有可用容器时，跳过下面的 `docker run`，需要时执行 `docker start 实际容器名`。不要因为示例名称不同而重复创建容器。
+最后一条命令会显示容器状态。找到本题容器，确认 `STATUS` 列中有 `Up`，再进行下一步。请将创建命令作为完整的多行命令粘贴；行末的反引号用于连接下一行，后面不要添加空格。
 
-没有可用容器时再创建：
+**2. 进入本题容器里的 Claude。**
 
-复制下面这条命令，把 `xxxxx` 换成邮件中的完整 key，保留两边的英文引号，再按 Enter：
+下面以容器 `benzhi-claude-01` 为例。如果你使用了其他容器名，后面的进入、导出、启动和停止命令都要替换成实际名称。在 PowerShell 中逐条执行：
 
 ```powershell
-docker run -d --name benzhi-claude-code -e "apikey=xxxxx" nicehey/benzhi-claude-code:1.0
+docker exec benzhi-claude-01 git config --global --add safe.directory /workspace
+docker exec -it -w /workspace benzhi-claude-01 claude
 ```
 
-只复制 key 本身，不要带上 `apikey:`、`model:`、空格或换行。
+出现 Claude 的输入框后，就可以输入本题需求。换题时，新建文件夹 `02`，在 `02` 中重新完成第 1 步，使用新容器名 `benzhi-claude-02` 并填写本次 key 和 model，再进入新容器。每个容器内的工作目录都保持 `/workspace`。
 
-第一次运行会自动从 Docker Hub 下载镜像。看到下载进度时，等待完成，不要关闭窗口。下载结束后，会出现一长串字母和数字，随后回到可以输入命令的状态。
+**3. 退出 Claude，取出轨迹。**
 
-**这时容器已在后台启动，还没有进入 Claude。继续下一步即可。以后使用已有容器，不需要再次执行 `docker run`。**
-
-镜像来自公开仓库 [nicehey/benzhi-claude-code](https://hub.docker.com/r/nicehey/benzhi-claude-code)，正常情况下不需要登录 Docker Hub。镜像用于 Windows 上的 Linux 容器，架构为 x64。
-
-## 3. 进入工作目录，启动 Claude
-
-在 **Windows PowerShell** 中逐条执行：
+对话结束后，在 Claude 中输入 `/exit`。接着，在所有题目代码文件夹以外选一个位置保存轨迹。打开这个保存位置，在地址栏输入 `powershell` 并按 Enter，然后逐条执行：
 
 ```powershell
-docker exec benzhi-claude-code mkdir -p /workspace/my-project
-docker exec -it -w /workspace/my-project benzhi-claude-code bash
+$exportDir = Join-Path (Get-Location).Path ("题01-轨迹-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+docker cp benzhi-claude-01:/home/node/.claude/projects/-workspace/. "$exportDir"
 ```
 
-`mkdir -p` 在目录不存在时创建目录，已存在时保留其中的文件。`-w` 指定进入容器后的工作目录。
+确认命令没有报错、保存位置中已出现轨迹文件夹后，继续在这个 PowerShell 窗口中执行：
 
-看到提示符类似 `node@一串字符:/workspace/my-project$`，说明已经进入指定目录。输入下面的命令启动 Claude：
-
-```bash
-claude
+```powershell
+Compress-Archive -LiteralPath "$exportDir" -DestinationPath "$exportDir.zip"
+Invoke-Item .
 ```
 
-首次启动可能会询问界面主题、显示安全提示，或询问是否信任当前目录。用方向键选择，按 Enter 确认；信任提示中的路径应当与实际工作目录一致。
+最后一条命令会打开保存位置。打开 ZIP，确认原始 JSONL 和相关子文件夹已包含在内，再按要求提交。先保留本题容器，导出成功前不要删除。第二题导出时改用容器 `benzhi-claude-02` 和保存名称 `题02-轨迹-`，容器内的轨迹路径不变。有关轨迹内容和异常情况，见第五章。
 
-看到 Claude 的输入框后，输入需求并发送。在专门用于练习的目录中，也可以用这句话测试：
 
-> 请创建 hello.py，让它输出“你好，Claude”，然后运行这个文件。
 
-如果 Claude 询问是否允许创建文件或执行命令，确认操作内容后再选择是否允许。
+## 目录
 
-同一容器中的不同工作目录共用运行环境，不会隔离依赖、进程或文件访问权限。
+1. [需要准备的东西](#一需要准备的东西)
+2. [第 1 步：启动容器](#二第-1-步启动容器)
+3. [第 2 步：进入对话](#三第-2-步进入对话)
+4. [第 3 步：与 Claude 对话](#四第-3-步与-claude-对话)
+5. [第 4 步：取出轨迹文件](#五第-4-步取出轨迹文件)
 
-## 4. 退出 Claude，回到 Windows
+## 一、需要准备的东西
 
-这里需要退出两次，请按顺序操作。
+### 1. 确认 Docker Desktop 已打开
 
-1. 等 Claude 回答完，在 **Claude 的对话框**中输入下面这条命令，按 Enter：
+请让 Docker Desktop 保持运行。本文不再介绍安装过程，后面会直接创建容器。
+
+操作时会用到两个输入位置：**Docker 命令粘贴到 Windows PowerShell，任务需求输入到 Claude。** 每一步都会说明该在哪里输入；如何打开 PowerShell，下一章会具体介绍。
+
+### 2. 准备本次的 key 和 model
+
+打开管理员发来的消息，分别找到 key 和完整 model 名称。复制 key 时只选中 key 那一串字符，不要把前面的 `apikey:`、后面的模型名称或换行一起复制进去。model 也要单独填写完整，例如 `ark/urm-01`，不要加上 `model:` 前缀。
+
+每次创建容器都会明确填写这两项。以后收到新 key 或新 model，就在下一次创建命令的 `$apiKey`、`$model` 两行中替换。不要自行猜测模型名称，新 key 也需要有调用该模型的权限。
+
+
+
+### 3. 了解代码和轨迹分别存在哪里
+
+你可以先建一个总文件夹，再在里面给每道题各建一个任务文件夹。例如，总文件夹叫 `claude-workspace`，里面放 `01`、`02`。总文件夹仅用于你整理文件，不交给任何一道题的容器使用。放在哪个盘、叫什么名字，都可以自己决定。
+
+**一个任务文件夹就是一个 workspace，也就是 Claude 做这道题时使用的工作目录。** 本文用 `01`、`02` 演示操作，它们只是文件夹名称，并不对应某份已有的题目。
+
+```text
+本机 claude-workspace/01/  <-> 容器 benzhi-claude-01 的 /workspace
+本机 claude-workspace/02/  <-> 容器 benzhi-claude-02 的 /workspace
+```
+
+创建容器后，本题文件夹会与本题容器里的 `/workspace` 连在一起，这就叫“目录映射”。例如，本机 `01` 中的文件只交给 `benzhi-claude-01`，Claude 修改它后，你在本机也能立即看到结果，不需要来回复制。两个容器里的 `/workspace` 名字相同，实际对应不同的本机文件夹。
+
+为避免跨题读取历史内容，每题都从本文指定的镜像新建容器，不挂载个人主目录、Claude 配置目录、Codex 的 skills 目录或其他题目的目录，也不共用保存 Claude 状态的数据卷。不要把做过题的容器另存为镜像后用于新题。只放入题目规定的资料；如果调用方主动把经验写进题面，容器隔离本身无法阻止这种传入。
+
+删除文件也是一样的：Claude 删除了任务文件夹里的代码，本机的那份也会被删除。因此，重要代码要提前备份，或者用 Git 保存版本。
+
+对话轨迹的保存方式与代码不同。轨迹留在容器内部，需要在做完题后用 `docker cp` 取出来，第五章会介绍具体操作。只停止容器不会丢失轨迹，但删除容器前一定要先导出。
+
+另外，选择代码文件夹的位置，只决定代码存在哪个盘。镜像和容器内部文件存在哪里，仍由 Docker Desktop 的存储设置决定。
+
+## 二、第 1 步：启动容器
+
+### 1. 选择保存代码的位置
+
+先准备本题专用的文件夹，再从这个文件夹创建容器。请按下面的顺序操作：
+
+1. 打开文件资源管理器，找到你想保存代码的位置。D 盘、E 盘或其他本地磁盘都可以。
+2. 可以先建一个名为 `claude-workspace` 的总文件夹，再在里面新建本题文件夹 `01`；也可以直接在其他位置新建 `01`。路径中不要使用逗号。
+3. 双击打开本题文件夹 `01`，放入本题需要的初始代码和附件。从零开发则保持为空。不要停留在包含所有题目的总文件夹。
+4. 点击窗口上方显示路径的地址栏，输入 `powershell`，再按 Enter。注意是地址栏，不是旁边的搜索框。
+5. PowerShell 窗口打开后，输入下面的命令，再按 Enter：
+
+```powershell
+Get-Location
+```
+
+命令会显示当前所在的文件夹。请核对它是不是本题的 `01` 文件夹；如果不是，关闭这个 PowerShell 窗口，回到正确的文件夹，重新按第 4 项打开。不要把另一道题已使用的文件夹当作新题目录。
+
+### 2. 填写容器名、key 和 model，创建容器
+
+保持刚才的 PowerShell 窗口打开。先修改下面前三行：`$containerName` 填本题的新容器名，`$apiKey` 填本次 key，`$model` 填管理员提供的完整 model 名称。本文使用 `benzhi-claude-01` 和 `ark/urm-01` 演示；更换模型时只需修改 `$model` 这一处。
+
+把下面内容完整粘贴到 PowerShell 执行。保留英文引号和行末反引号，反引号后面不能有空格：
+
+```powershell
+$containerName = 'benzhi-claude-01'
+$apiKey = '这里填写本次使用的key'
+$model = 'ark/urm-01'
+
+docker run -d --name $containerName `
+  --mount "type=bind,source=$($PWD.Path),target=/workspace" `
+  -e "apikey=$apiKey" `
+  -e "ANTHROPIC_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+  -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+  nicehey/benzhi-claude-code:1.0
+```
+
+命令中的 `$($PWD.Path)` 会自动使用刚才核对过的文件夹路径，不用手动填写盘符或用户名。保留外面的英文引号，路径里有中文或空格时也可以使用。
+
+五个模型配置项都引用 `$model`，会一起覆盖镜像中的主模型、Opus/Sonnet/Haiku 别名和子代理默认模型，避免只换了主模型而其他调用仍使用旧默认值。不要把这些配置行删减成只传 `model=...`，现有镜像不识别这个简写。
+
+第一次运行需要下载镜像，可能要等几分钟。等命令执行完、窗口重新出现可以输入命令的提示符后，再输入下面这一行，检查容器是否已经启动：
+
+```powershell
+docker ps --filter "name=$containerName"
+```
+
+在结果中找到本题容器。如果它的 `STATUS` 列显示 `Up`，说明容器启动成功，可以继续往下做；这一步还不能证明 key 和 model 可以正常请求网关。如果找不到容器，或者出现报错，先按第七章排查。
+
+**每道新题都执行一次创建流程。** 换题时，从新的题目文件夹打开 PowerShell，使用新的容器名，并重新核对 key 和 model。三个 PowerShell 变量只存在于当前窗口，另开窗口时需要重新填写；容器创建后会保存当时传入的配置。
+
+### 3. 检查 Docker 是否用对了文件夹
+
+在 PowerShell 中执行：
+
+```powershell
+docker inspect --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' benzhi-claude-01
+```
+
+结果中应该只有本题需要的目录映射：箭头左边是本题的 `01` 文件夹，右边是 `/workspace`。如果左边是所有题目的总文件夹，或者出现了 Claude 配置、其他题目等不应共享的目录，先按第七章“本机文件没有出现在容器里”处理。
+
+Docker 会记住这个位置。以后可以从其他地方打开 PowerShell 来进入本题容器，但请保留本题文件夹原来的位置，不要直接移动或重命名它。后文以 `benzhi-claude-01` 为例，使用其他容器名时请同步替换。
+
+## 三、第 2 步：进入对话
+
+### 1. 检查本题资料
+
+完成第二章后，本题文件夹和容器都已创建。回到资源管理器，打开本题的 `01` 文件夹，检查准备交给 Claude 的资料。
+
+如果这次是从零开发，`01` 保持为空即可。如果要修改已有项目，放入题目要求的 README、源码、配置文件，以及需要保留的 `.git` 等资料。打开 `01` 后，应该能直接看到项目文件，而不是还要再进入一层同名项目文件夹。
+
+不要把以前做题产生的 memory、skills、聊天轨迹、参考答案或个人配置混入本题资料，尤其要检查隐藏目录和项目内的 `.claude`、`.agents`、`.codex`。题目正式提供的指令或配置应按题目要求保留，不能仅凭文件名一律删除。
+
+复制重要代码前，先做好备份或保存 Git 提交。如果不想用 `01`，也可以另起名字，建议使用英文字母、数字和短横线。每道新题都要建一个新文件夹和新容器，即使几道题属于同一个项目，也要分开。
+
+### 2. 进入 Claude
+
+在 Windows PowerShell 中逐条执行：
+
+```powershell
+docker exec benzhi-claude-01 git config --global --add safe.directory /workspace
+docker exec -it -w /workspace benzhi-claude-01 claude
+```
+
+第一条命令是告诉 Git，本题工作目录可以信任，避免之后出现 `dubious ownership` 报错。每个新容器首次使用时执行一次即可。如果仓库还在更深一层的文件夹里，处理方法见第七章。
+
+第二条命令会打开 Claude，让它在本题容器的 `/workspace` 中工作，对应本机的 `01`。第一次进入新容器时，可能会让你选择主题、确认是否信任当前文件夹。确认显示的路径是 `/workspace`，再按提示选择。出现对话输入框后，就可以按下一章发送需求了。
+
+如果使用其他容器名，只替换命令中的 `benzhi-claude-01`，容器内的 `/workspace` 不随本机文件夹名称改变。`-w` 只是指定容器内工作目录，不能更换挂载的本机目录，也不能把旧容器变成新题容器。
+
+### 3. 换任务时怎么操作
+
+做完当前任务后，在 Claude 中输入 `/exit`，按第五章导出并检查本题轨迹。然后在 PowerShell 执行 `docker stop benzhi-claude-01`，停止本题容器，先保留它作为备份。
+
+在本机 `01` 旁边新建 `02`，不要把它建到 `01` 里面。放入下一题规定的代码和附件；从零开发则保持为空。打开 `02`，从地址栏启动 PowerShell，执行 `Get-Location` 确认位置，再填写下一题的配置并创建新容器：
+
+```powershell
+$containerName = 'benzhi-claude-02'
+$apiKey = '这里填写本次使用的key'
+$model = 'ark/urm-01'
+
+docker run -d --name $containerName `
+  --mount "type=bind,source=$($PWD.Path),target=/workspace" `
+  -e "apikey=$apiKey" `
+  -e "ANTHROPIC_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" `
+  -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+  -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+  nicehey/benzhi-claude-code:1.0
+
+docker ps --filter "name=$containerName"
+```
+
+确认新容器状态为 `Up`，并按第二章检查目录映射后，再逐条执行：
+
+```powershell
+docker exec benzhi-claude-02 git config --global --add safe.directory /workspace
+docker exec -it -w /workspace benzhi-claude-02 claude
+```
+
+第二题使用 `benzhi-claude-02` 内的 `/workspace`，对应本机 `02`，有自己独立的 Claude 配置和会话记录。不要进入 `benzhi-claude-01` 做第二题，也不要把第一题的 `.claude` 配置或数据卷接到新容器。
+
+两个容器复用同一个基础镜像，但各自保存运行中安装的软件和产生的本地状态。第一题临时安装的软件不会自动出现在第二题容器中，需要按新题项目要求准备。保持只挂载本题目录，才能避免把其他题目的文件带进来。
+
+### 4. 同一个项目有多道题，应该怎么做
+
+同一项目有多道题，也使用不同的本机文件夹和容器。只有题目明确要求承接上一题代码时，才把需要的代码转移过去；独立题目应从本题规定的初始版本开始。
+
+例如，你围绕同一个网站连续做三道题，可以这样安排：
+
+- `01`：从零开发网站，保留第一题完成时的代码。
+- `02`：从第一题的代码开始，修复登录问题。
+- `03`：从第二题的代码开始，增加搜索功能。
+
+**承接代码不等于承接旧容器或历史经验。** 以上面的第二题为例，按下面的顺序操作：
+
+1. 第一题完成后，在 Claude 中输入 `/exit`。按第五章导出第一题的轨迹，并保存好代码；如果项目使用 Git，先提交当前结果。
+2. 执行 `docker stop benzhi-claude-01`，保留第一题容器。在本机新建空的 `02`，不要覆盖 `01`。
+3. 只把第二题需要的代码和资料复制到 `02`；需要保留 `.git` 时按题目要求保留。同时检查隐藏文件和目录，避免复制上一题自动生成的 memory、skills、参考答案、个人规则或轨迹。题目正式要求的配置照常保留。
+4. 打开 `02`，从地址栏启动 PowerShell，按上一节创建 `benzhi-claude-02`，填写本次 key 和 model，检查映射并进入新容器。
+5. 直接发送第二题的完整需求，例如：“请阅读当前项目，修复以下登录问题……”，并写清复现步骤和预期结果。不要使用 `--continue` 或 `--resume` 接着做另一道题。
+6. 第二题完成后，按第五章导出它的轨迹。导出命令使用容器 `benzhi-claude-02`，保存名称使用 `题02-轨迹-`；容器内的路径仍是 `/home/node/.claude/projects/-workspace`。
+
+这样，`01` 留下第一题代码，`02` 从题目允许的代码继续开发，两题的配置和对话记录分别留在各自容器里。修改 `02` 不会自动更新 `01`。
+
+准备第三题时，新建 `03` 和 `benzhi-claude-03`，按同样的方法准备允许的资料并开始新对话。只有继续做同一道题时，才返回它原来的容器，并按需要使用 `--continue`。
+
+## 四、第 3 步：与 Claude 对话
+
+### 1. 发送需求
+
+进入 Claude 后，在底部的输入框中写下你希望它完成的任务，按 Enter 发送。比如，想让它写一个简单脚本，可以这样说：
+
+```text
+请在当前目录创建 hello.py，运行后输出 Hello，并执行它确认结果。
+```
+
+上面这句话仅用于演示。正式做题时，请直接发送实际题目，不要先在这道题的文件夹里试聊，以免把测试对话混入正式轨迹。
+
+Claude 工作时可能询问是否允许修改文件或执行命令。看清它准备做什么，再按界面提示确认。
+
+想看生成的代码，直接在本机打开这道题的文件夹即可。文件已经保存在那里，不需要再从容器复制一遍。
+
+### 2. 退出对话
+
+等待本次回答结束，在 Claude 输入框中输入：
 
 ```text
 /exit
 ```
 
-2. 回到 `node@…:/workspace/my-project$` 这样的**容器提示符**后，再输入下面这条命令，按 Enter：
+按 Enter 后，Claude 会关闭，你会回到 Windows PowerShell。到这里就已经退出对话了，不需要再输入 `exit`。本题容器仍在后台运行，可以导出轨迹或继续这道题；不能用于另一道题。
 
-```bash
-exit
-```
+### 3. 下次进入或继续会话
 
-3. 看到以 `PS` 开头、包含 Windows 路径的提示符，就回到了电脑上的 PowerShell 窗口。
-
-退出对话不会删除容器，代码和记录仍保存在容器里。
-
-## 5. 导出工作目录对应的轨迹
-
-在 **Windows PowerShell** 中执行下面这条命令。不要在 Claude 对话框或容器里执行。
+需要返回第一题时，打开 Docker Desktop 和 Windows PowerShell，执行：
 
 ```powershell
-docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-my-project/. ./my-project-traces
+docker start benzhi-claude-01
+docker exec -it -w /workspace benzhi-claude-01 claude
 ```
 
-复制完成后：
+这两条命令会启动第一题原来的容器，并在其 `/workspace` 中打开一次新对话，之前的代码仍然保留。返回第二题时改用 `benzhi-claude-02`，目录仍是 `/workspace`。
 
-1. 回到桌面上的 `Claude资料` 文件夹。
-2. 打开 **`my-project-traces`** 文件夹，就能看到 `.jsonl` 轨迹文件，以及可能存在的同名会话文件夹。
-3. 需要打包时，右键点击整个 `my-project-traces` 文件夹，选择“压缩为 ZIP 文件”；Windows 10 可选择“发送到 → 压缩(zipped)文件夹”。
-
-**请保留整个文件夹结构，不要只挑一个 JSONL 文件。** 会话文件夹中可能还有子代理记录和工具输出。
-
-这条命令复制 `/workspace/my-project` 对应的轨迹目录。如果在这个工作目录中开过多个会话，记录会一起导出，不会自动筛选为当前会话。
-
-工作目录名称变化时，导出命令也要同步修改。复制前可先查看实际轨迹目录：
+如果你想接着上一次的对话往下做，先确保容器已经启动，再用下面这条命令进入：
 
 ```powershell
-docker exec benzhi-claude-code ls -1 /home/node/.claude/projects
+docker exec -it -w /workspace benzhi-claude-01 claude --continue
 ```
 
-示例中 `/workspace/my-project` 对应 `-workspace-my-project`。实际名称以查询结果为准，不要直接套用示例路径。
-
-## 6. 再次使用已有容器
-
-打开 Docker Desktop，再打开 PowerShell。将下面的容器名和工作目录替换成实际值，逐条执行：
+如果这个文件夹里有多次历史对话，想自己选择恢复哪一次，可以执行：
 
 ```powershell
-docker start benzhi-claude-code
-docker exec -it -w /workspace/my-project benzhi-claude-code bash
+docker exec -it -w /workspace benzhi-claude-01 claude --resume
 ```
 
-确认提示符中的工作目录正确，再执行：
+这里恢复的是本题的对话记录，代码仍然是文件夹里当前的版本。正式做题时，还要遵守任务对对话轮次的要求；换题必须另建文件夹和容器，从新对话开始。
 
-```bash
-claude
-```
 
-上述命令使用已存在的工作目录，其中的代码会保留。需要进入另一个目录时，按第 3 步准备相应路径，再修改 `-w` 后的路径。普通 `claude` 命令开启新会话；需要恢复历史会话时，使用下一节的命令。
 
-## 如何恢复历史会话
+## 五、第 4 步：取出轨迹文件
 
-客户端支持恢复历史会话。打开 Docker Desktop，再按第 1 步打开 PowerShell，逐条执行：
+### 1.  结束对话，选择导出位置
+
+1. 等 Claude 回答结束后，在它的输入框中输入 `/exit`，按 Enter。
+2. 打开资源管理器，在自己想用的磁盘上新建一个保存轨迹的文件夹。请把它放在所有题目代码文件夹以外，不要再挂载给其他题目的容器。
+3. 打开这个新文件夹，在地址栏输入 `powershell`，按 Enter。
+4. 执行 `Get-Location`，确认显示的是刚才选好的轨迹保存位置。
+
+后面的命令会把轨迹保存到这里。你从哪个文件夹打开这个 PowerShell 窗口，轨迹就导出到哪个文件夹。
+
+### 2. 查看轨迹目录
+
+在 Windows PowerShell 中执行：
 
 ```powershell
-docker start benzhi-claude-code
-docker exec -it -w /workspace/my-project benzhi-claude-code bash
+docker exec benzhi-claude-01 ls -1 /home/node/.claude/projects
 ```
 
-进入后确认路径是原会话的工作目录，再输入：
-
-```bash
-claude --continue
-```
-
-这会恢复当前工作目录中最近一次的会话。如果同目录启动过多个会话，先核对 SessionID，可使用 `claude --resume 实际SessionID` 指定恢复目标。
-
-恢复会话不需要再次执行 `docker run` 或重新填写 key，也不会自动把工作目录中的文件恢复到历史版本。代码仍以当前目录的实际文件为准。
-
-## 备份容器中的全部代码和轨迹
-
-重新创建容器之前，可以在 Windows PowerShell 中执行下面两条命令，备份全部项目轨迹和 `/workspace` 下的文件：
+查看第一题的具体文件：
 
 ```powershell
-docker cp benzhi-claude-code:/home/node/.claude/projects/. ./all-projects-traces
-docker cp benzhi-claude-code:/workspace/. ./all-projects-code
+docker exec benzhi-claude-01 ls -lht /home/node/.claude/projects/-workspace
 ```
 
-这会包含多个工作目录及其会话记录，也包括直接放在 `/workspace` 下的文件。确认备份完整后再处理旧容器。如果之前已有同名备份文件夹，先换一个新的目标文件夹名。保存在其他路径的项目文件需要另行备份。
+本机文件夹名称不影响本文的默认轨迹路径。如果曾从 `/workspace` 的子目录另开 Claude，会产生其他项目记录目录，请用第一条命令查看，并一并导出属于本题的记录。只有实际产生过对话才会有轨迹。查看命令需要容器处于运行状态；已经停止时，可以先启动本题容器查看，`docker cp` 本身也可以从停止的容器复制文件。
 
-## 常见问题
+### 3. 取出当前题目的轨迹
 
-**提示容器名字已经被使用（name is already in use）**
-
-说明之前已经创建过容器，先核对目标容器，再使用 `docker start` 启动并进入相应工作目录，不需要再次执行 `docker run`。
-
-**提示容器没有运行（container is not running）**
-
-先执行 `docker start benzhi-claude-code`，再执行进入容器的命令。若仍无法进入，执行 `docker logs benzhi-claude-code` 查看启动错误。
-
-**镜像下载失败，或提示无法连接 Docker**
-
-确认 Docker Desktop 引擎已经启动，并处于 Linux 容器模式。下载超时需要检查访问 Docker Hub 的网络；出现 `toomanyrequests` 时，可登录 Docker Desktop 后重试。
-
-**启动 Docker 后，容器命令仍报「The system cannot find the file specified」（PIPE 连不上引擎）**
-
-报错形如 `failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; The system cannot find the file specified`。意思是 `docker` 命令找不到正在运行的引擎，通常是 **Docker Desktop 没启动，或启动了但引擎还没就绪**。
-
-处理：
-
-1. 打开 Docker Desktop，等它启动完成、状态变为 running（Windows 任务栏/托盘图标稳定）。
-2. 用 `docker info` 确认能返回 `ServerVersion` 再继续；`docker version` 的 server 段非空即就绪。
-3. 确认处于 **Linux 容器模式**（本镜像为 linux/amd64，Windows 上须用 Linux 容器）。
-4. 重新执行 `docker run` 即可。
-
-**直连 Docker Hub 拉镜像超时 / 报网络错误**
-
-报错形如 `failed to resolve reference "docker.io/nicehey/benzhi-claude-code:1.0": … dialing registry-1.docker.io:443 … connection attempt failed`，是国内网络直连 Docker Hub 不通的典型表现。
-
-处理（任选其一）：
-
-1. 配置镜像加速器：Docker Desktop → Settings → Docker Engine → 在 JSON 里加 `"registry-mirrors": ["https://docker.1ms.run", "https://docker.xuanyuan.me"]` → Apply & restart。
-2. 不改配置，直接用加速地址拉取再打回标准标签：
-   ```powershell
-   docker manifest inspect docker.1ms.run/nicehey/benzhi-claude-code:1.0   # 先探测该加速源是否有此镜像
-   docker pull docker.1ms.run/nicehey/benzhi-claude-code:1.0
-   docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-code:1.0
-   ```
-   之后文档里的 `docker run … nicehey/benzhi-claude-code:1.0` 依然可用。
-
-**进容器后 Claude 报「key not allowed to access model」（403）**
-
-报错形如 `403 key not allowed to access model. This key can only access models=['auto_model/urm']. Tried to access ark/urm-01`。说明镜像里固化的模型名和你的 Key 实际可访问的模型对不上。
-
-处理：重建容器，把所有模型相关环境变量覆盖成网关允许的模型名（以 `auto_model/urm` 为例）：
+假设要取出的是 `01` 的轨迹，继续在刚才打开的 PowerShell 窗口中逐条执行：
 
 ```powershell
-docker rm -f benzhi-claude-code
-docker run -d --name benzhi-claude-code `
-  -e "apikey=你的Key" `
-  -e "ANTHROPIC_MODEL=auto_model/urm" `
-  -e "ANTHROPIC_DEFAULT_OPUS_MODEL=auto_model/urm" `
-  -e "ANTHROPIC_DEFAULT_SONNET_MODEL=auto_model/urm" `
-  -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=auto_model/urm" `
-  -e "CLAUDE_CODE_SUBAGENT_MODEL=auto_model/urm" `
-  nicehey/benzhi-claude-code:1.0
+$exportDir = Join-Path (Get-Location).Path ("题01-轨迹-" + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+docker cp benzhi-claude-01:/home/node/.claude/projects/-workspace/. "$exportDir"
 ```
 
-模型名以管理员发放为准；可先用 `docker exec benzhi-claude-code printenv ANTHROPIC_MODEL` 看镜像固化值，再决定是否覆盖。
+第一条命令准备本次导出的文件夹名称，第二条命令把轨迹复制进去。成功后，你选择的保存位置中会多出一个类似 `题01-轨迹-20260908-153000` 的文件夹。名字带有导出时间，方便与之前的记录区分。
 
-**提示 key 中有换行（Invalid auth token / contains a line break）**
+要导出第二题，改两处：保存名称中的 `题01-轨迹-` 改成 `题02-轨迹-`，第二条命令中的容器名改成 `benzhi-claude-02`。容器内的 `-workspace` 路径保持不变。
 
-这表示复制 key 时混入了换行或多余内容，请求还没有发出去。例如，报错中的 `contains a line break at character 26` 表示第 26 个字符处有换行。
+如果上一节发现本题还有其他项目记录目录，应把它们分别复制到 `$exportDir` 下不同的子文件夹，避免同名文件覆盖；不要遗漏子代理记录或关联的工具输出文件。
 
-按下面的步骤重新填写：
-
-1. 如果 Claude 正在重试，先按 `Esc` 停止重试。在 Claude 对话框中输入 `/exit`，按 Enter，回到类似 `node@容器编号:/workspace/my-project$` 的容器提示符。
-2. 在**容器内的 Bash 终端**中执行下面这条命令。把引号里的内容替换成正确 key，保留两边的英文单引号；不要在 Windows PowerShell 中执行。
-
-```bash
-export apikey='这里替换成完整的单行key'
-```
-
-**只复制 key 本身，不要带上 `apikey:`、`model: ark/urm-01`、空格或换行。整条命令应在同一行。** 网关和模型已经在镜像里配好，无需粘贴。
-
-3. 在同一个容器终端中重新启动 Claude，再发送问题：
-
-```bash
-claude
-```
-
-**这个修复只对当前容器终端及其启动的 Claude 有效。** 退出容器终端后，重新执行 `docker exec` 会使用创建容器时保存的旧 key。
-
-要永久改正，先按“备份容器中的全部代码和轨迹”一节导出轨迹和代码，确认备份完整，再使用正确 key 重新创建容器。仅停止、重启旧容器不会更新 key；不要在备份前删除旧容器。
-
-**Claude 提示 401 或认证失败**
-
-先检查 key 后面是否误粘贴了 `model: ark/urm-01` 等文字。把这些文字放进 `export apikey='…'` 的引号里，会使整个值变成错误的 key。按照上面的临时修复步骤，重新填写只有 key 的单行内容后再试。
-
-如果确认复制正确后仍提示 401，请负责人核对 key 是否有效或过期。更换 key 同样需要注意上面的临时修复与永久改正的区别。
-
-**Claude 提示 429，且显示 No deployments available for selected model**
-
-这是网关暂时没有可用的模型部署。先等待客户端本次自动重试结束，保存报错时间和完整错误。此时重装镜像或改用本机 Claude 不能保证解决问题，也不要自行更换规定的模型。
-
-连续重试仍失败时，导出本次轨迹和代码，向服务负责人反馈模型名称、错误和发生时间，不发送 key。服务恢复后再重试，保留原失败记录；答题场景下如何安排重试见《做题流程》。
-
-**复制轨迹时提示找不到目录**
-
-先确认已经在相应工作目录中启动 Claude、发送过问题，并按第 4 步正常退出。再按第 5 步查询实际轨迹目录，检查复制命令中的路径是否正确。仅创建空目录或启动容器，还不会产生对话轨迹。
-
-**Claude 在容器中提示找不到 docker 命令**
-
-这个镜像提供 Claude 客户端，默认没有容器内 Docker 命令或宿主机 Docker 引擎访问权限。需要验证项目的 Dockerfile 时，应在能够访问 Docker 引擎的环境中，按项目文档执行 `docker build`、`docker run` 等命令。不要把“容器里没有 Docker”当作已经完成镜像构建验证。
-
-**已经启动业务容器，但重启后旧地址无法访问**
-
-使用随机映射端口时，重启后应重新执行 `docker port 业务容器名` 查询地址，不能假定端口保持不变。固定映射端口时也应确认端口未被其他程序占用。这里检查的是业务容器，不是运行 Claude 的容器。
-
----
-
-统一网关：`https://llm.jzxhnh.com`；统一模型：`ark/urm-01`。不需要另行安装 Claude Code 或填写这些配置。
-
-key 会保存在本机容器配置和输入过的命令中。不要分享带有真实 key 的命令、截图或容器配置，分享轨迹前也应检查是否包含凭据。
