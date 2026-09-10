@@ -18,9 +18,12 @@ cc-solo {项目} {操作}
 - **round / score 用「任务名」**（`{项目}-{类型}-{索引}`）：`cc-solo app-12-bugfix-01 round 1`、`cc-solo app-12-bugfix-01 score 1`。
 - **export 用 `cc-solo export`**（TODO：最终交付格式未定）。
 
-> 这里的 `cc-solo {项目} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Mac 容器内置 `cc` 快捷入口（进入后自动建目录并拉起 Claude），两者不要混淆。
+> 这里的 `cc-solo {项目} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Mac 容器**没有** `cc` 题号入口（新版隔离镜像已废弃题号与 `cc`），两者不要混淆。
+>
+> **容器模型（2026-09-10 起）**：**1 任务 = 1 会话 = 1 容器 = 1 本机工作目录**；容器名固定 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`）；容器内工作目录恒为 `/workspace`（内容 = 本题任务副本）；轨迹恒在 `/home/node/.claude/projects/-workspace/`。
+> 与旧版（常驻容器 + `cc <题号>` + `docker cp` 搬代码）的差异与原因见 [image-upgrade-review.md](image-upgrade-review.md)。
 
-> 任务名 = **副本目录名 = 提示词名 = 容器工作目录名 = `{项目}-{类型}-{索引}`**（如 `app-12-bugfix-01`）。同一项目按 7 类任务复制成多份副本，**索引全局累加、两位补零**。类型 slug 对照：`0-1代码生成`→`codegen`、`Feature迭代`→`feature`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
+> 任务名 = **副本目录名 = 提示词名 = 容器名（前缀 `cc-solo-`）= `{项目}-{类型}-{索引}`**（如 `app-12-bugfix-01`，容器名 `cc-solo-app-12-bugfix-01`）。同一项目按 7 类任务复制成多份副本，**索引全局累加、两位补零**。类型 slug 对照：`0-1代码生成`→`codegen`、`Feature迭代`→`feature`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
 > 副本 = 素材源复制 + 改名；**共用同一个 base commit 快照**；**暂不建每份独立 git、不提交/push**。
 
 > 📁 完整目录结构样例见 [structure-example.md](structure-example.md)
@@ -35,10 +38,12 @@ cc-solo {项目} {操作}
 
 | 环节 | 谁做 | 说明 |
 |---|---|---|
-| 本地 → 容器（复制任务副本 + chown + 依赖排除） | **agent 自动** | 无需手动 docker cp |
-| 容器 → 本地（review 回导代码产物 + 轨迹 + 依赖排除） | **agent 自动** | 无需手动 docker cp |
-| 容器里跟 Claude Code 交互（贴提示词、追加轮次） | **人工** | 唯一需要你操作的环节 |
+| 建本题容器（`docker run -it`，一题一个） | **人工** | 前台交互、要占你自己的终端窗口；agent 给现成命令 |
+| 播种初始代码（任务副本 → 容器 `/workspace`，启动后、首轮前） | **agent 自动** | 直接写挂载目录，不再往容器里 docker cp |
+| 每轮导出轨迹到本机 records | **agent 自动** | `docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/."` |
+| 容器里跟 Claude Code 交互（贴提示词、追加轮次） | **人工** | 唯一需要你操作的环节；**中途不要退出** |
 | 切轮次、写 R0N、五维打分、导出 | **agent 自动** | 你只发指令（`round N`/`score N`） |
+| 收尾（回导源码到任务副本 + 删容器） | **agent 自动** | 代码已在本机挂载目录，回导只为归档 |
 
 > 一句话：你只在容器里跑 Claude Code；其余 docker cp、切片、录入、打分、导出全由 agent 在宿主机直接执行。
 
@@ -94,10 +99,11 @@ test*1
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）；**并校验仓库结构**：素材源是否位于 `source-code/{项目}/`（唯一 git 仓库），任务副本是否按类型分组 `{项目}-{类型}/{项目}-{类型}-{索引}/` 嵌套其下。结构不规范 → 先列「实际结构 vs 规范结构」差异 → **提示用户确认** → 确认后整理成该格式再继续（未确认不移动文件）。
 2. **新建独立远程仓库（前置）**：用 `github_username` + PAT 创建 `cc-solo-{任务}` 新仓库，把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
 3. **打初始快照**：提交一个 baseline commit → push 到**新仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/cc-solo-{任务}/commit/<40sha>`）
-4. 创建 `records/app-12/app-12-codegen/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 任务 ID。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Claude Code→本次导出到本机的 `records/{任务}/{任务}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace-<题号>/`）
+4. 创建 `records/app-12/app-12-codegen/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 任务 ID。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Claude Code→本次导出到本机的 `records/{任务}/{任务}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace/`）。**建议同时记录镜像 tag + manifest digest 与隔离模式**（见 [image-upgrade-review.md](image-upgrade-review.md)），否则不同批次的数据无法追溯到底跑的是哪个镜像。
 5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
-6. **把任务副本放进容器**（agent 执行 docker 命令）：`docker exec benzhi-claude-code mkdir -p /workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}` + `docker cp {REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/. benzhi-claude-code:/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/` + `docker exec -u root benzhi-claude-code chown -R node:node /workspace/{项目}`。**⚠️ 复制前按 .gitignore 排除依赖包**（node_modules/.venv/__pycache__/dist 等，体积大）：用 `git ls-files` 或 `rsync --exclude-from=.gitignore` 打包源码再进容器，**不整目录 docker cp**。
-7. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到容器内 Claude Code（`cc <题号>`）执行
+6. **生成本题容器启动命令**（agent 给出、人工执行）：镜像固定 `adminfather/benzhi-claude-code:20260909-isolated-git`（**勿用 `latest`**）、`--name "cc-solo-{任务}"`、新建空的 `$RUN_DIR/workspace` 并挂到 `/workspace`、`-e "apikey=…"`。**镜像强制挂载目录启动时必须为空**（错误信息即 `Import code during this session.`），所以**不能先播种再启动**，播种放到容器起来之后。
+7. **播种任务副本**（agent 执行，容器启动后、人工发首轮提问**之前**）：按 `.gitignore` 排除依赖包（node_modules/.venv/__pycache__/dist 等，体积大），把任务副本内容写进挂载目录——`SRC=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/workspace"}}{{.Source}}{{end}}{{end}}' "cc-solo-{任务}")`，再 `rsync -a --exclude-from=.gitignore "{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/" "$SRC/"`（无 rsync 时用 `git ls-files -z | tar -c --null -T -` 打包再解包）。**⚠️ 不要在 Mac 上写 `chown`**：镜像以 `--cap-drop ALL` 运行，chown 会失败，而挂载目录的归属已自动映射。播种完成后明确回报「播种完成，可以贴首轮提示词」。
+8. 输出：任务信息文件路径 + 首轮提示词 + 容器启动命令，提示人工按「启动容器 → 等 agent 报播种完成 → 贴首轮提示词」的顺序操作。
 
 > ⚠️ **出题要难**：首轮提示词做高难度、多需求、跨模块/多约束题，严禁简单题。**Bug修复先埋点**：在初始化/打快照阶段把 bug 写进源码（无注释标记、藏得深、可复现），埋点 commit 即初始快照；首轮 prompt 只描述症状、不透露 bug 位置。（详见 skills/01-task-create.md「出题与埋点要求」）
 
@@ -111,23 +117,30 @@ records/app-12/app-12-codegen/task-info.md
 
 ## 第 2 步：与模型交互（用户在容器内的 Claude Code 中）
 
-> Claude Code 跑在 docker 容器（`benzhi-claude-code`）里，**任务名 = 副本目录名 = 容器工作目录名**（`{项目}-{类型}-{索引}`，如 `app-12-bugfix-01`）。工作目录 `/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/` 已在第 1 步由 agent 把任务副本 docker cp 进去并 chown；轨迹落在容器内 `/home/node/.claude/projects/-workspace-<题号>/`。
+> Claude Code 跑在 docker 容器（容器名 `cc-solo-{任务}`）里，**1 容器 = 1 任务 = 1 会话**。容器内工作目录恒为 `/workspace`（内容 = 本题任务副本，由 agent 在容器启动后播种）；轨迹落在容器内 `/home/node/.claude/projects/-workspace/`。
 >
-> 容器需已创建并运行（首次创建见 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md)第 3 步）。若容器启动/拉镜像/模型出错（`command not found: docker`、拉镜像超时、`model not found` / `403 key not allowed to access model`），按该文档「常见问题」Q1 / Q3 / Q8 处理。
+> 镜像固定 `adminfather/benzhi-claude-code:20260909-isolated-git`（**勿用 `latest`**）。容器启动/拉镜像/模型出错（`command not found: docker`、拉镜像超时、`model not found` / `403 key not allowed to access model`）按 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md) 的「隔离范围与排错」处理。
 
-1. **进入容器做题**：
+1. **启动本题容器**（人工，前台执行；agent 会给现成命令）：
    ```bash
-   docker exec -it benzhi-claude-code cc <题号>
+   TASK="app-12-bugfix-01"
+   RUN_DIR="$HOME/claude-runs/${TASK}-$(date +%Y%m%d-%H%M%S)"
+   mkdir -p "$RUN_DIR/workspace"
+   docker run -it --init --restart=no --name "cc-solo-$TASK" \
+     --cap-drop ALL --security-opt no-new-privileges \
+     --mount "type=bind,src=$RUN_DIR/workspace,dst=/workspace" \
+     -e "apikey=xxxxx" \
+     adminfather/benzhi-claude-code:20260909-isolated-git
    ```
-   首次进入可能询问是否信任当前目录，选信任（路径应与 `/workspace/<题号>` 一致）。
-2. **做本轮对话**（默认推荐：一个 `cc` 会话里连续发多轮，不退出）：
+   看到 Claude 输入框后**先不要发消息**，等 agent 报「播种完成」再开始。
+2. **做本轮对话**（默认推荐：同一个会话里连续发多轮，**中途不要退出**）：
    - 第 1 轮：粘贴首轮提示词（见第 1 步产物 / `task-info.md` 的「首轮提示词」），开始对话。
-   - 继续下一轮：直接在**同一个** `cc <题号>` 会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
-3. **（可选）退出会话 + 下次怎么接着做**：如果确实想退出 Claude：
-   - 在 Claude 对话框输入 `/exit` 回车，退回 Mac 主机终端（Mac 端这一步即可，容器仍在后台运行）。
-   - **下次继续下一轮**：进容器后**不要用裸 `cc <题号>`**（会新建一个 SessionID，打破「一个任务 = 一个会话窗口」），改用 `cc <题号> --continue` 或 `cc <题号> --resume <SessionID>`。
+   - 继续下一轮：直接在**同一个**会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
+3. **红线：这个镜像不支持恢复会话**。`--continue` / `--resume` 不可用，`docker start` / `docker restart` 会被镜像直接拒绝（`This container has already been used. Export results and create a new container.`）。误退出（Ctrl+D ×2、Ctrl+C、关窗）即本题无法继续：只能按**已导出的轮次**收尾（数据不丢），剩余轮次作废。
+   - 降低误关窗风险的可选做法：用 `docker run -dit` 起容器、再 `docker attach "cc-solo-$TASK"`，用 `Ctrl-P Ctrl-Q` 脱离而不杀会话（`-dit` 下 Claude 正常运行**已实测**，见 [image-upgrade-review.md](image-upgrade-review.md) 第七节）。
+4. **退出方式**：本题做完后，在输入框按 **Ctrl+D 两次**回到终端（此模式**禁用斜杠命令**，没有 `/exit`）。退出后容器停止、轨迹仍在容器里；**不要加 `--rm`，导出完成前不要 `docker rm`**。
 
-> 💡 一句话：**一个任务的几轮对话必须落在同一个 SessionID（一个会话窗口）里。** 默认就**别退出**，一个 `cc <题号>` 会话连发多轮。做完一轮后直接告诉 agent `cc <题号> round N` 即可——导出轨迹/代码、切片、录入都由 agent 执行 docker 命令完成，你不用手动 `docker cp`。
+> 💡 一句话：**一个任务的几轮对话必须落在同一个 SessionID，而且只有一次机会。** 默认就**别退出**，一个 `cc-solo-{任务}` 会话连发多轮。做完一轮后直接告诉 agent `cc-solo {任务} round N` 即可——导出轨迹、切片、录入都由 agent 执行 docker 命令完成；代码本来就在本机挂载目录里，你不用手动 `docker cp`。
 
 ---
 
@@ -143,7 +156,7 @@ cc-solo app-12-bugfix-01 round 1
 
 ### AI 会执行
 
-1. **从容器导回本轮产物（agent 执行 docker 命令）**：等模型答完静止后——导出轨迹（`docker cp …:/home/node/.claude/projects/-workspace-<题号>/. records/{项目}/{项目}-{类型}/`）和代码产物（回导到 `source-code/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`，只回导源码与变更）。**⚠️ 回导同样按 .gitignore 排除依赖包**（node_modules/.venv/__pycache__ 等），不整目录 docker cp。
+1. **导出本轮轨迹（agent 执行 docker 命令）**：等模型答完静止后 —— `docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." {RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/`（容器停止状态下也能导出）。**代码产物不需要回导**：容器 `/workspace` 就是本机挂载目录，模型改完的代码已经在盘上；任务收尾时再由 agent 按 `.gitignore` 排除依赖包（node_modules/.venv/__pycache__ 等），把源码回导到任务副本 `{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{任务}/`，供 `03-score-annotate` 做 git diff 对照。
 2. 从轨迹切出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId；本轮那段存 `records/<repo>/<题号>/<题号>-R0N-trajectory.jsonl`，完整轨迹保留为 `records/<repo>/<题号>/<题号>-trajectory.jsonl`。
 3. 创建 `records/<repo>/<题号>/<题号>-R0N.md`，回填 User Prompt、任务类型/难度、语言/框架、TurnID。
 4. 从 `task-info.md` 继承 SessionID 等共享字段（导出时合并），并按 Harness 分行回填轨迹根目录。
@@ -190,11 +203,18 @@ records/app-12/app-12-codegen/app-12-codegen-R01.md   # 已填入五维打分与
 ## 第 5 步：会话结束，开新任务
 
 - 达到 10 轮，或模型达成目标且无需继续时，本任务结束
-- 新开 Claude Code 会话窗口与任务目录，重复第 1-4 步：同一项目继续另一种类型用 `app-12-feat`（在生成产物上迭代）/ `app-12-bugfix`（埋点后修复）等新任务 ID；全新项目则用新仓库名（如 `app-13-codegen`）
+- **收尾三步（agent 执行）**：
+  1. 导出完整轨迹并核对：`docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." "$RUN_DIR/traces"`，与该任务已录入的各轮切片比对，确认不缺轮；
+  2. 回导源码到任务副本（按 `.gitignore` 排除依赖包），确认本机副本 = 模型最终产物；
+  3. `docker rm "cc-solo-{任务}"`（**确认轨迹已导出后再删**），并清理运行目录里的依赖包。可用 `docker ps -a --filter name=cc-solo-` 盘点是否还有未清理的本期容器。
+- 新开任务：重复第 1-4 步，使用**新的任务副本目录 + 新的空运行目录 + 新容器**（容器名换新任务名，不能复用旧容器）：同一项目继续另一种类型用 `app-12-feat`（在生成产物上迭代）/ `app-12-bugfix`（埋点后修复）等新任务 ID；全新项目则用新仓库名（如 `app-13-codegen`）
+- ⚠️ 若会话中途意外退出（无法恢复）：剩余轮次作废，按已导出的轮次收尾，并在 `task-info.md` 备注「会话提前终止（第 N 轮后）」
 
 ---
 
-## 第 6 步：导出正式提交表
+## 第 6 步：生成评价结果文件
+
+> 2026-09-10 起不再导出「正式提交表 CSV」、也不再投递飞书，改为按平台提交表单的字段规范生成**评价结果文件**（一轮 = 一条），后续通过提交接口提交。
 
 ### 指令模板
 
@@ -204,50 +224,53 @@ cc-solo export
 
 ### AI 会执行
 
-1. 扫描 `{RECORD_DIR}` 全部任务，读取 `task-info.md` + 各 `*-R*.md`
-2. 运行导出脚本生成 CSV（每轮一行），输出：
-   `deliverables/cc-solo/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`
-3. 运行质检校验并输出报告（字段完整、分数范围、轮次 ≤10、SessionID 一致性、TurnID 唯一、快照格式、类型分布）
+1. 如表单字段有变化，先重新抽取规范：`python scripts/cc-solo/extract_submit_fields.py`（→ `docs/submission/fields.json`）
+2. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
+3. 运行质检（表单规范层 + 项目规则层），逐条给出 error / warn
+4. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ 同名 `.csv`（人工核对）+ `-质检报告.md`
+
+```bash
+python scripts/cc-solo/build_eval_result.py
+```
 
 ### 产物
 
 ```text
-deliverables/cc-solo/session-0907/正式提交表-session-0907-<date>.csv
+deliverables/cc-solo/session-0909/评价结果-session-0909-<date>.json
+deliverables/cc-solo/session-0909/评价结果-session-0909-<date>.csv
+deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.md
 ```
+
+> 常见阻塞项（error，必须修数据后重新生成）：`初始环境快照` 不是 GitHub 40 位 SHA permalink；首轮难度写成「简单」；轨迹文件不存在；五维分数不是 1-5 整数。修的是 `records/` 里的数据文件，不要手改产物。
 
 ---
 
-## 第 7 步：投递飞书（满意度交付多维表格）
+## 第 7 步：提交（提交接口）
+
+> **提交接口 URL 待管理员提供**。拿到后写进 `projects/cc-solo/secrets.toml`：`[submission] submit_url = "…"`（同时填 `cookie`），再执行本步。
 
 ### 指令模板
 
 ```text
-cc-solo export feishu
-（或）cc-solo app-12-bugfix-01 feishu --submitter 张三
+cc-solo export submit
 ```
 
 ### AI 会执行
 
-1. 确认已导出的提交表 CSV（质检通过、无警示未处理项）
-2. **先 dry-run**：`python scripts/cc-solo/append_delivery_feishu.py --csv <提交表> --dry-run`
-3. dry-run 通过后正式投递（每行 = 一轮 = 一条记录）：
-   `python scripts/cc-solo/append_delivery_feishu.py --csv <提交表> --submitter 张三`
-4. 输出每条追加的 record_id + 汇总（新增/已存在跳过/错误）
-5. **上传轨迹附件（可选）**：投递脚本（`append_delivery_feishu.py`）会把「轨迹文件」列留空，因为该字段是**附件**类型（`type=17`），不能写文本路径。若要把轨迹作为附件挂到记录上，需在投递后额外执行两步：
-   - `POST /open-apis/drive/v1/medias/upload_all`（multipart 表单字段：`file_type`、`file_name`、`parent_type=bitable_file`、`parent_node=app_token`、`size`、`file`）拿到 `data.file_token`；
-   - `PUT /open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/{record_id}`，body 写 `{"fields":{"轨迹文件":[{"file_token":"…","name":"…","size":…,"type":"file"}]}}`。
-   token 用 `POST /open-apis/auth/v3/tenant_access_token/internal` 换取。完整步骤见 [../skills/04-export-submit.md](../skills/04-export-submit.md)。
-
-> 目标表见 `config.toml [feishu]`（`Lg0mbjRpPaxjhmsj27MckrJLnec` / `tble0z2KnzCfjJmZ`）。
-> 凭证默认复用 `code-eval-gsb/secrets.toml [feishu]` 的 app_id/app_secret；命名差异（`feature迭代`、描述列空格等）由脚本自动映射。
-> 轨迹字段类型为「附件」(`type=17`)，因此不能写文本路径，须先上传文件得到 file_token 再写入。
+1. 确认评价结果文件已生成、质检无未处理的 error
+2. **先 dry-run**（不发任何请求，只打印将上传的轨迹与将提交的字段）：
+   `python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json`
+3. 先只上传轨迹、验证 cookie 与附件链路：`… --upload-only --commit --write-back`（会把远端 path 回写进结果文件）
+4. 正式提交：`… --commit`（或加 `--url <提交接口>`；`--only-ready` 可跳过仍有 error 的条目）
+5. 输出每条的上传结果与接口返回；失败的条目修正后重试，避免重复提交
 
 ### 产物
 
-满意度交付多维表格新增 N 条记录（N = 提交表行数），每条含五维分数与描述。
+提交接口按「一轮 = 一条记录」落库，每条含 24 个字段 + 轨迹附件。
 
 ### 注意事项
 
-- 当天 20:00 前执行的数据当天提交；20:00 后产生的数据次日 14:00 前提交。
-- 多维表格是最终交付物：投递前确认提交表已定稿、无返修；追加错误在表内手动删除后重投。
-- 首次使用需为应用开通 `bitable:app` 权限并把应用加为该表协作者。
+- 轨迹是**附件**字段：必须先用上传接口拿远端 path，再写进 `trace_file` 提交（脚本自动处理）。
+- `secrets.toml [submission].cookie` 会过期，401/403 时重新从浏览器复制。
+- 时限沿用约定：当天 20:00 前产生的数据当天提交，20:00 之后的次日 14:00 前提交。
+- 旧的飞书投递（`append_delivery_feishu.py`）与 CSV 提交表（`export_submit.py`）**已退役**，仅作历史留存。

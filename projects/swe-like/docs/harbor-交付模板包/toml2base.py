@@ -311,7 +311,7 @@ def check_structure(pkg_dir, report_errors):
 
 
 def parse_rubric(path):
-    """返回 (拍平文本, 按序 rubric id 列表, 错误列表)。"""
+    """返回 (按 id 逐条展开的 rubric 文本, 按序 rubric id 列表, 错误列表)。"""
     try:
         import yaml
     except ImportError:
@@ -368,7 +368,11 @@ def parse_rubric(path):
         return (0, int(rid), "") if str(rid).isdigit() else (1, 0, str(rid))
 
     ordered = sorted(parsed, key=sort_key)
-    lines = ["[%s] %s: %s" % (t, rid, text) for rid, t, text in ordered]
+    lines = []
+    for rid, rtype, text in ordered:
+        lines.append("- id: %s" % rid)
+        lines.append("  type: %s" % rtype)
+        lines.append("  text: %s" % text)
     return "\n".join(lines), [str(rid) for rid, _, _ in ordered], []
 
 
@@ -678,7 +682,7 @@ def extract(pkg_dir, pkg_name, zip_path, schema):
             report.ok(
                 RUBRIC_COLUMN,
                 "tests/nl_rubric.yaml",
-                "拍平 %d 条" % len(rub_flat.splitlines()),
+                "按 id 顺序逐条展开 %d 条" % len(rubric_ids),
             )
 
     # 整包 zip -> 交付包（zip）

@@ -42,7 +42,19 @@ python3 toml2base.py <题目目录>
 
 生成内容：把底稿**必填字段**（标 `*`）按「基础与仓库信息 / 出题内容与产物 / 运行记录」三组列出，值取自 `task.toml`、`instruction.md`、`tests/nl_rubric.yaml`，并标注截图、轨迹、预检记录这几项由提交人自行处理。注意：**每个字段的值直接内联在对应单元格里**（多行内容用 `<br>` 展开），不要用「见第 X 节」之类引用让提交人滚动查找各处正文。
 
-> **质检格式红线（被打回过）**：`Verify Rubric` 与 `产物结果` 必须写成 **`1.` / `2.` / `3.` 编号清单**，且二者用同一套编号逐条对应（如 Verify Rubric 写 `1. [f2p] xxx`、`2. [p2p] yyy`；产物结果写 `1. 通过`、`2. 未通过 原因`）。不要用 `[f2p] 1: xxx`、`1 通过`（无点号）这类格式。用 `scripts/swe-like/gen_basefields.py <题目目录...>` 一键生成，脚本已按此格式输出。
+> **质检格式红线（被打回过）**：`Verify Rubric` 与 `产物结果` 都要按 rubric id 逐条对应，不能写成整段说明。
+>
+> - `Verify Rubric`：照 `tests/nl_rubric.yaml` 的结构逐条展开，每条三行，条目之间不加空行，文案不改写：
+>
+>   ```yaml
+>   - id: 1
+>     type: p2p
+>     text: 未配置或未命中时，请求完整回源转发，既有行为不回归。
+>   ```
+>
+> - `产物结果`：每条 rubric 一行，格式 `<id> <通过|未通过> [原因]`，判未通过的必须在同一行写清原因，如 `2 未通过 额外排除了带 Authorization 头的请求`。
+>
+> 不要用 `[f2p] 1: xxx`、`1. [f2p] xxx` 这类把 id 与 type 揉进一行、或加编号点号的写法。用 `scripts/swe-like/gen_basefields.py <题目目录...>` 一键生成，脚本已按此格式输出。
 
 注意：`repo_url`、`Fork Repo Commit URL` 依赖远程仓库，本地项目需提交人补填；`base_commit` 仍须与 `environment/Dockerfile` 的 `ARG BASE_SHA` 一致；`run_result` 须逐条对应 rubric（`<id> <通过|未通过> <原因>`），与人工作「是否完成需求」保持一致。
 

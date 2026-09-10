@@ -9,7 +9,7 @@
 1. 从候选仓库中挑选题目（避免雷同题），在会话**首轮前**对工作区打初始环境快照（commit permalink）
 2. 在 Claude Code 中按真实用户口径出题并交互（每会话窗口 ≤ 10 轮）
 3. 对**每一轮**对话按五维（交付完整性 / 指令遵循 / 任务规划 / 推理能力 / 执行能力）1-5 打分并撰写依据
-4. 汇总成正式提交表：**每个有效轮次一行**，同一会话各轮共享一组运行环境字段
+4. 汇总成**评价结果文件**：**每个有效轮次一条**，同一会话各轮共享一组运行环境字段；提交走平台提交接口（URL 待管理员提供，见 `skills/04-export-submit.md`）
 
 > ⚠️ 质量红线：AI 生成的提示词与交付文本（含 AI 起草的五维打分依据）必须先经 `skills/humanizer-zh` 去 AI 化 + 人工复核，方可使用/落盘/投递；人工撰写的原文保持原样、不做 AI 改写。本 skill 中 AI Agent 负责记录、起草、去 AI 化、机械校验与导出，最终由人工把关。
 
@@ -77,14 +77,23 @@ cc html-demo-bugfix score 1
 
 不满意时 agent 会自动拆分不满点、生成下一轮提示词（`-R02-prompt.md`，开头「修复bug：」）。
 
-### 4. 导出正式提交表 + 投递飞书
+### 4. 生成评价结果 + 提交（提交接口）
 
 ```text
-cc export
-cc export feishu
+cc-solo export
+cc-solo export submit
 ```
 
-导出到 `deliverables/cc-solo/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`（每轮一行），随后逐行追加到满意度交付飞书多维表格（地址见 `config.toml [feishu]`；凭证复用 GSB 应用的 `code-eval-gsb/secrets.toml [feishu]`）。
+按提交表单的字段规范（`docs/submission/fields.json`，24 字段）生成 `deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（**一轮一条**，附同名核对 CSV 与质检报告）：
+
+```bash
+python scripts/cc-solo/build_eval_result.py
+python scripts/cc-solo/submit_eval_result.py --result <上面的 json>          # dry-run
+python scripts/cc-solo/submit_eval_result.py --result <上面的 json> --commit # 上传轨迹 + 提交
+```
+
+> 提交接口 URL 待管理员提供，填 `secrets.toml [submission].submit_url`（cookie 同段）。
+> 旧的 CSV 提交表（`export_submit.py`）与飞书投递（`append_delivery_feishu.py`）**已退役**，仅作历史留存。
 
 ## 多人协作
 

@@ -4,6 +4,17 @@
 
 流程：新建本地空工作目录并启动容器 → 做题，代码直接保存在本机 → 退出并导出轨迹 → 删除本题容器。下一题重复相同流程，使用新的空工作目录和会话记录。
 
+> 📌 **本文是 cc-solo 标注的 Mac 现行用法**。旧版（常驻容器 + `cc <题号>` + `docker cp` 搬代码）说明已归档到 [archive/CLAUDE_CODE_DOCKER_MAC.md](archive/CLAUDE_CODE_DOCKER_MAC.md)，**不要再用**；镜像升级的影响评估见 [image-upgrade-review.md](image-upgrade-review.md)。
+>
+> **标注场景的额外约定（本文正文面向"做题"，标注请一并遵守）：**
+>
+> - **镜像固定 tag**：一律写 `adminfather/benzhi-claude-code:20260909-isolated-git`，**不要用 `latest`**（`latest` 已于 2026-09-09 指向同一镜像，但会随发布漂移；每条数据都要能追溯镜像 digest）。
+> - **容器名 = 任务名**：`--name "cc-solo-{任务}"`（如 `cc-solo-app-12-bugfix-01`）。本文正文示例用固定名 `claude-task`，标注时请在该文档所有命令里替换成 `cc-solo-{任务}`，便于 agent 用 `docker inspect` 定位挂载目录、用 `docker cp` 取轨迹。
+> - **播种时机**：镜像要求 `/workspace` 启动时为空（错误信息即 `Import code during this session.`）。题目的初始代码由 **agent 在容器启动后、人工发第一句之前**写入挂载目录（宿主机直接写，按 `.gitignore` 排除依赖包）；写完再贴首轮提示词，**不要**指望"先播种后启动"。
+> - **会话不可恢复**：本镜像拒绝在同一个容器里再开一次会话（`--continue`/`--resume` 均不支持）。同一道题的所有轮次必须一口气做完，**中途不要退出**；误退出即该任务无法继续（已导出的轮次仍然有效）。
+> - **不要 `chown`**：容器以 `--cap-drop ALL` 运行，CAP_CHOWN 被掉，连 `-u root` 也改不了文件归属；Mac 挂载目录的归属会自动映射，本来就不需要 chown。
+> - **工具集被裁剪**：镜像内 Claude Code 以 `--safe-mode --disable-slash-commands --tools 'Bash,Read,Write,Edit,Glob,Grep'` 启动（版本锁定 2.1.197），**没有子代理（Task）、没有 TodoWrite、没有联网抓取、没有斜杠命令**。标注时须把这一点记进 `task-info.md`，因为它影响「任务规划」等维度的判据。
+
 ## 1. 准备
 
 安装并启动 Docker Desktop，准备管理员发放的 API Key。按 `Command + 空格`，搜索并打开“终端”。下面的 Docker 命令都在 Mac 终端执行。

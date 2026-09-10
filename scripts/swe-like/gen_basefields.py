@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """为 swe-like 交付包生成 docs/底稿必填字段.md（人工回填，不打包 zip）。
 
-格式要求（质检）：Verify Rubric 与产物结果都用 1. / 2. / 3. 编号清单，逐条对应。
+格式要求（质检）：两列都用 rubric id 逐条对应。
+- Verify Rubric：按 tests/nl_rubric.yaml 的结构逐条展开，每条三行 - id / type / text。
+- 产物结果：每条 rubric 一行 <id> <通过|未通过> [原因]。
 
 用法：python3 gen_basefields.py <题目目录1> [<题目目录2> ...]
 """
@@ -13,13 +15,18 @@ from pathlib import Path
 import yaml
 
 
-def rubric_numbered(path):
+def rubric_block(path):
     doc = yaml.safe_load(path.read_text(encoding="utf-8"))["rubrics"]
     items = sorted(doc, key=lambda r: (int(r["id"]) if str(r["id"]).isdigit() else 1e9))
-    return "<br>".join("%s. [%s] %s" % (r["id"], r["type"], r["text"].strip()) for r in items)
+    lines = []
+    for r in items:
+        lines.append("- id: %s" % r["id"])
+        lines.append("  type: %s" % r["type"])
+        lines.append("  text: %s" % r["text"].strip())
+    return "<br>".join(lines)
 
 
-def run_result_numbered(raw):
+def run_result_lines(raw):
     out = []
     for line in str(raw).splitlines():
         line = line.strip()
@@ -28,7 +35,7 @@ def run_result_numbered(raw):
         parts = line.split(None, 1)
         num = parts[0].rstrip("：:.、")
         rest = parts[1] if len(parts) > 1 else ""
-        out.append("%s. %s" % (num, rest))
+        out.append(("%s %s" % (num, rest)).strip())
     return "<br>".join(out)
 
 
@@ -43,8 +50,8 @@ def table(rows):
 def generate(pkg: Path):
     data = tomllib.loads((pkg / "task.toml").read_text(encoding="utf-8"))
     ins = (pkg / "instruction.md").read_text(encoding="utf-8").strip()
-    rubric = rubric_numbered(pkg / "tests" / "nl_rubric.yaml")
-    run = run_result_numbered(data.get("run_result", ""))
+    rubric = rubric_block(pkg / "tests" / "nl_rubric.yaml")
+    run = run_result_lines(data.get("run_result", ""))
     notes = data.get("notes", "")
     m = re.search(r"https://github\.com/[^/\s]+/[^/\s]+/commit/[0-9a-f]{40}", notes)
     fork_commit = m.group(0) if m else "（需提交人补填）"
@@ -85,7 +92,7 @@ def generate(pkg: Path):
 
 > 说明：本机无 lark-cli / 无 auth login，toml2base.py 无法回填，采用人工回填。
 > 请按下列字段逐项复制到底稿「底稿-Harbor 交付（试行）」表。多行内容用 <br> 展开。
-> Verify Rubric 与产物结果均按 1. / 2. / 3. 编号逐条对应。
+> Verify Rubric 逐条展开为 id / type / text 三行；产物结果每条 rubric 一行，二者按同一套 id 逐条对应。
 
 ## 基础与仓库信息
 
@@ -113,4 +120,4 @@ if __name__ == "__main__":
         print("用法: gen_basefields.py <题目目录1> [<题目目录2> ...]", file=sys.stderr)
         sys.exit(2)
     for d in sys.argv[1:]:
-        print("[%s] 已生成 docs/底稿必填字段.md（1. 编号格式）" % generate(Path(d)))
+        print("[%s] 已生成 docs/底稿必填字段.md（Verify Rubric 三行式 + 产物结果逐条）" % generate(Path(d)))

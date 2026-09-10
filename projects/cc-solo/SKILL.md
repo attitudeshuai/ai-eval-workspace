@@ -1,11 +1,11 @@
 ---
 name: cc-solo
-description: "Claude Code 用户满意度标注。一个会话（任务）内至多 10 轮对话，每一轮对话为一条数据，按五维打分并汇总为正式提交表。Use when: 满意度标注, Coding Agent 标注, Claude Code 标注, 五维打分, 每轮一条数据, 用户反馈数据生产。"
+description: "Claude Code 用户满意度标注。一个会话（任务）内至多 10 轮对话，每一轮对话为一条数据，按五维打分并汇总为评价结果文件（按提交表单 24 字段，一轮一条）。Use when: 满意度标注, Coding Agent 标注, Claude Code 标注, 五维打分, 每轮一条数据, 评价结果, 用户反馈数据生产。"
 ---
 
 # cc-solo 单模型代码评估（容器化）
 
-从一份素材源码出发，按 7 类任务批量生成「任务副本 + 提示词」，复制进容器按类型多份执行，回导轨迹与代码，按五维逐轮打分并汇总导出。合并了 code-eval-solo 的「按类型批量出题 + 全局索引」与 claudccode 的「容器执行 + 会话/轮次 + 五维打分」。
+从一份素材源码出发，按 7 类任务批量生成「任务副本 + 提示词」，**每题一个容器**执行（容器内 `/workspace` = 本题任务副本内容），导出轨迹与代码，按五维逐轮打分并汇总导出。合并了 code-eval-solo 的「按类型批量出题 + 全局索引」与 claudccode 的「容器执行 + 会话/轮次 + 五维打分」。
 
 > 📄 项目源规范见 [docs/ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx)（0926 期）。本文档 + skills 是把该规范落成可执行流程。
 
@@ -19,8 +19,8 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
       └─ ...（≤ 10 轮）
 ```
 
-- **任务 = 会话**：同一个 `SessionID` 下的一个会话窗口。运行环境字段（Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照）同一会话各轮填**同一组值**。
-- **项目 → 任务副本**：一份素材源码（项目，如 `app-12`）复制成多份任务副本，按任务类型分组、全局索引累加。**任务名 = 副本目录名 = 提示词名 = 容器工作目录名 = `{项目}-{类型slug}-{索引}`**（如 `app-12-bugfix-01`）。类型 slug 对照 `config.toml [task_types].aliases`：`0-1代码生成`→`codegen`、`Feature迭代`→`feature`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
+- **任务 = 会话 = 容器 = 本机工作目录**：1 任务对应 1 个 Claude Code 会话窗口，跑在 1 个独立容器里（容器名 `cc-solo-{任务}`），容器内工作目录恒为 `/workspace`（内容 = 本题任务副本），轨迹恒在 `/home/node/.claude/projects/-workspace/`。同一个 `SessionID` 下的一个会话窗口。运行环境字段（Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照 / 镜像 tag+digest）同一会话各轮填**同一组值**。
+- **项目 → 任务副本**：一份素材源（项目，如 `app-12`）复制成多份任务副本，按任务类型分组、全局索引累加。**任务名 = 副本目录名 = 提示词名 = 容器名（前缀 `cc-solo-`）= `{项目}-{类型slug}-{索引}`**（如 `app-12-bugfix-01`）。类型 slug 对照 `config.toml [task_types].aliases`：`0-1代码生成`→`codegen`、`Feature迭代`→`feature`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
 - **一轮 = 一条数据**：一次交互（用户提问 + 模型回答）。每条数据独立按五维打分，独立提交、独立验收。
 - **多数据归属**：一个任务可提交多条数据，每条来自该会话中的一轮对话；导出一轮一行。
 - **SessionID / TurnID**：`SessionID` 同一道题所有轮次填同一个值（把多轮聚合回一道题）；`TurnID/PromptID` 每轮唯一（Claude Code 取本轮 user 消息的 promptId）。**两者 agent 可从轨迹自取，无需用户手动回填**：Claude Code → 本机 `records/{任务}/{任务}-trajectory.jsonl`（来自容器导出，容器入口按操作系统见 runbook.md / runbook-windows.md；`type==user` 且 content 为字符串的条目 promptId = TurnID；**一轮 = 一次用户键入**）。多轮识别详见 [skills/02-round-capture.md](skills/02-round-capture.md)。
@@ -32,7 +32,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 1 | **任务初始化** | [skills/01-task-create.md](skills/01-task-create.md) | 建任务目录 + 初始快照（commit permalink）+ 环境字段 + 出题（首轮提示词） |
 | 2 | **单轮录入** | [skills/02-round-capture.md](skills/02-round-capture.md) | 一轮交互后回填：User Prompt / TurnID / SessionID / 任务类型 / 难度 / 语言框架；SessionID 与 TurnID 由 agent 从本机轨迹自取、多轮自动拆轮 |
 | 3 | **五维打分** | [skills/03-score-annotate.md](skills/03-score-annotate.md) | 读轨迹 → 调 implementation-reviewer + 过程分析 → 五维打分（1-5）+ 依据录入 + 硬性校验 |
-| 4 | **导出提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 所有任务数据 → 正式提交表 CSV（每轮一行）+ 质检 → 投递飞书多维表格（目标见 config.toml `[feishu]`） |
+| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」的评价结果 JSON（+ 核对 CSV + 质检报告）→ 上传轨迹附件 → 调提交接口（URL 待补；旧的 CSV 提交表与飞书投递已退役） |
 
 ## 共享资源
 
@@ -51,9 +51,11 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 ## 工作流程
 
 ```
-任务初始化(建任务+快照+环境+出题) → 用户在 Claude Code 中交互
-    └→ [第 N 轮] 单轮录入 → 五维打分(去AI化+人工复核) → 决定是否继续(≤10 轮)
-        → 会话结束 → 导出正式提交表（每轮一行）→ 质检 → 投递飞书多维表格
+任务初始化(建任务+快照+环境+出题) → 启动本题容器(人工 docker run，一题一个)
+    → agent 播种任务副本到容器 /workspace（Mac：启动后播种；Windows：直接挂载，无此步）
+    → 用户在容器内 Claude Code 连续交互（一个会话窗口，中途不要退出）
+    └→ [第 N 轮] agent 导出轨迹 → 单轮录入 → 五维打分(去AI化+人工复核) → 决定是否继续(≤10 轮)
+        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → 提交接口（URL 待补）
 ```
 
 > **任务初始化第一步必检仓库结构**：素材源须位于 `source-code/{项目}/`（项目根 = 唯一 git 仓库），其下按类型分组 `{项目}-{类型}/` 嵌套任务副本 `{项目}-{类型}-{索引}/`。结构不规范时先列出差异、**提示用户确认**，确认后整理成该格式再继续。详见 [skills/01-task-create.md](skills/01-task-create.md)「仓库与目录结构」。
@@ -91,7 +93,7 @@ projects/cc-solo/
 ├── README.md
 ├── docs/                        # runbook / structure-example / annotate-guide / 源 docx
 ├── skills/                      # 01-task-create / 02-round-capture / 03-score-annotate / 04-export-submit
-└── templates/                   # task-info.md / round-file.md / submit-headers.csv
+└── templates/                   # task-info.md / round-file.md（submit-headers.csv 已随旧流程退役）
 
 sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore；仅 demo 例子例外）
 ├── source-code/                 # 素材源 + 任务副本（由 "source code/" 改名）
@@ -121,19 +123,28 @@ sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore；仅 dem
                 └── {项目}-bugfix-01-trajectory.jsonl       # 完整轨迹
         …（{项目}-codegen/、{项目}-feature/ … 按类型分组，与 source-code 同名）
 
-deliverables/cc-solo/{SESSION_NAME}/…      # 导出（TODO：最终交付格式未定）
+deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核对 CSV + 质检报告；提交接口 URL 待补
 ```
 
-> **容器镜像**：把 `source-code/{项目}/` 按结构复制进容器 `/workspace/{项目}/`，各任务副本在独立工作目录执行（`/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`）。任务名 = 副本目录名 = 提示词名 = 容器工作目录名，三者一一对应。
+> **容器镜像与 Harness 口径（2026-09-10 起，务必先读 [docs/image-upgrade-review.md](docs/image-upgrade-review.md)）**：
+>
+> - **Mac**：镜像固定 `adminfather/benzhi-claude-code:20260909-isolated-git`（digest `sha256:f77014d9e56cd3db2ac96627a286814cb1aa9f0b4bb807bea98a01383c9bc4d8`）——**不要写 `latest`**（`latest` 已在 2026-09-09 指向同一隔离镜像，且会继续漂移）。该镜像强制：一道题一个容器、`/workspace` 启动时为空（初始代码由 agent 在容器启动后播种）、**会话不可恢复**（`--continue`/`--resume` 与 `docker start` 一概被拒）、`--cap-drop ALL`（不能 chown）、容器内 Claude Code 以 `--safe-mode --disable-slash-commands --tools 'Bash,Read,Write,Edit,Glob,Grep'` 启动（版本锁 2.1.197）。
+> - **Windows**：镜像 `nicehey/benzhi-claude-code:1.0`（**没有换镜像**，换的是用法）；常驻容器 + `docker exec`，`claude --continue` 仍可用（仅限同一道题）；把**本题任务副本目录**直接挂载为 `/workspace`（因此不需要 `docker cp` 代码、不需要回导），并显式传 5 个模型 env。
+> - **任务名 = 容器名（前缀 `cc-solo-`）+ 运行目录**共同承载题目身份；容器内不再有 `/workspace/<题号>` 这种路径，轨迹目录也不再带题号。
+> - ⚠️ **Harness 口径需评测方裁定**：Mac 新镜像的工具集被裁剪（无 `Task` 子代理、无 `TodoWrite`、无联网抓取、无斜杠命令），与「Harness = Claude Code」的历史口径**不可直接互比**，尤其影响「任务规划」维度。提交前须在 `task-info.md` 记录镜像 digest 与隔离模式。
 
 ## 文档
 
 | 文档 | 说明 |
 |------|------|
-| [runbook.md](docs/runbook.md) | 逐步操作手册（指令模板，Mac） |
-| [runbook-windows.md](docs/runbook-windows.md) | 逐步操作手册（指令模板，Windows） |
-| [CLAUDE_CODE_DOCKER_MAC.md](docs/CLAUDE_CODE_DOCKER_MAC.md) | Claude Code Docker 使用说明（Mac） |
-| [CLAUDE_CODE_DOCKER_windows.md](docs/CLAUDE_CODE_DOCKER_windows.md) | Claude Code Docker 使用说明（Windows） |
+| [image-upgrade-review.md](docs/image-upgrade-review.md) | **镜像升级影响评估（2026-09-09 新镜像）**：新旧对比、硬约束、改写依据、待实测/待确认清单 |
+| [docs/submission/](docs/submission/) | **提交表单字段规范**：`submitfrom.js`（前端定义原件）+ `fields.json`（抽取产物，24 字段/选项/必填/校验；轨迹上传接口也在这里） |
+| [runbook.md](docs/runbook.md) | 逐步操作手册（指令模板，Mac：一题一容器 + 启动后播种） |
+| [runbook-windows.md](docs/runbook-windows.md) | 逐步操作手册（指令模板，Windows：一题一容器 + 挂载任务副本） |
+| [CLAUDE_CODE_DOCKER_MAC.md](docs/CLAUDE_CODE_DOCKER_MAC.md) | Claude Code Docker 使用说明（Mac，**现行隔离镜像用法**） |
+| [CLAUDE_CODE_DOCKER_windows.md](docs/CLAUDE_CODE_DOCKER_windows.md) | Claude Code Docker 使用说明（Windows，**现行走法：挂载本题文件夹**） |
+| [WINDOWS_DOCKER_SETUP.md](docs/WINDOWS_DOCKER_SETUP.md) | Windows 从安装 Docker 到跑通的完整引导 |
+| [archive/](docs/archive/) | **已废弃**：旧版常驻容器说明（`cc <题号>` + `docker cp` 搬代码），仅对旧的 `20260907`/`20260908` 标签有效 |
 | [structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 | [annotate-guide.md](docs/annotate-guide.md) | 评分表 / 原因写法 / 雷同题清单速查 |
 | [ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx) | 项目源规范 |

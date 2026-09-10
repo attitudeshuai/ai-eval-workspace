@@ -132,7 +132,7 @@ notes = ""
 |底稿列|来源|说明|
 |---|---|---|
 |需求 Prompt（原文）|包内 `instruction.md`|全文回填，不得截断或改写|
-|Verify Rubric|包内 `tests/nl_rubric.yaml`|按 id 顺序拼接，每条前缀 \[f2p\] / \[p2p\]|
+|Verify Rubric|包内 `tests/nl_rubric.yaml`|按 id 顺序逐条展开，每条三行 `- id` / `type` / `text`，文案不改写，条目间不加空行|
 |交付包（zip）|整题 zip|唯一的附件列，整包上传，不再单独传 Dockerfile 或 evidence|
 |Reviewer|质检填写|复核人姓名|
 |静态内容是否通过质检|质检填写|通过 / 不通过|

@@ -50,7 +50,7 @@ description: "cc-solo 任务初始化：新建一个任务（会话窗口），�
 > - 任务副本 = `{REPO_BASE_PATH}/{PROJECT}/{PROJECT}-{slug}/{PROJECT}-{slug}-{index}/`（复制素材源内容 + 目录名改为任务名，无 .git，不提交/push）。
 > - **判断规范**：`source-code/{项目}/` 是唯一 git 仓库；任务副本按类型分组 `{项目}-{slug}/` 嵌套在项目根下，索引全局累加；素材源文件平铺、副本错级/错名，都视为**结构不规范**。
 > - **处理**：先列出「当前实际结构 vs 规范结构」的差异 → **提示用户确认** → 确认后整理成 `source-code/{项目}/{项目}-{slug}/{项目}-{slug}-{index}/` 再继续；**未获用户确认，不得擅自移动文件**。
-> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**工作目录 = 任务名 = `/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`**、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。每轮由 agent 执行 docker 命令导回轨迹（`records/{项目}/{项目}-{类型}/{任务}/`）和代码产物（`{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{任务}-R{NN}/`），供 `02-round-capture` 读取。
+> Claude Code 在 docker 容器（**1 题 1 容器**，容器名 `cc-solo-{任务}`）里做，**容器内工作目录恒为 `/workspace`**（= 本题任务副本内容；Windows 直接挂载副本目录，Mac 由 agent 在首轮交互前播种），轨迹恒在容器内 `/home/node/.claude/projects/-workspace/`（不再有 `-workspace-<题号>`）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。每轮由 agent 执行 docker 命令导出轨迹（`records/{项目}/{项目}-{类型}/{任务}/`）；代码产物已在挂载/播种目录（无需回导），供 `02-round-capture` 读取。
 
 ## 输入（create 需向用户确认）
 
@@ -91,7 +91,7 @@ description: "cc-solo 任务初始化：新建一个任务（会话窗口），�
 
 - 记录目录名 = 任务 ID = `{项目}-{类型slug}`（如 `app-12-codegen`）；同仓库同类型需多个窗口时再加 `-2`/`-3` 后缀（如 `app-12-codegen-2`），人工确认。
 - 用模板 `templates/task-info.md` 生成，填入共享字段：
-  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后定位：Claude Code→本机导出的 records/{任务}/{任务}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace-<题号>/) / annotator / 创建日期`。
+  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后定位：Claude Code→本机导出的 records/{任务}/{任务}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace/) / annotator / 创建日期`。
 - 共享字段整个会话各轮不变。
 
 ### 4. 起草首轮提示词（出题，需去 AI 化）
@@ -153,7 +153,7 @@ description: "cc-solo 任务初始化：新建一个任务（会话窗口），�
 <整个会话窗口 ID，所有轮同一值；首轮后回填>
 
 ## 轨迹根目录（轨迹文件）
-<Claude Code（容器做，题号 = 任务 ID）→ 本机 records/{任务}/{任务}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
+<Claude Code（容器做，1 题 1 容器 cc-solo-{任务}）→ 本机 records/{任务}/{任务}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace/<SessionID>）；首轮 SessionID 回填后定位>
 
 ## 首轮提示词（已确认）
 <首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {任务}-R01.md>

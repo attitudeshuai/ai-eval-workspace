@@ -42,21 +42,21 @@ description: "cc-solo 单轮录入：一轮交互后创建/回填该轮数据文
 
 轨迹文件按「哪个 CLI 做的」分行存放（`config.toml [trajectory]`）：
 
-- **Claude Code（在 docker 容器 `benzhi-claude-code` 里做）**：用户把容器内 `/home/node/.claude/projects/-workspace-<题号>/` 导出到本机任务记录目录 `{RECORD_DIR}/{项目}/{任务}/`（见 runbook.md / runbook-windows.md 第 2 步的「轨迹导出」），本题的会话文件是**一个 `.jsonl`**，文件名 UUID = `SessionID`。题号 = 任务 ID。
+- **Claude Code（在 docker 容器 `cc-solo-{任务}` 里做）**：由 agent 用 `docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." {RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/` 把容器内轨迹导出到本机任务记录目录（见 runbook.md / runbook-windows.md 第 3 步），本题的会话文件是**一个 `.jsonl`**，文件名 UUID = `SessionID`。**题目身份 = 容器名（`cc-solo-{任务}`）+ 挂载的本机运行目录**；容器内路径不含题号（详见 [../docs/image-upgrade-review.md](../docs/image-upgrade-review.md)）。
 
 
 ### 1. 定位会话（SessionID）
 
-Claude Code（容器）的轨迹是**一个 `.jsonl` 文件**，文件名 UUID 就是 `SessionID`。题号 = 任务 ID，容器内工作目录为 `/workspace/<题号>`，轨迹目录为 `-workspace-<题号>`。例如：
+Claude Code（容器）的轨迹是**一个 `.jsonl` 文件**，文件名 UUID 就是 `SessionID`。**一个容器 = 一道题 = 一个会话**，所以该容器 `-workspace/` 下那个 `.jsonl` 就是本题的会话文件；容器内工作目录恒为 `/workspace`，轨迹目录恒为 `/home/node/.claude/projects/-workspace/`。例如：
 
 ```
-题号 app-12-codegen  →  容器内工作目录 /workspace/app-12-codegen
-→ 容器内轨迹目录 /home/node/.claude/projects/-workspace-app-12-codegen/
-→ 导出到本机 records/app-12/app-12-codegen/91598858-1626-4537-a317-e397e3aaf56d.jsonl
+任务 app-12-codegen-06  →  容器 cc-solo-app-12-codegen-06，容器内工作目录 /workspace
+→ 容器内轨迹目录 /home/node/.claude/projects/-workspace/
+→ 导出到本机 records/app-12/app-12-codegen/app-12-codegen-06/91598858-1626-4537-a317-e397e3aaf56d.jsonl
 → SessionID = 91598858-1626-4537-a317-e397e3aaf56d
 ```
 
-> 找不到时，先 `docker exec benzhi-claude-code ls -lh /home/node/.claude/projects/` 看容器内有哪些题目录，再核对导出到本机的路径。
+> 找不到时：先 `docker ps -a --filter name=cc-solo-` 定位本题容器，再 `docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." <目标目录>/`。若该目录下出现**多个 `.jsonl`**，说明容器被复用了（新版 Mac 镜像本就拒绝在同一容器里开第二次会话），按 `task-info.md` 记录的 SessionID 取本轮那份并回报异常。
 
 ### 2. 拆轮次（一轮 = 一次用户键入）
 
@@ -83,18 +83,17 @@ type == "user" 且 message.content 是字符串（用户实际输入的那段文
 
 ## 执行流程
 
-0. **从容器导回本轮产物（agent 执行 docker 命令）**：
+0. **导出本轮轨迹（agent 执行 docker 命令）**：
    - 等模型答完、静止时再导（别在它正跑工具时拷，否则最新几条不完整）。
-   - 导出轨迹：`docker cp benzhi-claude-code:/home/node/.claude/projects/-workspace-<题号>/. {RECORD_DIR}/{项目}/{项目}-{类型}/`（Windows PowerShell 把 `/` 换成 `\`）。
-   - 导出代码产物（回导到任务副本，供本地跑/审 + 比对）：`docker cp benzhi-claude-code:/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/. {REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`（先 `mkdir -p`）。
-   - **⚠️ 依赖排除**：本地 ⇄ 容器都只传源码，按 `.gitignore` 排除 node_modules/.venv/__pycache__/dist 等依赖包（用 `git ls-files` 或 `rsync --exclude-from=.gitignore` 打包，不整目录 docker cp）。
+   - 导出轨迹：`docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." {RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/`（Windows PowerShell 把 `/` 换成 `\`；容器已停止时也能导出）。
+   - **代码产物不需要回导**：容器 `/workspace` 就是本机挂载目录（Mac 是本题运行目录、Windows 是任务副本目录），模型改完的代码已经在盘上。任务收尾时再由 agent 按 `.gitignore` 排除依赖包（node_modules/.venv/__pycache__/dist 等），把源码同步/回导到任务副本 `{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{任务}/`，供打分环节做 git diff 对照。
 1. **确认任务与轮次**：读 `{RECORD_DIR}/{项目}/{任务}/task-info.md` 校验存在；计算已有轮次。
    - 若 N > 已有最大轮次 + 1 → 提示中间有缺失轮次。
    - 若 N > `[limits].max_rounds`（10）→ **中止**：会话满 10 轮必须开新任务，不再录入。
 2. **定位本轮 + 切片**：读取本机轨迹（Claude Code：刚导出的 `<SessionID>.jsonl`），按上面「拆轮次」找到第 N 轮 user 键入条目，取其 prompt 原文与 promptId；把第 N 轮那段（该 user 条目到下一个 user 条目之前，不含下一个）**切出来**存 `{RECORD_DIR}/{项目}/{任务}/{任务}-R{NN}-trajectory.jsonl`；完整文件保留为 `{RECORD_DIR}/{项目}/{任务}/{任务}-trajectory.jsonl`（交付/上传用）。
    - 读取失败或用户明确要求 → 回到「输入」，向用户索要 SessionID/TurnID/User Prompt。
 3. **创建/回填数据文件** `{RECORD_DIR}/{项目}/{任务}/{任务}-R{NN}.md`（NN 两位补零），按模板 `templates/round-file.md` 写入：User Prompt（原文）、任务类型、任务难度、语言/框架、TurnID/PromptID、模型回答存档（可选）。
-4. **SessionID/轨迹根目录回填**：若 `task-info.md` 中 SessionID 为空 → 用本步解析到的 SessionID 回填，并按 Harness 分行定位「轨迹根目录」（Claude Code → 本机 `records/{项目}/{任务}/{任务}-trajectory.jsonl`，来源容器 `/home/node/.claude/projects/-workspace-<题号>/<SessionID>`），同任务所有轮同一值。
+4. **SessionID/轨迹根目录回填**：若 `task-info.md` 中 SessionID 为空 → 用本步解析到的 SessionID 回填，并按 Harness 分行定位「轨迹根目录」（Claude Code → 本机 `records/{项目}/{任务}/{任务}-trajectory.jsonl`，来源容器 `cc-solo-{任务}` 的 `/home/node/.claude/projects/-workspace/<SessionID>.jsonl`），同任务所有轮同一值。
 5. **校验**（机械性）：
    - 任务类型在 7 类内；难度在 4 级内；语言/框架非空
    - 首轮（N=1）难度≠「简单」；后续轮难度可为「简单」（仅限因模型产物差产生的简单 bugfix）
@@ -119,8 +118,10 @@ type == "user" 且 message.content 是字符串（用户实际输入的那段文
 第 N 轮轨迹切片：…/{项目}-{类型}-{索引}-R{NN}-trajectory.jsonl
 完整轨迹：…/{项目}-{类型}-{索引}-trajectory.jsonl
 素材源（唯一 git 仓库）：{REPO_BASE_PATH}/{项目}/
-任务副本：{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/   （模型输入，docker cp 进容器）
-容器工作目录：/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/
+任务副本：{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/   （模型输入；Windows 直接挂载为容器 /workspace）
+容器：cc-solo-{任务}（1 容器 = 1 任务）
+容器内工作目录：/workspace（= 本题任务副本内容；无题号层级）
+容器内轨迹目录：/home/node/.claude/projects/-workspace/
 其中 {项目} = 项目名（素材源目录名，如 app-12）；{项目}-{类型} = 类型分组目录；{索引} 全局累加两位补零。
 ```
 

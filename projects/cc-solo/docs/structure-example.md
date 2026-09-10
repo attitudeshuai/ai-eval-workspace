@@ -16,9 +16,9 @@ ai-eval-workspace/
 │   ├── README.md
 │   ├── skills/                         # 01-task-create / 02-round-capture / 03-score-annotate / 04-export-submit
 │   ├── docs/                           # runbook / structure-example / annotate-guide / docker 系列
-│   └── templates/                      # task-info.md / round-file.md / submit-headers.csv
+│   └── templates/                      # task-info.md / round-file.md（submit-headers.csv 已随旧流程退役）
 │
-├── deliverables/cc-solo/            # 导出产物（TODO：最终交付格式未定）
+├── deliverables/cc-solo/            # 评价结果（每轮一条 JSON）+ 核对 CSV + 质检报告
 │   └── cc-solo-0909/
 │
 └── sessions/cc-solo/                # 工作数据（gitignore）
@@ -54,36 +54,33 @@ ai-eval-workspace/
                 …（app-12-codegen/、app-12-feature/ … 按类型分组，与 source-code 同名）
 ```
 
-## 容器镜像（同一容器，结构镜像本地 source-code/app-12/）
+## 容器（一题一容器，容器内恒为 `/workspace`）
 
-```
-/workspace/
-└── app-12/                            # 项目根（= 本地 source-code/app-12/）
-    ├── app-12/                        # 素材源（可选拷入）
-    ├── app-12-bugfix/
-    │   ├── app-12-bugfix-01/          # 每份 = 一个独立工作目录（模型在此执行）
-    │   └── app-12-bugfix-02/
-    ├── app-12-codegen/
-    │   └── app-12-codegen-06/
-    ├── app-12-feature/
-    │   ├── app-12-feature-11/
-    │   └── app-12-feature-12/
-    └── …
+- **1 任务 = 1 容器**：容器名统一 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`），题目身份由「容器名 + 挂载目录」承载，容器内**不再有按题号嵌套的目录**。
+- 容器内工作目录恒为 `/workspace`，内容 = 本题任务副本内容：
+  - **Windows**：直接把本机任务副本目录挂载为 `/workspace`（`docker run -d --mount type=bind,source=<副本目录>,target=/workspace`），无需播种、无需回导。
+  - **Mac**：先 `docker run -it` 起容器，再在首轮交互前由 agent 把任务副本内容播种进挂载目录。
+- 轨迹恒在容器内 `/home/node/.claude/projects/-workspace/`。
+
+```text
+cc-solo-app-12-bugfix-01   →  /workspace  = 本机 source-code/app-12/app-12-bugfix/app-12-bugfix-01/
+cc-solo-app-12-bugfix-02   →  /workspace  = 本机 source-code/app-12/app-12-bugfix/app-12-bugfix-02/
+cc-solo-app-12-codegen-06  →  /workspace  = 本机 source-code/app-12/app-12-codegen/app-12-codegen-06/
+…
 ```
 
-> 容器内路径 = `/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`，与本地 `source-code/{项目}/` 对齐。
+> 容器内路径恒为 `/workspace`（不再有 `/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`）；题目身份由容器名与挂载目录承载。
 
-## 依赖排除规则（本地 ⇄ 容器都执行）
+## 依赖排除规则（进入容器前后都执行）
 
-- 素材源/任务副本只含**被 git 跟踪的源码文件**（`git ls-files` 列举）；`.gitignore` 里的依赖包（`node_modules/`、`.venv/`、`venv/`、`__pycache__/`、`dist/`、`build/` 等）体积大，**本地 → 容器、容器 → 本地（review/回导）一律不复制**。
-- `docker cp` 不支持按 `.gitignore` 排除，所以不整目录 cp，改用：
-  - 有 `.git` 时用 `git ls-files -z | tar -c --null -T -` 打包源码再进容器解包；或
-  - 用 `rsync -a --exclude-from=.gitignore`（本地机器有 rsync 时）。
-- 回导（容器 → 本地 review）同理，只回导源码文件与变更，不拖依赖包。
+- 素材源/任务副本只含**被 git 跟踪的源码文件**（`git ls-files` 列举）；`.gitignore` 里的依赖包（`node_modules/`、`.venv/`、`venv/`、`__pycache__/`、`dist/`、`build/` 等）体积大，**不放进挂载目录 / 播种目录**。
+- Windows 直接挂载副本目录，所以**挂载前就应确保目录里没有依赖包**（副本 = 素材源复制时已按 `.gitignore` 排除）。
+- Mac 播种用 `rsync -a --exclude-from=.gitignore`（无 rsync 时用 `git ls-files -z | tar -c --null -T -` 打包解包）。
+- 任务结束后，清理模型在挂载目录里新装的依赖包（`node_modules`/`.venv` 等），别把依赖提交进快照。
 
 ## 命名 / 索引 / 副本规则
 
-- **任务名 = 副本目录名 = 记录目录名 = 容器工作目录名 = `{项目}-{类型}-{索引}`**（如 `app-12-bugfix-01`）。
+- **任务名 = 副本目录名 = 记录目录名 = `{项目}-{类型}-{索引}`**（如 `app-12-bugfix-01`）；容器名 `cc-solo-{任务}`，容器内工作目录恒为 `/workspace`。
 - 类型 slug（`config.toml [task_types].aliases`）：`bugfix`/`codegen`/`feature`/`understand`/`refactor`/`engineering`/`test`。
 - **索引全局累加**、两位补零：bugfix 01-05 → codegen 06-10 → feature 11-15 → understand 16 → refactor 17 → engineering 18 → test 19（配额按 `default_quotas`：bugfix/codegen/feature 各 5，其余各 1）。
 - 副本 = 素材源复制 + 改名；**共用同一个 base commit 快照**；**暂不建每份独立 git、不提交/push**。
@@ -106,7 +103,9 @@ ai-eval-workspace/
 | 任务记录目录 | `{RECORD_DIR}/{PROJECT}/{PROJECT}-{类型}/{PROJECT}-{类型}-{索引}/` | `…/records/app-12/app-12-bugfix/app-12-bugfix-01/` |
 | 第 N 轮数据 | `…/{PROJECT}-{类型}-{索引}-R{NN}.md` | `…/records/app-12/app-12-bugfix/app-12-bugfix-01/app-12-bugfix-01-R01.md` |
 | 完整轨迹 | `…/{PROJECT}-{类型}-{索引}-trajectory.jsonl` | `…/records/app-12/app-12-bugfix/app-12-bugfix-01/app-12-bugfix-01-trajectory.jsonl` |
-| 容器工作目录 | `/workspace/{PROJECT}/{PROJECT}-{类型}/{PROJECT}-{类型}-{索引}/` | `/workspace/app-12/app-12-bugfix/app-12-bugfix-01/` |
+| 容器名 | `cc-solo-{PROJECT}-{类型}-{索引}` | `cc-solo-app-12-bugfix-01` |
+| 容器工作目录 | `/workspace`（恒为 `/workspace`，= 本题副本内容） | `/workspace` |
+| 容器轨迹目录 | `/home/node/.claude/projects/-workspace/` | `/home/node/.claude/projects/-workspace/` |
 
 ## 一次完整执行后的文件变化
 
@@ -127,36 +126,50 @@ ai-eval-workspace/
     └── …（对应 19 个任务目录，每目录含 task-info.md + 首轮提示词）
 ```
 
-### Step 2: 容器化
+### Step 2: 容器化（一题一容器）
 ```
-docker cp source-code/app-12/. → 容器 /workspace/app-12/  （镜像结构）
-```
-
-### Step 3: 执行（模型在各副本独立工作目录跑）
-```
-容器 /workspace/app-12/app-12-bugfix/app-12-bugfix-01/ 被模型修改
+每题一个容器 cc-solo-{任务}：
+  Windows：docker run -d --name cc-solo-app-12-bugfix-01 --mount type=bind,source=source-code/app-12/app-12-bugfix/app-12-bugfix-01,target=/workspace …
+  Mac    ：docker run -it … 起容器后，agent 把该副本目录播种进 /workspace
 ```
 
-### Step 4: 回导 + 打分
+### Step 3: 执行（模型在本任务副本的工作目录 /workspace 里跑）
+```
+容器 cc-solo-app-12-bugfix-01 的 /workspace 被模型修改
+（= 本机 source-code/app-12/app-12-bugfix/app-12-bugfix-01/，Windows 天然落回本机）
+```
+
+### Step 4: 导出轨迹 + 收尾
 ```
 新增/更新:
   records/app-12/app-12-bugfix/app-12-bugfix-01/
-    ├── app-12-bugfix-01-trajectory.jsonl      # 完整轨迹
+    ├── app-12-bugfix-01-trajectory.jsonl      # 完整轨迹（每轮 docker cp -workspace 目录）
     ├── app-12-bugfix-01-R01-trajectory.jsonl  # 第 1 轮轨迹切片
     └── app-12-bugfix-01-R01.md                # 第 1 轮数据（五维打分写入此文件）
+
+  Windows：代码已在挂载目录，无需回导；任务结束清理依赖包后 docker stop / rm 容器。
+  Mac    ：收尾回导源码到任务副本（rsync 按 .gitignore 排除），再 docker rm 容器。
 ```
 
-### Step 5: 导出（TODO）
+### Step 5: 生成评价结果 + 提交（提交接口 URL 待补）
 ```
-最终交付格式未定，先占位。
+新增:
+  deliverables/cc-solo/cc-solo-0909/
+    ├── 评价结果-cc-solo-0909-<date>.json        # 主产物：24 字段 × 每轮一条 + 轨迹附件路径
+    ├── 评价结果-cc-solo-0909-<date>.csv         # 人工核对（中文表头）
+    └── 评价结果-cc-solo-0909-<date>-质检报告.md  # 逐条 error / warn
+
+  命令：python scripts/cc-solo/build_eval_result.py
+        python scripts/cc-solo/submit_eval_result.py --result <json>            # dry-run
+        python scripts/cc-solo/submit_eval_result.py --result <json> --commit   # 上传轨迹 + 提交
 ```
 
 ---
 
-## 提交表样例（节选，导出脚本生成；字段待最终交付格式定稿）
+## 评价结果样例（节选；真实产物见 deliverables/，字段以 docs/submission/fields.json 为准）
 
-| 任务名 | 任务类型 | 语言/框架 | Harness | 交付完整性 | 指令遵循 | 任务规划 | 推理能力 | 执行能力 | 其他问题 |
-|---|---|---|---|---|---|---|---|---|---|
-| app-12-bugfix-01 | Bug修复 | Python | Claude Code | 4 | 4 | 3 | 4 | 4 | 无 |
+| 任务 | 任务类型 | 语言/框架 | Harness | 轮次排序 | 交付完整性 | 指令遵循 | 任务规划 | 推理能力 | 执行能力 | 其他问题 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| app-12-bugfix-01 | Bug修复 | Python | Claude Code | 1 | 4 | 4 | 3 | 4 | 4 | 无 |
 
-> 五维打分 = 交付完整性 / 指令遵循 / 任务规划 / 推理能力 / 执行能力，各 1-5 + 必填依据描述；一个任务（会话窗口）≤ 10 轮，一轮 = 一条数据。
+> 五维打分 = 交付完整性 / 指令遵循 / 任务规划 / 推理能力 / 执行能力，各 1-5 + 必填依据描述；一个任务（会话窗口）≤ 10 轮，一轮 = 一条数据；每条另含 env_snapshot / User Prompt / SessionID / TurnID / 轨迹附件等 24 个字段。

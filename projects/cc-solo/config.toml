@@ -1,7 +1,7 @@
 [project]
 id = "cc-solo"
 name = "cc-solo 单模型代码评估（容器化）"
-description = "从一份素材源码出发，按 7 类任务批量生成「任务副本 + 提示词」，复制进容器按类型多份执行，回导轨迹与代码，按五维打分并导出结果。合并了 code-eval-solo 的「按类型批量出题 + 全局索引」与 claudccode 的「容器执行 + 会话/轮次 + 五维打分」。"
+description = "从一份素材源码出发，按 7 类任务批量生成「任务副本 + 提示词」，每题一个容器执行（容器内 /workspace = 本题任务副本内容），导出轨迹与代码，按五维打分并导出结果。合并了 code-eval-solo 的「按类型批量出题 + 全局索引」与 claudccode 的「容器执行 + 会话/轮次 + 五维打分」。"
 owner = "ai-evaluation-workspace"
 created_at = "2026-09-07T00:00:00Z"
 
@@ -10,7 +10,8 @@ created_at = "2026-09-07T00:00:00Z"
 # ============================================================
 #   1. 素材源 = 一份源码仓库（唯一 git 仓库 = base commit 快照）
 #   2. 任务副本 = 素材源复制成多份，按任务类型分组、全局索引累加，目录名改为任务名（暂不建每份独立 git、不提交/push）
-#   3. 执行 = 把各任务副本按类型复制进同一容器（/workspace/{项目}/…），模型在各副本独立工作目录上跑
+#   3. 执行 = 1 任务 1 容器（容器名 cc-solo-{任务}），容器内 /workspace = 本题任务副本内容
+#      （Windows 直接挂载任务副本目录；Mac 新隔离镜像要求启动时为空，由 agent 在启动后播种）
 #   4. 一轮 = 一次交互（用户提问 + 模型回答）= 一条数据；一个任务（会话窗口）≤ 10 轮
 #   5. 打分：五维（交付完整性/指令遵循/任务规划/推理能力/执行能力）1-5，每轮单独打分
 #   6. 导出：TODO（最终交付格式未定）
@@ -75,9 +76,21 @@ options = ["Claude Code"]
 options = ["MacOS/Linux", "Windows"]
 
 [trajectory]
-# 轨迹文件在容器内 /home/node/.claude/projects/-workspace-<题号>/，导出到本机 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl
+# 轨迹文件在容器内 /home/node/.claude/projects/-workspace/（工作目录恒为 /workspace，不再有 -workspace-<题号>），导出到本机 records/<TASK_ID>/<TASK_ID>-trajectory.jsonl
 # task-info「轨迹根目录（轨迹文件）」填对应路径；导出/质检校验前缀一致性
 claude_root = "~/.claude/projects"
+
+[container]
+# 容器模型（1 任务 = 1 会话 = 1 容器 = 1 本机工作目录）
+# name_prefix：容器名统一前缀，容器名 = cc-solo-{任务}（如 cc-solo-app-12-bugfix-01）
+name_prefix = "cc-solo-"
+# image_mac / image_windows：按操作系统固定的镜像 tag（勿用 latest；Mac 按 digest 记账）
+image_mac = "adminfather/benzhi-claude-code:20260909-isolated-git"
+image_windows = "nicehey/benzhi-claude-code:1.0"
+# workspace_in_container：容器内工作目录恒为 /workspace（= 本题任务副本内容）
+workspace_in_container = "/workspace"
+# trajectory_dir_in_container：容器内轨迹根目录（工作目录为 /workspace 时恒定此路径）
+trajectory_dir_in_container = "/home/node/.claude/projects/-workspace"
 
 [reproducibility]
 # 环境可复现等级：用于筛选可做同题双跑的样本
@@ -113,21 +126,37 @@ task_prefix = "cc-solo"
 username = ""
 
 [delivery]
-# 正式提交表命名：{delivery.filename_prefix}-{SESSION_NAME}-{date}.csv
-filename_prefix = "正式提交表"
+# 评价结果文件命名：{delivery.filename_prefix}-{SESSION_NAME}-{date}.json / .csv / -质检报告.md
+# （旧的「正式提交表 CSV + 飞书投递」已退役，见 skills/04-export-submit.md）
+filename_prefix = "评价结果"
 
 # ============================================================
-# 飞书多维表格（正式提交表投递目标，每轮一条数据=追加一条记录）
+# 提交接口（评价结果 → 平台表单；一轮 = 一条记录）
 # ============================================================
+# 字段规范（24 个字段，含选项/必填/校验）由前端定义抽取：
+#   python scripts/cc-solo/extract_submit_fields.py
+#   → projects/cc-solo/docs/submission/fields.json
+# 敏感信息（cookie / 正式 submit_url）写在 secrets.toml [submission]，不进 git。
+#
+# 流程：
+#   1) python scripts/cc-solo/build_eval_result.py                 # 生成评价结果 + 质检
+#   2) python scripts/cc-solo/submit_eval_result.py --result <json> # 默认 dry-run
+#   3) 确认后加 --commit（先 --upload-only --commit --write-back 只传轨迹）
+[submission]
+# 轨迹附件上传接口（来自前端定义，可在 secrets.toml 覆盖）
+upload_url = "https://solo2.jzxhnh.com/api/v1/submissions/upload"
+upload_form_field = "file"          # multipart 表单字段名
+upload_response_path_key = "path"   # 返回体里作为附件标识的字段
+# 提交接口：URL 待管理员提供后填这里，或写 secrets.toml [submission].submit_url（优先）
+submit_url = ""
+attachment_max_mb = 20
+
+# ============================================================
+# [已退役] 飞书多维表格投递
+# ============================================================
+# 2026-09-10 起不再投递飞书，改为走上面的提交接口；以下配置与
+# scripts/cc-solo/append_delivery_feishu.py 仅作历史留存，勿再使用。
 # 文档地址：https://hcnmzflgf8a7.feishu.cn/base/Lg0mbjRpPaxjhmsj27MckrJLnec?table=tble0z2KnzCfjJmZ&view=vewsm2UFiX
-# 表头：User Prompt/SessionID/TurnID/PromptID/初始环境快照/环境可复现等级/Harness/
-#   Harness 版本/操作系统/任务类型/任务难度/语言/框架/五维分数与「X - 描述」/其他问题/提交人/提交时间/父记录
-# 注意命名差异：描述列带空格（如「交付完整性 - 描述」）、任务类型选项用「feature迭代」
-# app_id / app_secret 属敏感信息：默认复用 projects/code-eval-gsb/secrets.toml [feishu]，
-#   也可写在 projects/cc-solo/secrets.toml [feishu] 覆盖
-# 前置要求：
-#   1. 应用已开通 bitable:app 权限（开发者后台 → 权限管理）
-#   2. 应用已被添加为该多维表格的协作者（文档内「...」→ 更多 → 添加文档应用）
 [feishu]
 app_token = "Lg0mbjRpPaxjhmsj27MckrJLnec"
 table_id = "tble0z2KnzCfjJmZ"

@@ -4,6 +4,17 @@
 
 **一道题使用一个独立文件夹和一个新容器。** 同一道题中断后可以继续使用自己的容器；换一道题时，必须新建文件夹和容器。每题复用同一个干净镜像，不需要重新安装 Claude Code。代码和导出的轨迹放在哪个盘，由你自己选择。
 
+> 📌 **本文是 cc-solo 标注的 Windows 现行用法**。旧版（不挂载宿主目录、用 `docker cp` 把代码搬进容器再 `chown`）说明已归档到 [archive/CLAUDE_CODE_DOCKER_windows.md](archive/CLAUDE_CODE_DOCKER_windows.md)；镜像升级的影响评估见 [image-upgrade-review.md](image-upgrade-review.md)。注意：**Windows 侧镜像没有换**，仍是 `nicehey/benzhi-claude-code:1.0`，换的是用法。
+>
+> **标注场景的额外约定：**
+>
+> - **容器名 = 任务名**：本文示例的 `benzhi-claude-01` 请改为 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`），后续所有命令同步替换。
+> - **挂载的就是任务副本**：`--mount "type=bind,source=<…\source-code\{项目}\{项目}-{类型}\{任务}>,target=/workspace"`。容器内容 = 任务副本内容，因此**不需要 `docker cp` 把代码放进容器，也不需要把代码回导** —— 模型改完的产物直接就在本机副本目录里。
+> - **模型 env 必传 5 个**：镜像固化的模型名（`ark/urm-01`）可能与 Key 权限不匹配（否则报 403 `key not allowed to access model`）。
+> - **依赖包会写进本机副本目录**：模型执行 `npm install`/`pip install` 后产物直接落在本机；按 `.gitignore` 排除，任务结束后清理，别把依赖提交进快照。
+> - `chown` 只在容器内改文件报 `Permission denied` 时才需要补一条（`docker exec -u root "cc-solo-{任务}" chown -R node:node /workspace`），不再作为标准步骤。
+> - 轨迹目录恒为 `/home/node/.claude/projects/-workspace/`（工作目录就是 `/workspace`），导出命令见第五节；第二题导出只需换容器名与保存名。
+
 
 
 ## 快速开始

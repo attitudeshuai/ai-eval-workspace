@@ -1,3 +1,15 @@
+> ⛔ **已废弃（2026-09-10 归档）——不要照本文操作。**
+>
+> 本文描述的是**旧的常驻容器模型**（`docker run -d` + `docker exec … cc 01` + `docker cp` 搬代码）。
+> `adminfather/benzhi-claude-code:latest` 已于 **2026-09-09 08:54 UTC** 指向新的隔离镜像
+> （与 `:20260909-isolated-git` 同一 digest `sha256:f77014d9…c4d8`），因此本文的命令现在**会失败**：
+> `-d` 启动的容器不再常驻、`cc 01` 会被明确拒绝（`Task numbers and session recovery are not supported`）、
+> 容器内也不再有 `/workspace/<题号>`。
+>
+> 现行用法见 [../CLAUDE_CODE_DOCKER_MAC.md](../CLAUDE_CODE_DOCKER_MAC.md)（一道题一个容器 + 挂载本机目录）；
+> 影响评估与改写依据见 [../image-upgrade-review.md](../image-upgrade-review.md)。
+> 本文仅对**固定使用旧标签**（`adminfather/benzhi-claude-code:20260907` / `:20260908`）的场景仍有效。
+
 # Claude Code 使用说明（Mac）
 
 镜像已发布到 Docker Hub，同时支持 Intel 和 Apple 芯片，Docker 会自动拉取匹配本机的版本。

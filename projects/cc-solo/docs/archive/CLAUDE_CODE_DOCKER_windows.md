@@ -1,3 +1,11 @@
+> ⛔ **已废弃（2026-09-10 归档）——不要照本文操作。**
+>
+> 本文描述的是**旧用法**：容器内不挂载宿主目录、用 `docker cp` 把仓库搬进容器再 `chown`。
+> 现行用法见 [../CLAUDE_CODE_DOCKER_windows.md](../CLAUDE_CODE_DOCKER_windows.md)
+> （**一道题一个容器 + 把本题文件夹挂载为 `/workspace`**，不需要 `docker cp` 代码、不写 `chown`），
+> 影响评估见 [../image-upgrade-review.md](../image-upgrade-review.md)。
+> 镜像本身没有换（仍是 `nicehey/benzhi-claude-code:1.0`），本文的排障条目（PIPE 连不上引擎、加速器、权限确认）仍可参考。
+
 # Claude Code 使用说明（Windows）
 
 我们使用 Docker，是为了让大家使用相同的 Claude Code 版本、配置和基础运行环境，减少各自安装、配置时出现的差异。使用前，需要先安装并打开 Docker Desktop。

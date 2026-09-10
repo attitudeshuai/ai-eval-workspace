@@ -147,6 +147,31 @@ swe restic-01 export
 
 > 备用路径：本地项目无远程 `repo_url`/`Fork Repo Commit URL`，或环境无 `lark-cli`/未 `auth login` 时，`toml2base.py` 不可用，改为在交付包生成 `docs/底稿必填字段.md`，由提交人逐字段复制到底稿（详见 `skills/04-export-delivery.md`「人工回填」）。
 
+### 底稿两列格式（质检口径）
+
+`Verify Rubric` 与 `产物结果` 都按 rubric id 逐条对应，不能写成整段说明。
+
+`Verify Rubric` 照 `tests/nl_rubric.yaml` 逐条展开，每条三行：
+
+```text
+- id: 1
+  type: p2p
+  text: 未配置或未命中时，请求完整回源转发，既有行为不回归。
+- id: 2
+  type: f2p
+  text: 开启后命中配置的幂等 GET 首次回源，并把响应校验信息与本地副本写入有界缓存。
+```
+
+`产物结果` 每条 rubric 一行，格式 `<id> <通过|未通过> [原因]`，判未通过必须在同一行写原因：
+
+```text
+1 通过
+2 未通过 实现额外排除了带 Authorization 头的请求（题目豁免清单未列此限制），带认证头的幂等 GET 不会写入缓存
+3 通过
+```
+
+> 条目之间不加空行，判分标准文案不改写。两列由 `scripts/swe-like/gen_basefields.py <题目目录>` 生成 `docs/底稿必填字段.md` 时已按此格式输出，`toml2base.py` 回填也用同一格式。
+
 ### 退回红线（提交前自查）
 
 必需文件缺失/空、无 trajectory、harness 填 Trae/TraeX 却没 session id、screenshots 空、title ≠ 目录名、base_commit ≠ BASE_SHA、rubric <5 或 type/id 非法、run_result 未逐条对应或与 requirement_met 矛盾、残留占位符。
