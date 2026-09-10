@@ -121,6 +121,8 @@ records/app-12/app-12-codegen/task-info.md
 > Claude Code 跑在 docker 容器（容器名 `cc-solo-{任务}`）里，**1 容器 = 1 任务 = 1 会话**。容器内工作目录恒为 `/workspace`（内容 = 本题任务副本，由 agent 在容器启动后播种）；轨迹落在容器内 `/home/node/.claude/projects/-workspace/`。
 >
 > 镜像固定 `adminfather/benzhi-claude-code:20260909-isolated-git`（**勿用 `latest`**）。容器启动/拉镜像/模型出错（`command not found: docker`、拉镜像超时、`model not found` / `403 key not allowed to access model`）按 [CLAUDE_CODE_DOCKER_MAC.md](CLAUDE_CODE_DOCKER_MAC.md) 的「隔离范围与排错」处理。
+>
+> **审批口径（Mac）**：本镜像的 Claude Code 启动参数**已内置 `--dangerously-skip-permissions`**（免确认，自动执行命令/改文件），上面的 `docker run` **不需要也不应再手写这个 flag**，进去就是免确认模式。Windows 侧默认逐条询问，可加 `--dangerously-skip-permissions` 对齐（见 [runbook-windows.md](runbook-windows.md) 第 2 步）。实际审批模式须记进 `task-info.md`。
 
 1. **启动本题容器**（人工，前台执行；agent 会给现成命令）：
    ```bash

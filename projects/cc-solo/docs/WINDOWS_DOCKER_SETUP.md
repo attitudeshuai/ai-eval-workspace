@@ -147,7 +147,8 @@ docker exec -it -w /workspace "cc-solo-$task" claude
 
 ## 六、第 5 步：与 Claude 对话（权限确认 + 会话处理）
 
-- **命令审批**：本镜像未启用免确认模式，Claude 每次执行命令/改文件前会询问，**确认后选「允许」**。
+- **命令审批**：默认未启用免确认模式，Claude 每次执行命令/改文件前会询问，**确认后选「允许」**。
+- **想开免确认（自动模式）**：进入时加 `--dangerously-skip-permissions` —— `docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions`（容器内是 `node` 非 root，可用）。同一批数据要么全开、要么全不开；已经开着的会话可 `/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
 - **一题一个会话窗口（一个 SessionID）**：几轮对话必须落在**同一个**会话里。
 
 推荐做法：

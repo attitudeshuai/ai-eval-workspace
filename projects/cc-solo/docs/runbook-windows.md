@@ -13,7 +13,7 @@
 | 镜像 | `adminfather/benzhi-claude-code:20260909-isolated-git`（固定 tag，勿用 latest） | `nicehey/benzhi-claude-code:1.0`（Windows 侧无新镜像，仅此一个 tag） |
 | 启动方式 | `docker run -it`（前台直接进 Claude，启动后 agent 再播种） | `docker run -d`（后台常驻）+ 挂载本机任务副本目录为 `/workspace` |
 | 容器入口 | 启动即进入 Claude | `docker exec -it -w /workspace "cc-solo-{任务}" claude` |
-| 命令审批 | `--dangerously-skip-permissions`，Claude 自动执行命令 | 普通 `claude`，执行命令/改文件前会询问，需确认「允许」 |
+| 命令审批 | 镜像**内置** `--dangerously-skip-permissions`，Claude 自动执行命令（无需人工确认） | 默认普通 `claude`（逐条询问）；**可加 `--dangerously-skip-permissions` 免确认**，见第 2 步第 1 条 |
 | 退出方式 | Ctrl+D 两次（无 `/exit`） | `/exit` 一次，容器保留 |
 | 工作目录 | `/workspace` | `/workspace` |
 | 轨迹目录 | `/home/node/.claude/projects/-workspace/` | 相同 |
@@ -130,7 +130,9 @@ records/app-12/app-12-codegen/task-info.md
 
 > Claude Code 跑在 Windows 的 Docker 容器（`cc-solo-{任务}`，镜像 `nicehey/benzhi-claude-code:1.0`）里，**容器内工作目录恒为 `/workspace`**（= 挂载的本机任务副本目录，见下）。轨迹落在容器内 `/home/node/.claude/projects/-workspace/`。
 >
-> 与 Mac 版不同：Windows 镜像**没有 `cc` 快捷入口**，用 `docker exec -it -w /workspace "cc-solo-{任务}" claude` 直接进入；且普通 `claude` 未跳过权限确认，执行命令/改文件前会询问。
+> 与 Mac 版不同：Windows 镜像**没有 `cc` 快捷入口**，用 `docker exec -it -w /workspace "cc-solo-{任务}" claude` 直接进入。
+>
+> 权限默认**逐条询问**；想和 Mac 一样免确认（自动模式），加 `--dangerously-skip-permissions`，见第 2 步第 1 条。
 >
 > 容器名统一 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`），`{任务}` 就是任务 ID；`docker ps -a` 可查。
 
@@ -161,14 +163,23 @@ docker run -d --name "cc-solo-$task" `
 1. **进入容器并启动 Claude**：
    ```powershell
    docker exec "cc-solo-$task" git config --global --add safe.directory /workspace
+
+   # 方式 A（默认）：逐条确认权限
    docker exec -it -w /workspace "cc-solo-$task" claude
+
+   # 方式 B（免确认 / 自动模式）：自动执行命令、改文件，不再逐条询问
+   docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions
    ```
-   第一条是告诉 Git 信任 `/workspace`（避免 `dubious ownership` 报错，每个新容器首次执行一次）。第二条直接打开 Claude，在 `/workspace`（= 本机任务副本目录）中工作。首次进入可能询问界面主题、显示安全提示、或询问是否信任当前目录（选择信任，路径应为 `/workspace`）。
+   第一条是告诉 Git 信任 `/workspace`（避免 `dubious ownership` 报错，每个新容器首次执行一次）。第二条打开 Claude，在 `/workspace`（= 本机任务副本目录）中工作。首次进入可能询问界面主题、显示安全提示、或询问是否信任当前目录（选择信任，路径应为 `/workspace`）。
+
+   > **免确认模式（自动模式）**：容器内是 `node` 非 root 用户，`--dangerously-skip-permissions` 可用（`claude --help` 已确认；等价写法 `--permission-mode bypassPermissions`）。**同一批数据要么全免确认、要么全逐条确认，不要混用**——否则同批 Harness 审批口径不一致，须把实际审批模式记进 `task-info.md`。
+   > - **会话中途想切**：`/exit` 退出后带 `--continue` 重进，保留同一 SessionID：`docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions --continue`。
+   > - **不想重启会话**的临时手段：弹窗里选 `2. Yes, and don't ask again for …`（只对同类命令生效），或按 `Shift+Tab` 切到自动接受编辑模式（bash 命令仍可能问）。
    > ✅ 已实测：挂载目录在容器内是 `-rwxrwxrwx root root`，`node` 用户可直接新建/追加文件 ⇒ **不需要 `chown`**；但挂载**带 `.git` 的仓库**时，不执行上面那条 `safe.directory` 会报 `fatal: detected dubious ownership in repository at '/workspace'`。详见 [image-upgrade-review.md](image-upgrade-review.md) 第七节。
 2. **做本轮对话**（默认推荐：一个 Claude 会话里连续发多轮，不退出）：
    - 第 1 轮：粘贴首轮提示词（见第 1 步产物 / `task-info.md` 的「首轮提示词」），开始对话。
    - 继续下一轮：直接在**同一个** Claude 会话里再发一条消息（如「继续」「再改成…」），SessionID 不变，轮次随之递增。
-   - ⚠️ Windows 镜像未启用 `--dangerously-skip-permissions`，Claude 每次执行命令、创建/修改文件前都会询问，**确认操作内容后选择「允许」**。
+   - ⚠️ Windows 镜像**默认未启用**免确认：Claude 每次执行命令、创建/修改文件前都会询问，**确认操作内容后选择「允许」**（想改成免确认见第 1 条的「方式 B」）。
 3. **（可选）退出会话 + 下次怎么接着做**：如果确实想退出 Claude：
    - `/exit` 一次即回到 PowerShell；**容器保留**（常驻容器，不会随退出销毁）。
    - **下次继续下一轮**（**仅限同一道题**）：进容器后**不要用裸 `claude`**（会新建一个 SessionID，打破「一个任务 = 一个会话窗口」），改用 `claude --continue`（恢复当前目录最近一次会话，同一 SessionID）或 `claude --resume <SessionID>`，命令形如 `docker exec -it -w /workspace "cc-solo-$task" claude --continue`。详见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「如何恢复历史会话」。

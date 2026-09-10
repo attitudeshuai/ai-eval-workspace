@@ -14,6 +14,7 @@
 > - **会话不可恢复**：本镜像拒绝在同一个容器里再开一次会话（`--continue`/`--resume` 均不支持）。同一道题的所有轮次必须一口气做完，**中途不要退出**；误退出即该任务无法继续（已导出的轮次仍然有效）。
 > - **不要 `chown`**：容器以 `--cap-drop ALL` 运行，CAP_CHOWN 被掉，连 `-u root` 也改不了文件归属；Mac 挂载目录的归属会自动映射，本来就不需要 chown。
 > - **工具集被裁剪**：镜像内 Claude Code 以 `--safe-mode --disable-slash-commands --tools 'Bash,Read,Write,Edit,Glob,Grep'` 启动（版本锁定 2.1.197），**没有子代理（Task）、没有 TodoWrite、没有联网抓取、没有斜杠命令**。标注时须把这一点记进 `task-info.md`，因为它影响「任务规划」等维度的判据。
+> - **审批口径**：镜像启动参数**已内置 `--dangerously-skip-permissions`**（免确认，自动执行命令/改文件），Mac 侧**不用也无需在 `docker run` 里手写该 flag**。标注时须把实际审批模式记进 `task-info.md`；Windows 侧默认为逐条确认，可加 `claude --dangerously-skip-permissions` 与之对齐（见 [runbook-windows.md](runbook-windows.md) 第 2 步）。
 
 ## 1. 准备
 
@@ -37,7 +38,7 @@ docker run -it --init --restart=no --cap-drop ALL --security-opt no-new-privileg
 
 首次运行会下载镜像，随后直接进入 Claude 对话，无需其他启动命令。看到输入框后输入本题内容。
 
-若出现权限确认，请阅读后再决定是否继续。此环境允许 Claude 自动执行命令、修改文件和访问网络，仅用于本题，不要放入无关敏感资料。
+本镜像的 Claude Code **已内置免确认模式（`--dangerously-skip-permissions`）**：会自动执行命令、修改文件、访问网络，不逐条询问，**启动命令里不用手写这个 flag**。因此仅用于本题，不要放入无关敏感资料；若仍出现权限确认，阅读后再决定是否继续。
 
 - 本机的 `$RUN_DIR/workspace` 映射到容器内的 `/workspace`，启动时必须为空，包括隐藏文件。
 - 例如本机目录是 `~/claude-runs/run-AbCd1234/workspace`，容器内仍然只叫 `/workspace`，不需要题号。

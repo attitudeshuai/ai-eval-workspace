@@ -13,6 +13,7 @@
 > - **模型 env 必传 5 个**：镜像固化的模型名（`ark/urm-01`）可能与 Key 权限不匹配（否则报 403 `key not allowed to access model`）。
 > - **依赖包会写进本机副本目录**：模型执行 `npm install`/`pip install` 后产物直接落在本机；按 `.gitignore` 排除，任务结束后清理，别把依赖提交进快照。
 > - `chown` 只在容器内改文件报 `Permission denied` 时才需要补一条（`docker exec -u root "cc-solo-{任务}" chown -R node:node /workspace`），不再作为标准步骤。
+> - **审批模式（可对齐 Mac）**：默认普通 `claude` 会逐条询问；加 `--dangerously-skip-permissions` 即免确认，与 Mac 镜像内置的免确认口径一致（等价 `--permission-mode bypassPermissions`）。同一批数据须统一，并把实际审批模式记进 `task-info.md`。
 > - 轨迹目录恒为 `/home/node/.claude/projects/-workspace/`（工作目录就是 `/workspace`），导出命令见第五节；第二题导出只需换容器名与保存名。
 
 
@@ -53,8 +54,15 @@ docker ps --filter "name=$containerName"
 
 ```powershell
 docker exec benzhi-claude-01 git config --global --add safe.directory /workspace
+
+# 默认：逐条确认权限
 docker exec -it -w /workspace benzhi-claude-01 claude
+
+# 免确认（自动模式）：跳过全部权限询问，行为与 Mac 镜像一致
+docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions
 ```
+
+默认 `claude` 会在每次执行命令/改文件前询问；加 `--dangerously-skip-permissions`（等价 `--permission-mode bypassPermissions`）即免确认。已经开着的会话想切换：`/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
 
 出现 Claude 的输入框后，就可以输入本题需求。换题时，新建文件夹 `02`，在 `02` 中重新完成第 1 步，使用新容器名 `benzhi-claude-02` 并填写本次 key 和 model，再进入新容器。每个容器内的工作目录都保持 `/workspace`。
 
