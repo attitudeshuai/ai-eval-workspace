@@ -16,7 +16,7 @@
 | `pairwise-gsb` | 生图标注 | `skills/gsb-annotator/SKILL.md` | AI 生图 Pairwise GSB 标注 |
 | `code-eval-solo` | 代码评估 | `SKILL.md` | 单模型代码能力批量评估 |
 | `code-eval-gsb` | 代码评估 | `SKILL.md` | 多模型代码对比评估（GSB） |
-| `claudccode` | 满意度标注 | `SKILL.md` | Claude Code / Codex 用户满意度标注（一个会话多轮，每轮一条数据；五维打分偏 GSB，流程偏 solo） |
+| `cc-solo` | 满意度标注 | `SKILL.md` | Claude Code / Codex 用户满意度标注（一个会话多轮，每轮一条数据；五维打分偏 GSB，流程偏 solo） |
 | `swe-like` | 代码评估 | `SKILL.md` | SWE-like 长程代码任务题库（Trae+Seed 单 Prompt） |
 | `repo-fetcher` | 素材池 | `SKILL.md` | 专门拉取 GitHub 仓库（黑名单记录已用过的仓库，自动跳过） |
 
@@ -62,7 +62,7 @@ GitLab clone → GitHub push → 分支创建 → 提示词生成 → Trae 执�
 
 详见 `projects/code-eval-gsb/docs/runbook.md`
 
-### claudccode（用户满意度标注）
+### cc-solo（用户满意度标注）
 
 ```
 任务初始化(快照+环境+出题) → Claude Code/Codex 交互 → 单轮录入 → 五维打分(人工) → 导出提交表(每轮一行)
@@ -72,7 +72,7 @@ GitLab clone → GitHub push → 分支创建 → 提示词生成 → Trae 执�
 - 五维打分结构与 GSB 一致（交付完整性/指令遵循/任务规划/推理能力/执行能力，1-5 + 必填依据描述）
 - ⚠️ 质量红线：AI 生成的提示词与交付文本必须先经 `skills/humanizer-zh` 去 AI 化 + 人工复核后使用/投递；Agent 负责记录/起草/去 AI 化/机械校验/导出
 
-详见 `projects/claudccode/SKILL.md`
+详见 `projects/cc-solo/SKILL.md`
 
 ### webdev-long-horizon
 
@@ -104,4 +104,4 @@ list 搜候选 → 写进 wishlist.txt → pull --file 批量拉取 → status �
 - [projects/webdev-long-horizon/SKILL.md](./projects/webdev-long-horizon/SKILL.md) — Web Dev 实操流程
 - [projects/swe-like/SKILL.md](./projects/swe-like/SKILL.md) — SWE-like 长程代码任务入口
 - [projects/repo-fetcher/SKILL.md](./projects/repo-fetcher/SKILL.md) — 仓库拉取器入口（含黑名单）
-- [projects/claudccode/SKILL.md](./projects/claudccode/SKILL.md) — 满意度标注入口（每轮一条数据，交付文本须经去 AI 化）
+- [projects/cc-solo/SKILL.md](./projects/cc-solo/SKILL.md) — 满意度标注入口（每轮一条数据，交付文本须经去 AI 化）

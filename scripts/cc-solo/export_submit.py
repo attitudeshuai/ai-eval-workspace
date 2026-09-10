@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-claudccode 正式提交表导出 + 质检
+cc-solo 正式提交表导出 + 质检
 =================================
 读取 {work_root}/{SESSION}/records/ 下所有任务，把每个任务的共享字段（task-info.md）
 与每轮数据文件（{TASK_ID}-R{NN}.md）合并为「一轮 = 一行」的正式提交表 CSV，并输出质检报告。
 
 用法：
-    python scripts/claudccode/export_submit.py                     # 默认会话（secrets/config）
-    python scripts/claudccode/export_submit.py --session session-0907   # 指定会话
-    python scripts/claudccode/export_submit.py --task cc-1         # 只导出指定任务
-    python scripts/claudccode/export_submit.py --out /tmp/x.csv    # 指定输出
+    python scripts/cc-solo/export_submit.py                     # 默认会话（secrets/config）
+    python scripts/cc-solo/export_submit.py --session session-0907   # 指定会话
+    python scripts/cc-solo/export_submit.py --task cc-1         # 只导出指定任务
+    python scripts/cc-solo/export_submit.py --out /tmp/x.csv    # 指定输出
 
 说明：
 - 只读数据文件 + 写 CSV；不改动任何记录。
@@ -26,7 +26,7 @@ import re
 import sys
 
 WORKSPACE = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-PROJECT_DIR = os.path.join(WORKSPACE, "projects", "claudccode")
+PROJECT_DIR = os.path.join(WORKSPACE, "projects", "cc-solo")
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config.toml")
 SECRETS_PATH = os.path.join(PROJECT_DIR, "secrets.toml")
 HEADERS_CSV = os.path.join(PROJECT_DIR, "templates", "submit-headers.csv")
@@ -90,9 +90,9 @@ def _load_config():
     except ImportError:
         simple = _load_toml_simple(CONFIG_PATH, keys)
         cfg = {
-            "work_root": simple.get("paths.work_root", "sessions/claudccode"),
+            "work_root": simple.get("paths.work_root", "sessions/cc-solo"),
             "records_dir": simple.get("paths.records_dir", "records"),
-            "deliverables_root": simple.get("paths.deliverables_root", "deliverables/claudccode"),
+            "deliverables_root": simple.get("paths.deliverables_root", "deliverables/cc-solo"),
             "active": simple.get("sessions.active", "session-0907"),
             "task_prefix": simple.get("naming.task_prefix", "cc"),
             "max_rounds": int(simple.get("limits.max_rounds", "10")),
@@ -104,9 +104,9 @@ def _load_config():
     cfg.setdefault("max_rounds", 10)
     cfg.setdefault("task_prefix", "cc")
     cfg.setdefault("filename_prefix", "正式提交表")
-    cfg.setdefault("deliverables_root", "deliverables/claudccode")
+    cfg.setdefault("deliverables_root", "deliverables/cc-solo")
     cfg.setdefault("records_dir", "records")
-    cfg.setdefault("work_root", "sessions/claudccode")
+    cfg.setdefault("work_root", "sessions/cc-solo")
     cfg.setdefault("types", ["0-1代码生成", "Feature迭代", "Bug修复", "代码理解", "代码重构", "工程化", "代码测试"])
     cfg.setdefault("dims", ["交付完整性", "指令遵循", "任务规划", "推理能力", "执行能力"])
     cfg.setdefault("first_forbidden", ["简单"])
@@ -277,7 +277,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session", help="SESSION_NAME；默认取 secrets/config 的 active")
     ap.add_argument("--task", help="只导出指定任务 ID")
-    ap.add_argument("--out", help="CSV 输出路径（默认 deliverables/claudccode/{SESSION}/正式提交表-...csv）")
+    ap.add_argument("--out", help="CSV 输出路径（默认 deliverables/cc-solo/{SESSION}/正式提交表-...csv）")
     args = ap.parse_args()
 
     cfg = _load_config()

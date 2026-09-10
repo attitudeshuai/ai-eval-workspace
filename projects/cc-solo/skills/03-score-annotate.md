@@ -1,6 +1,6 @@
 ---
-name: claudccode-score-annotate
-description: "claudccode 五维打分（分析+录入）：读轨迹文件还原第 N 轮对话 → 调用 implementation-reviewer 做代码产物评价 + 自行做对话过程分析 → 合成五维分数与依据（1-5），去 AI 化后落盘并做机械校验。Use when: claudccode 打分, 五维打分, 结果分析, 满意度评分, 轨迹分析。"
+name: cc-solo-score-annotate
+description: "cc-solo 五维打分（分析+录入）：读轨迹文件还原第 N 轮对话 → 调用 implementation-reviewer 做代码产物评价 + 自行做对话过程分析 → 合成五维分数与依据（1-5），去 AI 化后落盘并做机械校验。Use when: cc-solo 打分, 五维打分, 结果分析, 满意度评分, 轨迹分析。"
 ---
 
 ## ⚙️ 当前期配置
@@ -10,14 +10,14 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 > 分析方法：双路分析范式已内嵌本文件「分析调用链路」（路线A 产物 + 路线B 过程，适配自 solo 02-result-analysis），不再引用外部文件。
 > 评分表/原因写法速查：`docs/annotate-guide.md`（源自 docx 第三步/存档）。
 
-# claudccode 五维打分（轨迹分析 + 五维录入）
+# cc-solo 五维打分（轨迹分析 + 五维录入）
 
 ## 功能概述
 
 对**某一轮**对话（一条数据）做五维打分与依据录入。打分依据来源二选一：**人工撰写**（原样录入）或 **AI 代打**（默认，见下「分析调用链路」）。本技能负责：
 
-1. **读轨迹**（= solo 02-result-analysis 的「读对话内容」）：Claude Code→本机 `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl`（容器导出）；按 SessionID/TurnID 定位第 N 轮的 User Prompt + 模型 thinking + tool_use/tool_result + 最终回答
-2. **读产物**：对照 `repos/{REPO}/{TASK_ID}-R{NN}/`（本轮代码产物）的 git 变更（`git diff`/当前代码），核实模型声称的改动与真实改动
+1. **读轨迹**（= solo 02-result-analysis 的「读对话内容」）：Claude Code→本机 `records/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}.jsonl`（容器导出）；按 SessionID/TurnID 定位第 N 轮的 User Prompt + 模型 thinking + tool_use/tool_result + 最终回答
+2. **读产物**：对照 `source-code/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`（任务副本，本轮代码产物）的 git 变更（`git diff`/当前代码），核实模型声称的改动与真实改动
 3. **路线 A**：调用 `skills/implementation-reviewer/SKILL.md` 做代码产物质量评价（6 维度）
 4. **路线 B**：自行做对话过程分析（规划/推理/工具调用/虚假完成），映射到五维
 5. 合成五维分数（1-5）与五条必填依据 + 不满意（过程+产物汇总）+ 其他问题
@@ -31,9 +31,9 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 读轨迹 → 读产物 → 路线A(implementation-reviewer) → 路线B(过程分析) → 合成五维 → 去AI化 → 落盘
 ```
 
-1. **读本轮轨迹切片**：`records/{REPO}/{TASK_ID}/{TASK_ID}-R{NN}-trajectory.jsonl`（02-round-capture 已从完整轨迹切出第 N 轮；Claude Code 容器导出），按 `type==user` 且 content 为字符串定位本轮起点，其 `promptId` = TurnID；该轮内 assistant 的 thinking / tool_use / tool_result / 最终 text 全归属本轮。（= solo 的「读取对话内容」，claudccode 里就是读轨迹）
+1. **读本轮轨迹切片**：`records/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}.jsonl`（02-round-capture 已从容器导回；Claude Code 容器导出），按 `type==user` 且 content 为字符串定位本轮起点，其 `promptId` = TurnID；该轮内 assistant 的 thinking / tool_use / tool_result / 最终 text 全归属本轮。（= solo 的「读取对话内容」，cc-solo 里就是读轨迹）
 
-2. **读产物**：对照 `repos/{REPO}/{TASK_ID}-R{NN}/`（本轮代码产物，02-round-capture 已从容器导回）的 git 变更（`git diff --stat` + `git diff`，或当前代码）核实模型实际改了什么、和它在轨迹里「宣称改了什么」是否一致（虚假完成判定）。
+2. **读产物**：对照 `source-code/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`（任务副本，02-round-capture 已从容器导回）的 git 变更（`git diff --stat` + `git diff`，或当前代码）核实模型实际改了什么、和它在轨迹里「宣称改了什么」是否一致（虚假完成判定）。
 
 3. **路线 A — 代码产物质量**（调用 `skills/implementation-reviewer/SKILL.md`）：
    - 传入本轮 User Prompt + 轨迹 + 产物 diff 作为上下文
@@ -42,7 +42,7 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
    - 第 1、2 轮用挑剔模式（7 角度逐一核查）
    - **以 implementation-reviewer 结论为准**（红线）
 
-4. **路线 B — 对话过程质量**（自行分析，对应 solo 的 10 维度，映射到 claudccode 五维）：
+4. **路线 B — 对话过程质量**（自行分析，对应 solo 的 10 维度，映射到 cc-solo 五维）：
    - 从轨迹还原：拆解/状态追踪 → 任务规划；thinking 的推理路径/根因定位 → 推理能力；tool_use 的冗余/失败调用/高危操作 → 执行能力；总结声称 vs 实际 → 虚假完成
 
 5. **合成五维**（1-5 + 依据）：
@@ -56,20 +56,20 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
    | 执行能力 | 路线 B（tool_use 冗余/失败/高危） |
 
 6. **不满意（过程 + 产物，合成一个字段，必填）**：
-   - 格式固定两行（过程在前、产物在后），随五维写入 `{TASK_ID}-R{NN}.md`，进提交表「不满意」一列：
+   - 格式固定两行（过程在前、产物在后），随五维写入 `{任务}-R{NN}.md`，进提交表「不满意」一列：
      ```
      过程不满意：<过程层面没做好的核心问题；来源=任务规划/推理/执行描述；满意写「无」>。
      产物不满意：<代码/结果层面没做对的核心问题，≤3 条；来源=implementation-reviewer「不满意的点」+交付完整性/指令遵循描述；满意写「无」>。
      ```
    - **逻辑：产物不满意 ⇒ 过程不满意**——产物有问题时过程也必有问题，两条都写；产物满意但过程不满意时，只写「过程不满意」、产物写「无」。
 
-7. **去 AI 化 → 落盘**：合成文本先经 `skills/humanizer-zh/SKILL.md` 去 AI 化（练习无需人工确认，正式再复核），写入 `{TASK_ID}-R{NN}.md`。
+7. **去 AI 化 → 落盘**：合成文本先经 `skills/humanizer-zh/SKILL.md` 去 AI 化（练习无需人工确认，正式再复核），写入 `{任务}-R{NN}.md`。
 
 > 自然语言优先（同 solo）：依据用业务语义描述，禁止堆函数名/代码符号；可列「涉及文件」。
 
 ## 🔍 分析自检清单（AI 代打落盘前必勾，红线）
 
-逐项确认后才可写 `{TASK_ID}-R{NN}.md`，任一未勾 → 不得落盘：
+逐项确认后才可写 `{任务}-R{NN}.md`，任一未勾 → 不得落盘：
 
 - [ ] 已读轨迹文件并定位第 N 轮（User Prompt + thinking + tool_use/tool_result + 最终回答），TurnID/SessionID 与 02-round-capture 一致
 - [ ] 已核对产物（`git diff`/当前代码）与轨迹里「宣称改了什么」是否一致，虚假完成已判
@@ -113,7 +113,7 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 
 ## 执行流程
 
-1. 打开 `{RECORD_DIR}/{TASK_ID}/{TASK_ID}-R{NN}.md`（`{TASK_ID}` = 任务 ID = 仓库目录名-类型slug），确认该轮已录入（有 User Prompt/TurnID）；缺 → 先执行 `02-round-capture round N`。
+1. 打开 `{RECORD_DIR}/{任务}/{任务}-R{NN}.md`（`{任务}` = 任务 ID = 仓库目录名-类型slug），确认该轮已录入（有 User Prompt/TurnID）；缺 → 先执行 `02-round-capture round N`。
 2. **录入方式**（先与用户确认，二选一）：
    - **人工打分**：向用户逐维度索要分数与依据（可一次给齐五维）：
      - 交付完整性 `<1-5>` + 描述（指明文件/报错/未实现点；虚假成功说明宣称 vs 实际）
@@ -137,14 +137,18 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 1. **拆分不满意点**：从 implementation-reviewer「不满意的点」+ 五维里「交付完整性-描述」「指令遵循-描述」+「其他问题」，提取「代码漏洞 / 功能未实现 / 实现不合理」层面的可执行修复诉求（业务语义，禁代码符号）。
 2. **保证预计 ≥2 文件**：标注每个不满点落在哪个文件/模块；若集中在 1 个文件 → 补一条跨文件诉求（如「改完 X 后把依赖它的 Y 同步」「补对应测试/文档」）。
 3. **生成提示词**：开头固定加「**修复bug：**」，直接列问题与要求，**不要口水话**，真实用户报问题的口吻。
-4. **去 AI 化**（`skills/humanizer-zh`）→ 写 `{RECORD_DIR}/{TASK_ID}/{TASK_ID}-R{NN+1}-prompt.md`（NN+1 = 下一轮）。
+4. **去 AI 化**（`skills/humanizer-zh`）→ 写 `{RECORD_DIR}/{任务}/{任务}-R{NN+1}-prompt.md`（NN+1 = 下一轮）。
 5. **输出给用户确认**，确认后贴进 Claude 会话做下一轮。
 6. **多轮批量（可选）**：不满点多时拆成多份 `-R{NN+1}-prompt.md`、`-R{NN+2}-prompt.md`…，每份都必须涉及文件修改（≥2 文件）。
 
 ## 路径规则
 
 ```
-第 N 轮数据：{RECORD_DIR}/{TASK_ID}/{TASK_ID}-R{NN}.md   （{TASK_ID} = 任务 ID = 仓库目录名-类型slug；嵌套布局写作 {RECORD_DIR}/{REPO}/{TASK_ID}/，导出脚本两种都识别）
+任务记录目录（R0N 模型）：{RECORD_DIR}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/
+第 N 轮数据（打分写入此处）：…/{项目}-{类型}-{索引}-R{NN}.md
+第 N 轮轨迹切片：…/{项目}-{类型}-{索引}-R{NN}-trajectory.jsonl
+任务副本：{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/
+其中 {项目}-{类型}-{索引} = 任务名（如 app-12-bugfix-01）。
 ```
 
 ## 示例
@@ -152,7 +156,7 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 ### 输入
 
 ```
-任务 solocc-0001-codegen，score 1
+任务 app-12-codegen，score 1
 交付完整性：4（描述：完成登录态修复…）
 指令遵循：5（描述：已逐条核对全部约束，未改动约束外文件）
 任务规划：3（描述：…）
@@ -164,7 +168,7 @@ description: "claudccode 五维打分（分析+录入）：读轨迹文件还原
 ### 输出
 
 ```
-已写入 records/solocc-0001/solocc-0001-codegen/solocc-0001-codegen-R01.md 五维打分
+已写入 records/app-12/app-12-codegen/app-12-codegen-R01.md 五维打分
 机械校验通过：分数 1-5 且描述非空
 提示：描述中出现负面词但交付完整性=4，请人工复核方向一致性
 下一步：若满意且目标达成可结束任务，否则 round 2

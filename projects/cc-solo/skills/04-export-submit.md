@@ -1,18 +1,20 @@
 ---
-name: claudccode-export-submit
-description: "claudccode 导出提交表并投递飞书：把全部任务/轮次数据汇总为正式提交表 CSV（每轮一行）+ 机械质检，并可逐行追加到满意度交付飞书多维表格。Use when: claudccode 导出, 提交表, CSV 汇总, 质检, 飞书投递。"
+name: cc-solo-export-submit
+description: "cc-solo 导出提交表并投递飞书：把全部任务/轮次数据汇总为正式提交表 CSV（每轮一行）+ 机械质检，并可逐行追加到满意度交付飞书多维表格。Use when: cc-solo 导出, 提交表, CSV 汇总, 质检, 飞书投递。"
 ---
 
 ## ⚙️ 当前期配置
 
 > 配置从 `../config.toml` 读取。路径变量同 [01-task-create](01-task-create.md)。
-> 依赖脚本：`scripts/claudccode/export_submit.py`（导出 CSV + 质检）、`scripts/claudccode/append_delivery_feishu.py`（投递飞书）
+> 依赖脚本：`scripts/cc-solo/export_submit.py`（导出 CSV + 质检）、`scripts/cc-solo/append_delivery_feishu.py`（投递飞书）
 
-# claudccode 导出正式提交表 · 投递飞书
+# cc-solo 导出正式提交表 · 投递飞书
+
+> ⚠️ **TODO：最终交付格式未定**。本文档为旧流程草案，待导出格式定稿后按新结构（`records/{项目}/{项目}-{类型}/…`、任务名 = `{项目}-{类型}-{索引}`）重写，暂不执行。
 
 ## 功能概述
 
-读取 `{RECORD_DIR}/` 下所有任务，把每个任务的共享字段（task-info.md）与每轮数据（`*-R*.md`）合并为**一行一条数据**，输出正式提交表 CSV 并做质检校验；质检通过后按需**逐行追加到满意度交付飞书多维表格**（每行 = 一条记录）。
+读取 `{RECORD_DIR}/` 下所有任务，把每个任务的任务名（`{项目}-{类型}-{索引}`）与每轮数据合并为**一行一条数据**，输出正式提交表 CSV 并做质检校验；质检通过后按需**逐行追加到满意度交付飞书多维表格**（每行 = 一条记录）。
 
 > 提交口径：每一个单轮对话（prompt-response pair）= 一条数据；同一任务所有轮 SessionID 相同、运行环境字段相同，仅 prompt/turn/类型/难度/五维不同。
 
@@ -29,16 +31,16 @@ description: "claudccode 导出提交表并投递飞书：把全部任务/轮次
 ### 步骤 1：确认范围与输出路径
 
 - 范围：全部任务 / 指定任务。
-- 输出：`deliverables/claudccode/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`（date = 当天 `YYYY-MM-DD`）。
+- 输出：`deliverables/cc-solo/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`（date = 当天 `YYYY-MM-DD`）。
 
 ### 步骤 2：运行导出脚本
 
 ```bash
-python scripts/claudccode/export_submit.py
+python scripts/cc-solo/export_submit.py
 ```
 
 脚本行为：
-- 递归遍历 `{RECORD_DIR}`（含 `task-info.md` 的目录 = 任务，叶子目录名 = 任务 ID；支持嵌套 `{REPO}/{TASK_ID}/` 与扁平 `{TASK_ID}/` 两种布局）+ 各 `{TASK_ID}-R*.md`（每轮一条）
+- 递归遍历 `{RECORD_DIR}`（含 `task-info.md` 的目录 = 任务，叶子目录名 = 任务 ID；支持嵌套 `{项目}/{任务}/` 与扁平 `{任务}/` 两种布局）+ 各 `{任务}-R*.md`（每轮一条）
 - 每轮拼一行：任务类型 / 任务难度 / 语言/框架 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / 初始环境快照 / User Prompt / SessionID / TurnID/PromptID / 轨迹文件 / 五维分数与描述 / 其他问题
 - 表头见 `templates/submit-headers.csv`；TPM 内部字段（Repo URL/截图附件/备注/标注人）按配置追加在末尾
 - 输出 UTF-8 with BOM CSV（Excel 打开中文不乱码）
@@ -63,16 +65,16 @@ python scripts/claudccode/export_submit.py
 ### 步骤 4：飞书投递（满意度交付多维表格）
 
 > 目标表与表头差异见 `config.toml [feishu]`。字段映射/命名差异由脚本处理（如 `Feature迭代`→`feature迭代`、描述列加空格、`Harness版本`→`Harness 版本`）。
-> 凭证：app_token/table_id 在 `config.toml [feishu]`；app_id/app_secret 默认复用 `code-eval-gsb/secrets.toml [feishu]`，也可在 `claudccode/secrets.toml [feishu]` 覆盖。
+> 凭证：app_token/table_id 在 `config.toml [feishu]`；app_id/app_secret 默认复用 `code-eval-gsb/secrets.toml [feishu]`，也可在 `cc-solo/secrets.toml [feishu]` 覆盖。
 
 **必须先 dry-run 再正式投递：**
 
 ```bash
 # 1) dry-run：拉表头/校验选项与类型/查重，不写入
-python scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --dry-run
+python scripts/cc-solo/append_delivery_feishu.py --csv <提交表.csv> --dry-run
 
 # 2) 正式投递（每行一条记录；按 SessionID+TurnID 去重，已存在则跳过）
-python scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --submitter 张三
+python scripts/cc-solo/append_delivery_feishu.py --csv <提交表.csv> --submitter 张三
 
 # 3) 若确需重复追加（如补录），加 --force
 ```
@@ -84,7 +86,7 @@ python scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --subm
 - 只读/关联字段（`父记录` 等）自动跳过；`提交时间` 自动填当前时间
 - 输出每条追加的 record_id + 汇总（新增/已存在跳过/错误）
 
-> **轨迹附件上传（可选但推荐）**：投递后可用同一套 app_id/app_secret 把 `records/{TASK_ID}/{TASK_ID}-trajectory.jsonl` 作为「轨迹文件」字段的**附件**上传并关联到对应记录：
+> **轨迹附件上传（可选但推荐）**：投递后可用同一套 app_id/app_secret 把 `records/{任务}/{任务}-trajectory.jsonl` 作为「轨迹文件」字段的**附件**上传并关联到对应记录：
 > - `POST /open-apis/drive/v1/medias/upload_all`：`file_type` / `file_name` / `parent_type` / `parent_node` / `size` **作为 multipart 表单字段放 body**（不是 query）；`parent_type=bitable_file`、`parent_node=app_token`、`file_type` 用合法值（如 `txt`）；用 `POST /open-apis/auth/v3/tenant_access_token/internal` 换 token；
 > - 返回 `data.file_token` 后，`PUT /open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/{record_id}`，body = `{"fields":{"轨迹文件":[{"file_token":"...","name":"...","size":...,"type":"file"}]}}`；
 > - 「轨迹文件」字段是**附件**类型(`type=17`)，不能写文本路径，故 append 脚本将该列留空（`MAPPING["轨迹文件"]=None`），由本步以附件写入。

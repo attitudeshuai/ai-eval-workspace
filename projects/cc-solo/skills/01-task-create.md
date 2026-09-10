@@ -1,21 +1,21 @@
 ---
-name: claudccode-task-create
-description: "claudccode 任务初始化：新建一个任务（会话窗口），打初始环境快照（commit permalink），填共享运行环境字段，起草首轮提示词。Use when: claudccode 新建任务, 满意度标注任务初始化, 初始快照, 出题。"
+name: cc-solo-task-create
+description: "cc-solo 任务初始化：新建一个任务（会话窗口），打初始环境快照（commit permalink），填共享运行环境字段，起草首轮提示词。Use when: cc-solo 新建任务, 满意度标注任务初始化, 初始快照, 出题。"
 ---
 
 ## ⚙️ 当前期配置
 
 > 配置从 `../config.toml` 读取；`secrets.toml` 可覆盖 `active_session`、`repo_base_path`、`records_dir`、`annotator`。
 > 依赖 agent：`skills/humanizer-zh/SKILL.md`（去 AI 化，AI 起草提示词必用）、`skills/prompt-architect/SKILL.md`（可选起草）
-> 路径变量：`{work_root}`=`[paths].work_root`、`{SESSION_NAME}`=`[sessions].active`、`{RECORD_DIR}`=`{work_root}/{SESSION_NAME}/[paths].records_dir`、`{REPO_BASE_PATH}`=`{work_root}/{SESSION_NAME}/[paths].repo_base_path`、`{REPO}`=仓库目录名（`repos/<repo>` 的目录名，即项目/素材名）、`{TASK_ID}`=`{REPO}-{类型slug}`（任务 ID）。旧 `{TASK_PREFIX}` 已不再用于记录标识。
+> 路径变量：`{work_root}`=`[paths].work_root`、`{SESSION_NAME}`=`[sessions].active`、`{RECORD_DIR}`=`{work_root}/{SESSION_NAME}/[paths].records_dir`、`{REPO_BASE_PATH}`=`{work_root}/{SESSION_NAME}/[paths].repo_base_path`（= `source-code`）、`{项目}`=项目名（素材源目录名，如 `app-12`）、`{任务}`=任务名 = `{项目}-{类型}-{索引}`（如 `app-12-bugfix-01`）。
 
-# claudccode 任务初始化
+# cc-solo 任务初始化
 
 ## 功能概述
 
 为一个**任务（= 一个会话窗口，≤ 10 轮）**建立数据档案：
 
-1. 校验被标注仓库（干净、无凭据泄漏、已 git init、可 push）
+1. 校验被标注仓库（干净、无凭据泄漏、已 git init、可 push）+ **校验仓库结构**（素材源位于 `source-code/{项目}/`；不规范则提示用户确认后整理）
 2. **打初始环境快照**：首轮交互前提交 baseline 并 push，记录 commit permalink（完整 40 位 SHA）
 3. 建任务目录与 `task-info.md`（共享运行环境字段）
 4. 起草**首轮提示词**（真实用户口径：AI 起草须先 humanizer-zh 去 AI 化，再人工确认后写盘）
@@ -36,24 +36,28 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 | 命令 | 说明 |
 |------|------|
-| create | 默认。校验仓库 → 打快照 → 建 task-info → 起草首轮提示词 |
-| info | 仅校验仓库状态与展示将填写的字段，不写文件 |
+| create | 默认。校验仓库（**先查仓库结构**，不规范则提示用户确认后整理成 `source-code/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`）→ 建副本 + 出题 → 起草首轮提示词 |
+| info | 仅校验仓库状态与展示将填写的字段（含结构检查结果），不写文件 |
 
 ## 默认配置
 
-> 任务 ID = **`{REPO}-{类型slug}`**（如 `solocc-0001-codegen`）。记录目录与轮次文件都以它为前缀。同一仓库可开多个不同类型任务，各任务独立目录、独立快照、独立远程仓库。
-> 类型 slug 对照（`config.toml [task_types].aliases`）：`0-1代码生成`→`codegen`、`Feature迭代`→`feat`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
-> 任务目录：`{RECORD_DIR}/{REPO}/{TASK_ID}/`（嵌套，推荐）；共享字段文件：`{RECORD_DIR}/{REPO}/{TASK_ID}/task-info.md`
-> records 支持两层（可选）：`{RECORD_DIR}/{REPO}/{TASK_ID}/`（项目分组）或扁平 `{RECORD_DIR}/{TASK_ID}/`；导出脚本两种都认（含 `task-info.md` 的目录 = 任务）。任务 ID/题号始终扁平 `{REPO}-{slug}`。
-> 仓库：用户给的**素材源**本地/远端路径（如 `{REPO_BASE_PATH}/{REPO}`，只读内容来源）；任务工作副本（baseline）为 `{REPO_BASE_PATH}/{REPO}/{TASK_ID}`（按任务 baseline 检出，origin 指向新建远程仓库）。
-> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**题号 = 任务 ID**，工作目录 `/workspace/<题号>`、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。每轮由 agent 执行 docker 命令导回轨迹（`records/{TASK_ID}/`）和代码产物（`{REPO_BASE_PATH}/{REPO}/{TASK_ID}-R{NN}/`），供 `02-round-capture` 读取。
+> 任务名 = **`{项目}-{类型}-{索引}`**（如 `app-12-bugfix-01`）。记录目录与轮次文件都以它为前缀。同一项目按类型复制多份任务副本，各任务独立目录。
+> 类型 slug 对照（`config.toml [task_types].aliases`）：`0-1代码生成`→`codegen`、`Feature迭代`→`feature`、`Bug修复`→`bugfix`、`代码理解`→`understand`、`代码重构`→`refactor`、`工程化`→`engineering`、`代码测试`→`test`。
+> 任务目录（R0N 模型）：`{RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/`；共享字段文件：`{RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/task-info.md`
+> 每轮数据文件：`{RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/{任务}-R{NN}.md`（一轮 = 一条数据）。
+> **仓库与目录结构（create 第一步必检）**：素材源（项目根 = 唯一 git 仓库 = base commit 快照）位于 `{REPO_BASE_PATH}/{PROJECT}/`（如 `source-code/app-12/`），其下按规范嵌套：
+> - 素材源内容（`src/`、`README.md`、`.git` 等）直接放 `{PROJECT}/` 下；
+> - 任务副本 = `{REPO_BASE_PATH}/{PROJECT}/{PROJECT}-{slug}/{PROJECT}-{slug}-{index}/`（复制素材源内容 + 目录名改为任务名，无 .git，不提交/push）。
+> - **判断规范**：`source-code/{项目}/` 是唯一 git 仓库；任务副本按类型分组 `{项目}-{slug}/` 嵌套在项目根下，索引全局累加；素材源文件平铺、副本错级/错名，都视为**结构不规范**。
+> - **处理**：先列出「当前实际结构 vs 规范结构」的差异 → **提示用户确认** → 确认后整理成 `source-code/{项目}/{项目}-{slug}/{项目}-{slug}-{index}/` 再继续；**未获用户确认，不得擅自移动文件**。
+> Claude Code 在 docker 容器（`benzhi-claude-code`）里做，**工作目录 = 任务名 = `/workspace/{项目}/{项目}-{类型}/{项目}-{类型}-{索引}/`**、轨迹在容器内 `/home/node/.claude/projects/-workspace-<题号>/`（Mac 与 Windows 相同）；容器入口与导出命令按操作系统见 runbook.md（Mac）/ runbook-windows.md（Windows）。每轮由 agent 执行 docker 命令导回轨迹（`records/{项目}/{项目}-{类型}/{任务}/`）和代码产物（`{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{任务}-R{NN}/`），供 `02-round-capture` 读取。
 
 ## 输入（create 需向用户确认）
 
 - **仓库名 + 任务类型**（用户只需给这两项；任务类型 7 选 1，决定 slug 与快照/埋点策略；首轮严禁「简单」难度）
 - 任务 ID 由 agent 拼：`{仓库名}-{slug}`（`h5-demo` + 代码理解 → `h5-demo-understand`）
 - 以下由 agent 自动推断（用户未指定时用默认值，显式指定则覆盖）：
-  - 仓库路径（素材源）= `repos/{仓库名}`
+  - 仓库路径（素材源）= `source-code/{项目}`
   - 目标说明 = 按任务类型 + 仓库内容起草（`prompt-architect` + `humanizer-zh`）
   - Harness = `Claude Code`；Harness 版本从 `secrets.toml [harness]` 按操作系统自动带入
   - 操作系统 = 当前机器（`MacOS/Linux` / `Windows`）
@@ -61,13 +65,16 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 ## 执行流程
 
-### 1. 校验仓库
+### 1. 校验仓库与仓库结构
 
+0. **校验仓库结构（create 第一步必检，规则见上文「仓库与目录结构」）**：
+   - 判断 `{REPO_BASE_PATH}/{PROJECT}/`（素材源项目根，唯一 git 仓库）是否存在、任务副本是否按类型分组嵌套其下；副本错级/错名（未按 `{项目}-{slug}/{项目}-{slug}-{index}/`）即视为**不规范**。
+   - **结构不规范**：把「当前实际结构」与「规范结构」的差异列给用户，**提示用户确认**；用户确认后，整理成 `source-code/{项目}/{项目}-{slug}/{项目}-{slug}-{index}/` 再继续；**未获确认不擅自移动**（可先走 `info` 只读展示）。
 1. 确认路径存在且为 git 仓库。
 2. `git status` 检查：若已出现未提交改动 → 提示先提交或清理（快照必须是会话首轮前的基线）。
 3. **凭据检查**：确认 `.gitignore` 已覆盖 `.env` 以及各类密钥/连接串/token 文件；抽查 `git ls-files` 无凭据文件。有泄漏 → 中止并提示先处理，禁止带着凭据提交。
 4. **新建独立远程仓库（关键前置，务必先做）**：被标注仓库的来源远端（如 `gsb0731-xxx`）通常是已使用/共享的仓库，**不能直接用它提交**。要为它**新建一个全新的远程仓库**，并只基于该新仓库走后续流程：
-   - 用 `github_username` + PAT（`secrets.toml [github] github_pat`）创建新仓库，命名建议 `claudccode-{TASK_ID}`（如 `claudccode-solocc-0001-codegen`）；
+   - 用 `github_username` + PAT（`secrets.toml [github] github_pat`）创建新仓库，命名建议 `cc-solo-{任务}`（如 `cc-solo-app-12-codegen`）；
    - 把本地远端（origin）指到该新仓库（`git remote set-url origin <新仓库>`)；
    - 之后基线提交、初始快照、模型交互都基于这个新仓库；来源仓库只作为初始内容来源，不再向其提交。
 5. 确认新仓库可 push且评测团队可访问（设为 **public** 公开仓库，或至少加协作者）；如需才回退来源仓库，须人工确认。
@@ -82,9 +89,9 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 
 ### 3. 建任务目录 + task-info.md
 
-- 记录目录名 = 任务 ID = `{REPO}-{类型slug}`（如 `solocc-0001-codegen`）；同仓库同类型需多个窗口时再加 `-2`/`-3` 后缀（如 `solocc-0001-codegen-2`），人工确认。
+- 记录目录名 = 任务 ID = `{项目}-{类型slug}`（如 `app-12-codegen`）；同仓库同类型需多个窗口时再加 `-2`/`-3` 后缀（如 `app-12-codegen-2`），人工确认。
 - 用模板 `templates/task-info.md` 生成，填入共享字段：
-  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后定位：Claude Code→本机导出的 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace-<题号>/) / annotator / 创建日期`。
+  `任务 ID / 仓库(项目) / 任务标题 / 任务类型 / Repo URL / 本地路径 / 初始环境快照 / Harness / Harness版本 / 操作系统 / 环境可复现等级 / SessionID(待首轮后由 round-capture 自取回填) / 轨迹根目录(SessionID 回填后定位：Claude Code→本机导出的 records/{任务}/{任务}-trajectory.jsonl, 容器来源 /home/node/.claude/projects/-workspace-<题号>/) / annotator / 创建日期`。
 - 共享字段整个会话各轮不变。
 
 ### 4. 起草首轮提示词（出题，需去 AI 化）
@@ -101,13 +108,13 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 ## 输出模板（task-info.md，字段标题与 `templates/task-info.md` 一致，导出脚本按 `## ` 切块解析）
 
 ```markdown
-# {TASK_ID} 任务信息（会话元信息）
+# {任务} 任务信息（会话元信息）
 
 ## 任务 ID
-{TASK_ID}  （= {REPO}-{类型slug}，如 solocc-0001-codegen）
+{任务}  （= {项目}-{类型slug}，如 app-12-codegen）
 
 ## 仓库（项目）
-{REPO}  （repos/<repo> 的目录名；一个项目可派生多个类型任务）
+{项目}  （source-code/{项目}/ 的目录名；一份素材源按类型复制多份任务副本）
 
 ## 任务标题
 <一句话说明这题让模型做什么>
@@ -125,7 +132,7 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 <https://github.com/<org>/<repo>，去掉 .git>
 
 ## 本地路径
-<任务工作副本路径，如 sessions/claudccode/{SESSION_NAME}/repos/solocc-0001-codegen>
+<任务副本路径，如 sessions/cc-solo/{SESSION_NAME}/source-code/app-12/app-12-bugfix/app-12-bugfix-01>
 
 ## 初始环境快照
 <https://github.com/<org>/<repo>/commit/<40位完整SHA>>
@@ -146,16 +153,16 @@ description: "claudccode 任务初始化：新建一个任务（会话窗口）�
 <整个会话窗口 ID，所有轮同一值；首轮后回填>
 
 ## 轨迹根目录（轨迹文件）
-<Claude Code（容器做，题号 = 任务 ID）→ 本机 records/{TASK_ID}/{TASK_ID}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
+<Claude Code（容器做，题号 = 任务 ID）→ 本机 records/{任务}/{任务}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace-<题号>/<SessionID>）；首轮 SessionID 回填后定位>
 
 ## 首轮提示词（已确认）
-<首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {TASK_ID}-R01.md>
+<首轮 prompt 原文；确认后作为该任务第 1 轮的 User Prompt 由 02-round-capture 录入到 {任务}-R01.md>
 ```
 
 ## 注意事项
 
 1. 快照必须是会话首轮前的工作区状态；若模型已开始改动才补快照 → 该任务数据无法追溯，需重建任务。
 2. 凭据不进仓库；push 到个人私有仓库等同没记录。
-3. 记录目录名 = 任务 ID（`{REPO}-{类型slug}`），不覆盖已存在目录（已存在 → 提示换后缀或确认续用）。
+3. 记录目录名 = 任务 ID（`{项目}-{类型slug}`），不覆盖已存在目录（已存在 → 提示换后缀或确认续用）。
 4. 写中文文件一律用写文件工具（UTF-8），禁止 PowerShell `Set-Content`。
 5. 出题分布：按天统计须满足 `0-1代码生成/Feature迭代/Bug修复 > 代码理解 ≈ 代码重构 > 其他`（导出时校验）。

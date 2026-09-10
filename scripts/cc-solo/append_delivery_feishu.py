@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-向 claudccode 满意度交付飞书多维表格逐行追加数据（每轮一条数据 = 一条记录）。
+向 cc-solo 满意度交付飞书多维表格逐行追加数据（每轮一条数据 = 一条记录）。
 
-输入：导出脚本生成的正式提交表 CSV（scripts/claudccode/export_submit.py 产出，
+输入：导出脚本生成的正式提交表 CSV（scripts/cc-solo/export_submit.py 产出，
       表头见 templates/submit-headers.csv，每行 = 一轮对话 = 一条数据）。
 
 - 把 CSV 列名映射为多维表格字段名（表头命名有差异，见 MAPPING）
@@ -12,16 +12,16 @@
 - 只读/关联字段（父记录等）自动跳过
 
 配置：
-- 非敏感：projects/claudccode/config.toml [feishu]（app_token / table_id）
-- 敏感：app_id / app_secret 优先读 projects/claudccode/secrets.toml [feishu]，
+- 非敏感：projects/cc-solo/config.toml [feishu]（app_token / table_id）
+- 敏感：app_id / app_secret 优先读 projects/cc-solo/secrets.toml [feishu]，
   缺省回退读 projects/code-eval-gsb/secrets.toml [feishu]（复用 GSB 应用）
 
 用法：
-    python3 scripts/claudccode/append_delivery_feishu.py \
-        --csv deliverables/claudccode/session-0907/正式提交表-session-0907-2026-09-07.csv --dry-run
-    python3 scripts/claudccode/append_delivery_feishu.py \
+    python3 scripts/cc-solo/append_delivery_feishu.py \
+        --csv deliverables/cc-solo/session-0907/正式提交表-session-0907-2026-09-07.csv --dry-run
+    python3 scripts/cc-solo/append_delivery_feishu.py \
         --csv <提交表.csv> --submitter 张三          # 正式追加（默认按 SessionID+TurnID 去重）
-    python3 scripts/claudccode/append_delivery_feishu.py --csv <提交表.csv> --force
+    python3 scripts/cc-solo/append_delivery_feishu.py --csv <提交表.csv> --force
 
 依赖：仅标准库（Python 3.11+，需 tomllib）
 """
@@ -52,7 +52,7 @@ FIELD_TYPE_URL = 15  # 超链接：写入须用 {text, link} 对象
 READONLY_FIELD_TYPES = {18, 19, 20, 21, 22, 23, 1001, 1002, 1003, 1004}
 
 WORKSPACE = Path(__file__).resolve().parent.parent.parent
-CC_PROJECT = WORKSPACE / "projects" / "claudccode"
+CC_PROJECT = WORKSPACE / "projects" / "cc-solo"
 GSB_PROJECT = WORKSPACE / "projects" / "code-eval-gsb"
 
 # CSV 列名 → 多维表格字段名映射（None 表示该列不投递/表中无此字段）
@@ -106,19 +106,19 @@ def load_config():
     cfg = tomllib.loads(cfg_path.read_text(encoding="utf-8")).get("feishu", {})
     missing = [k for k in ("app_token", "table_id") if not cfg.get(k)]
     if missing:
-        fail(f"claudccode config.toml [feishu] 缺少：{missing}")
+        fail(f"cc-solo config.toml [feishu] 缺少：{missing}")
     return cfg
 
 
 def load_secrets():
-    """app_id/app_secret：优先 claudccode/secrets.toml，缺省回退 code-eval-gsb/secrets.toml。"""
+    """app_id/app_secret：优先 cc-solo/secrets.toml，缺省回退 code-eval-gsb/secrets.toml。"""
     for proj in (CC_PROJECT, GSB_PROJECT):
         sp = proj / "secrets.toml"
         if sp.exists():
             sec = tomllib.loads(sp.read_text(encoding="utf-8")).get("feishu", {})
             if sec.get("app_id") and sec.get("app_secret"):
                 return sec
-    fail("未找到飞书 app_id/app_secret：请在 projects/claudccode/secrets.toml [feishu] "
+    fail("未找到飞书 app_id/app_secret：请在 projects/cc-solo/secrets.toml [feishu] "
          "或 projects/code-eval-gsb/secrets.toml [feishu] 配置（secrets-simple.toml 有模板）")
 
 
@@ -268,8 +268,8 @@ def build_record(row, fields, submitter, ts_ms):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="向 claudccode 交付飞书多维表格逐行追加数据（每行=一条数据）")
-    ap.add_argument("--csv", help="正式提交表 CSV 路径（默认取 deliverables/claudccode/{SESSION}/ 下最新一份）")
+    ap = argparse.ArgumentParser(description="向 cc-solo 交付飞书多维表格逐行追加数据（每行=一条数据）")
+    ap.add_argument("--csv", help="正式提交表 CSV 路径（默认取 deliverables/cc-solo/{SESSION}/ 下最新一份）")
     ap.add_argument("--session", help="SESSION_NAME（配合 --csv 缺省时用）")
     ap.add_argument("--submitter", help="提交人姓名（覆盖 CSV 标注人列，写入表中「提交人」文本字段）")
     ap.add_argument("--dry-run", action="store_true", help="只校验（拉表头/选项/查重），不写入")

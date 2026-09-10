@@ -1,4 +1,4 @@
-# claudccode：Claude Code 用户满意度标注
+# cc-solo：Claude Code 用户满意度标注
 
 对真实 Coding Agent（**Claude Code**）的使用过程做用户满意度标注：还原真实用户反馈信号，判断模型是否真正满足了用户需求，为模型训练与持续优化提供数据。
 
@@ -16,7 +16,7 @@
 ## 目录结构
 
 ```
-projects/claudccode/
+projects/cc-solo/
 ├── config.toml                 # 项目配置（路径、类型、难度、评分、轮次上限）
 ├── SKILL.md                    # AI Agent 执行规范（入口）
 ├── secrets-simple.toml         # 本地敏感配置模板
@@ -37,13 +37,13 @@ projects/claudccode/
 ### 1. 配置本地环境
 
 ```bash
-cp projects/claudccode/secrets-simple.toml projects/claudccode/secrets.toml
+cp projects/cc-solo/secrets-simple.toml projects/cc-solo/secrets.toml
 ```
 
 编辑 `secrets.toml`：
 
 ```toml
-work_root = "sessions/claudccode"
+work_root = "sessions/cc-solo"
 active_session = "session-0907"
 annotator = "你的名字"
 ```
@@ -84,7 +84,7 @@ cc export
 cc export feishu
 ```
 
-导出到 `deliverables/claudccode/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`（每轮一行），随后逐行追加到满意度交付飞书多维表格（地址见 `config.toml [feishu]`；凭证复用 GSB 应用的 `code-eval-gsb/secrets.toml [feishu]`）。
+导出到 `deliverables/cc-solo/{SESSION_NAME}/正式提交表-{SESSION_NAME}-{date}.csv`（每轮一行），随后逐行追加到满意度交付飞书多维表格（地址见 `config.toml [feishu]`；凭证复用 GSB 应用的 `code-eval-gsb/secrets.toml [feishu]`）。
 
 ## 多人协作
 
