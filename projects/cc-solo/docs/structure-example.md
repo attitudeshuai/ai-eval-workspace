@@ -151,7 +151,7 @@ cc-solo-app-12-codegen-06  →  /workspace  = 本机 source-code/app-12/app-12-c
   Mac    ：收尾回导源码到任务副本（rsync 按 .gitignore 排除），再 docker rm 容器。
 ```
 
-### Step 5: 生成评价结果 + 提交（提交接口 URL 待补）
+### Step 5: 生成评价结果 + 提交（提交接口已就位）
 ```
 新增:
   deliverables/cc-solo/cc-solo-0909/

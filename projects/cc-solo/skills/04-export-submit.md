@@ -1,6 +1,6 @@
 ---
 name: cc-solo-export-submit
-description: "cc-solo 生成评价结果并提交：按平台提交表单的字段规范（24 字段，含五维分数与描述、会话轨迹定位），把全部任务/轮次合成「一轮 = 一条」的评价结果 JSON（附人工核对 CSV + 质检报告），再（URL 待补）上传轨迹附件并调用提交接口。Use when: cc-solo 生成评价结果, 评价结果文件, 质检, 提交接口, 轨迹上传。"
+description: "cc-solo 生成评价结果并提交：按平台提交表单的字段规范（24 字段，含五维分数与描述、会话轨迹定位），把全部任务/轮次合成「一轮 = 一条」的评价结果 JSON（附人工核对 CSV + 质检报告），再上传轨迹附件并调用提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`。Use when: cc-solo 生成评价结果, 评价结果文件, 质检, 提交接口, 轨迹上传。"
 ---
 
 ## ⚙️ 当前期配置
@@ -14,7 +14,7 @@ description: "cc-solo 生成评价结果并提交：按平台提交表单的字�
 
 # cc-solo 生成评价结果 · 提交接口
 
-> **2026-09-10 起：不再导出「正式提交表 CSV」也不投递飞书多维表格**，改为按平台提交表单的字段规范生成评价结果文件，再通过提交接口（URL 待管理员提供）提交。
+> **2026-09-10 起：不再导出「正式提交表 CSV」也不投递飞书多维表格**，改为按平台提交表单的字段规范生成评价结果文件，再通过提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions` 提交。
 
 ## 功能概述
 
@@ -47,12 +47,13 @@ python scripts/cc-solo/build_eval_result.py --session session-0909 --task h5-dem
 # 2) 先看提交计划（不发请求）
 python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/session-0909/评价结果-session-0909-2026-09-10.json
 
-# 3) 只上传轨迹并回填远端 path（提交 URL 未到位时也能先做）
+# 3) 只上传轨迹并回填附件信息（先验凭据与上传链路，不提交）
 python scripts/cc-solo/submit_eval_result.py --result <json> --upload-only --commit --write-back
 
-# 4) 正式提交（URL 到位后）
-python scripts/cc-solo/submit_eval_result.py --result <json> --commit            # 用 secrets.toml [submission].submit_url
-python scripts/cc-solo/submit_eval_result.py --result <json> --url https://... --commit
+# 4) 正式提交（接口地址已写在 config.toml [submission].submit_url）
+python scripts/cc-solo/submit_eval_result.py --result <json> --commit --write-back
+python scripts/cc-solo/submit_eval_result.py --result <json> --record h5-demo-feature-01#R02 --commit   # 只提一条
+python scripts/cc-solo/submit_eval_result.py --result <json> --show-payload                            # 看完整请求体（dry-run）
 ```
 
 ## 执行流程
@@ -101,13 +102,15 @@ python scripts/cc-solo/submit_eval_result.py --result <json> --url https://... -
 - 轨迹是**附件**字段，不能直接写文本路径：先 `POST {upload_url}`（`multipart/form-data`，表单字段 `file`）拿返回的 `path`，再把该 `path` 写进 `trace_file` 提交。
 - 认证：`secrets.toml [submission].cookie`（浏览器里复制的整条 cookie，含 `solo_qa_session` / `solo_qa_csrf`）；若接口要求 `X-CSRF-Token`，填 `csrf_header`。
 - **cookie 会过期**：401/403 时重新复制 cookie。
-- **提交接口 URL 待管理员提供**，写进 `secrets.toml [submission].submit_url`（或 `--url` 传入）；未配置时脚本只上传轨迹并给出提示。
-- 请求体：一条记录一个 JSON 对象，字段名 = `field_key`（24 个），顺序见产物里的 `field_order`。**接口格式拿到后如需调整，改 `submit_eval_result.py` 的 `build_payload`。**
+- **提交接口（已确认）**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（写在 `config.toml [submission].submit_url`；`secrets.toml [submission].submit_url` 优先，`--url` 可临时覆盖）。
+- **请求体**：`{"data": {24 个字段}, "schema_fingerprint": "<fields.json 的 fingerprint>"}`；其中 `trace_file` 是**附件数组** `[{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]`，由上传步骤回填。
+- **响应**：`{"id":1196,"status":"SUBMITTED","status_label":"已提交","round_no":1,"schema_stale":false,"message":"…"}`；脚本按 `status==SUBMITTED` 或有 `id` 判成功，`schema_stale=true` 会告警（表单字段变了，需重跑 `extract_submit_fields.py` 并重新生成）。
+- 字段顺序与取值见产物里的 `field_order` / `fields`；要调整请求体形状改 `submit_eval_result.py` 的 `build_payload()`。
 
 ### 步骤 5：交付核对
 
 - 先 `--upload-only --commit --write-back` 验证 cookie / 上传链路，再正式提交。
-- 提交后核对接口返回（`record_id` / 错误码）；失败条目修正后重试，避免重复提交（同一 `SessionID + TurnID` 为同一条数据）。
+- 提交后核对返回：`id`（记录号）、`status`（应为 `SUBMITTED`）、`round_no`（= `x_iteration`）、`schema_stale`（应为 `false`）、`message`；脚本已把这些打进日志，加 `--write-back` 会写回结果 JSON 的 `submit_response`。失败条目修正后重试，避免重复提交（同一 `SessionID + TurnID` 为同一条数据）。
 - 时限沿用约定：当天 20:00 前产生的数据当天提交，20:00 之后的次日 14:00 前提交。
 
 ## 注意事项

@@ -32,7 +32,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 1 | **任务初始化** | [skills/01-task-create.md](skills/01-task-create.md) | 建任务目录 + 初始快照（commit permalink）+ 环境字段 + 出题（首轮提示词） |
 | 2 | **单轮录入** | [skills/02-round-capture.md](skills/02-round-capture.md) | 一轮交互后回填：User Prompt / TurnID / SessionID / 任务类型 / 难度 / 语言框架；SessionID 与 TurnID 由 agent 从本机轨迹自取、多轮自动拆轮 |
 | 3 | **五维打分** | [skills/03-score-annotate.md](skills/03-score-annotate.md) | 读轨迹 → 调 implementation-reviewer + 过程分析 → 五维打分（1-5）+ 依据录入 + 硬性校验 |
-| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」的评价结果 JSON（+ 核对 CSV + 质检报告）→ 上传轨迹附件 → 调提交接口（URL 待补；旧的 CSV 提交表与飞书投递已退役） |
+| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」评价结果 JSON（+ 核对 CSV + 质检报告）→ 上传轨迹附件 → `POST https://solo2.jzxhnh.com/api/v1/submissions`。脚本：`scripts/cc-solo/extract_submit_fields.py`（抽字段）/ `build_eval_result.py`（生成 + 质检）/ `submit_eval_result.py`（上传 + 提交，默认 dry-run）。旧的 CSV 提交表与飞书投递已退役 |
 
 ## 共享资源
 
@@ -55,7 +55,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
     → agent 播种任务副本到容器 /workspace（Mac：启动后播种；Windows：直接挂载，无此步）
     → 用户在容器内 Claude Code 连续交互（一个会话窗口，中途不要退出）
     └→ [第 N 轮] agent 导出轨迹 → 单轮录入 → 五维打分(去AI化+人工复核) → 决定是否继续(≤10 轮)
-        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → 提交接口（URL 待补）
+        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → 提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`
 ```
 
 > **任务初始化第一步必检两件事**：① **雷同题红线**——素材源项目落在 `docs/annotate-guide.md` §7「不被允许的雷同题」清单即中止、提示换素材，不得建副本/出题；② **仓库结构**——素材源须位于 `source-code/{项目}/`（项目根 = 唯一 git 仓库），其下按类型分组 `{项目}-{类型}/` 嵌套任务副本 `{项目}-{类型}-{索引}/`。结构不规范时先列出差异、**提示用户确认**，确认后整理成该格式再继续。详见 [skills/01-task-create.md](skills/01-task-create.md)。
@@ -84,6 +84,13 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 可复现等级 | 无外部依赖 / 有外部依赖，未容器化 / 已容器化，可一键起环境 |
 | 五维打分 | 交付完整性 / 指令遵循 / 任务规划 / 推理能力 / 执行能力，各 1-5 + 必填依据描述 |
 | 轮次上限 | 每个会话窗口 ≤ 10 轮；工程故障（网络波动/请求失败）不计轮次，思考超限需人为「继续」**计**轮次 |
+
+> **提交（对外接口，2026-09-10 已确认）**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（地址在 `config.toml [submission].submit_url`）
+> - 请求体：`{"data": {24 字段}, "schema_fingerprint": "cc4da53236368ac2"}`；其中 `trace_file` 是**附件数组** `[{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]`——先传 `…/submissions/upload`（multipart 字段 `file`）拿 `path` 再回填。
+> - 响应：`{"id":1196,"status":"SUBMITTED","round_no":1,"schema_stale":false,"message":…}`；`schema_stale=true` 说明表单字段变了。
+> - 凭据在 `secrets.toml [submission].cookie`（或 `token`，会过期）；字段规范在 `docs/submission/fields.json`（从 `submitfrom.js` 抽取，24 字段）。
+> - ⚠️ 轨迹附件是**整份会话轨迹**，同一 SessionID 各轮共用 ⇒ **导出与提交要在该任务会话结束之后做**。
+> - 生成与提交：`python scripts/cc-solo/build_eval_result.py` → `python scripts/cc-solo/submit_eval_result.py --result <json> --commit`（不加 `--commit` 为 dry-run）。细节见 [skills/04-export-submit.md](skills/04-export-submit.md)。
 
 ## 目录结构（详见 docs/structure-example.md）
 
@@ -125,7 +132,7 @@ sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore；仅 dem
                 └── {项目}-bugfix-01-trajectory.jsonl       # 完整轨迹
         …（{项目}-codegen/、{项目}-feature/ … 按类型分组，与 source-code 同名）
 
-deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核对 CSV + 质检报告；提交接口 URL 待补
+deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核对 CSV + 质检报告
 ```
 
 > **容器镜像与 Harness 口径（2026-09-10 起，务必先读 [docs/image-upgrade-review.md](docs/image-upgrade-review.md)）**：

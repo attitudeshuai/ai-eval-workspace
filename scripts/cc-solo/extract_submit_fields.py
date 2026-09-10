@@ -109,8 +109,9 @@ def parse_source(path):
         "required_fields": [f["field_key"] for f in fields if f["is_required"]],
         "upload_api": upload,
         "submit_api": {
-            "url": None,
-            "note": "正式的提交接口 URL 待管理员提供；拿到后写进 projects/cc-solo/secrets.toml 的 [submission].submit_url（或 config.toml [submission].submit_url）。",
+            "url": "https://solo2.jzxhnh.com/api/v1/submissions",
+            "note": "提交接口：请求体 {\"data\": {24 字段}, \"schema_fingerprint\": …}，其中 trace_file 为附件数组；"
+                    "敏感凭据放 projects/cc-solo/secrets.toml [submission].cookie（或 token）。",
         },
     }
 

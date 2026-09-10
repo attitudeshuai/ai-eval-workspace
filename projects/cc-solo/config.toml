@@ -147,8 +147,11 @@ filename_prefix = "评价结果"
 upload_url = "https://solo2.jzxhnh.com/api/v1/submissions/upload"
 upload_form_field = "file"          # multipart 表单字段名
 upload_response_path_key = "path"   # 返回体里作为附件标识的字段
-# 提交接口：URL 待管理员提供后填这里，或写 secrets.toml [submission].submit_url（优先）
-submit_url = ""
+# 提交接口（2026-09-10 拿到）：请求体 {"data": {24 字段}, "schema_fingerprint": "<fields.json 的 fingerprint>"}
+#   trace_file 为附件数组 [{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]
+#   响应 {"id":1196,"status":"SUBMITTED","round_no":1,"schema_stale":false,"message":…}
+# secrets.toml [submission].submit_url 若填写则优先于这里
+submit_url = "https://solo2.jzxhnh.com/api/v1/submissions"
 attachment_max_mb = 20
 
 # ============================================================

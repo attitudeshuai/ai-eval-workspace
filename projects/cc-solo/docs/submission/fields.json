@@ -1,7 +1,7 @@
 {
   "schema": "cc-solo-submit-fields/v1",
   "source": "projects/cc-solo/docs/submission/submitfrom.js",
-  "extracted_at": "2026-09-10T20:20:25+08:00",
+  "extracted_at": "2026-09-10T22:40:04+08:00",
   "fingerprint": "cc4da53236368ac2",
   "attachment_max_mb": 20,
   "teams": [
@@ -1058,7 +1058,7 @@
     "auth": "cookie: solo_qa_session + solo_qa_csrf（放 secrets.toml [submission].cookie）"
   },
   "submit_api": {
-    "url": null,
-    "note": "正式的提交接口 URL 待管理员提供；拿到后写进 projects/cc-solo/secrets.toml 的 [submission].submit_url（或 config.toml [submission].submit_url）。"
+    "url": "https://solo2.jzxhnh.com/api/v1/submissions",
+    "note": "提交接口：请求体 {\"data\": {24 字段}, \"schema_fingerprint\": …}，其中 trace_file 为附件数组；敏感凭据放 projects/cc-solo/secrets.toml [submission].cookie（或 token）。"
   }
 }

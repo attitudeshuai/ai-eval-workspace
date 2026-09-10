@@ -253,7 +253,7 @@ deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.
 
 ## 第 7 步：提交（提交接口）
 
-> **提交接口 URL 待管理员提供**。拿到后写进 `projects/cc-solo/secrets.toml`：`[submission] submit_url = "…"`（同时填 `cookie`），再执行本步。
+> **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（已写在 `config.toml [submission].submit_url`；若 `secrets.toml [submission].submit_url` 有值则以它为准）。凭据在 `secrets.toml [submission].cookie`（或 `token`），会过期，报 401/403 时重新从浏览器复制。
 
 ### 指令模板
 
