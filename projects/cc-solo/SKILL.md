@@ -9,6 +9,10 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 
 > 📄 项目源规范见 [docs/ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx)（0926 期）。本文档 + skills 是把该规范落成可执行流程。
 
+> 🧑💻 **分工：你只发指令，命令由 agent 跑**。你只需发自然语言指令（`cc-solo {项目} generate`、`cc-solo {任务} round N` / `score N`、`cc-solo export`），本仓库里出现的 `docker …` 与 `python scripts/cc-solo/…` 全部由 **agent 在宿主机执行**。唯一需要你自己敲的是「进容器跟 Claude 对话」那两条 docker 命令（见 runbook）。
+
+> ⛔ **本阶段只生成、先不提交**：提交接口已就位（`config.toml [submission].submit_url`），但当前只做到「生成评价结果 + 质检」，**不上传轨迹附件、不调提交接口**；要提交时用户说一声，由 agent 执行。
+
 ## 数据模型（先读）
 
 ```
@@ -32,7 +36,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 1 | **任务初始化** | [skills/01-task-create.md](skills/01-task-create.md) | 建任务目录 + 初始快照（commit permalink）+ 环境字段 + 出题（首轮提示词） |
 | 2 | **单轮录入** | [skills/02-round-capture.md](skills/02-round-capture.md) | 一轮交互后回填：User Prompt / TurnID / SessionID / 任务类型 / 难度 / 语言框架；SessionID 与 TurnID 由 agent 从本机轨迹自取、多轮自动拆轮 |
 | 3 | **五维打分** | [skills/03-score-annotate.md](skills/03-score-annotate.md) | 读轨迹 → 调 implementation-reviewer + 过程分析 → 五维打分（1-5）+ 依据录入 + 硬性校验 |
-| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」评价结果 JSON（+ 核对 CSV + 质检报告）→ 上传轨迹附件 → `POST https://solo2.jzxhnh.com/api/v1/submissions`。脚本：`scripts/cc-solo/extract_submit_fields.py`（抽字段）/ `build_eval_result.py`（生成 + 质检）/ `submit_eval_result.py`（上传 + 提交，默认 dry-run）。旧的 CSV 提交表与飞书投递已退役 |
+| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」评价结果 JSON（+ 核对 CSV + 质检报告）；提交接口已就位（`POST https://solo2.jzxhnh.com/api/v1/submissions`）但**本阶段先不提交**。脚本 `extract_submit_fields.py` / `build_eval_result.py` / `submit_eval_result.py` 全部由 **agent 执行**，用户只发 `cc-solo export` 这类指令。旧的 CSV 提交表与飞书投递已退役 |
 
 ## 共享资源
 
@@ -55,7 +59,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
     → agent 播种任务副本到容器 /workspace（Mac：启动后播种；Windows：直接挂载，无此步）
     → 用户在容器内 Claude Code 连续交互（一个会话窗口，中途不要退出）
     └→ [第 N 轮] agent 导出轨迹 → 单轮录入 → 五维打分(去AI化+人工复核) → 决定是否继续(≤10 轮)
-        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → 提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`
+        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → （本阶段先不提交）提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`
 ```
 
 > **任务初始化第一步必检两件事**：① **雷同题红线**——素材源项目落在 `docs/annotate-guide.md` §7「不被允许的雷同题」清单即中止、提示换素材，不得建副本/出题；② **仓库结构**——素材源须位于 `source-code/{项目}/`（项目根 = 唯一 git 仓库），其下按类型分组 `{项目}-{类型}/` 嵌套任务副本 `{项目}-{类型}-{索引}/`。结构不规范时先列出差异、**提示用户确认**，确认后整理成该格式再继续。详见 [skills/01-task-create.md](skills/01-task-create.md)。
@@ -66,7 +70,11 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 
 0. **雷同题红线（出题/建任务前第一步必检）**：素材源项目若落在 `docs/annotate-guide.md` §7「不被允许的雷同题」清单（经典小游戏与变种、塔防/2D 解谜/潜行/平台跳跃、粒子物理、喂食小动物、CLI 工具、CRUD/后台/电商/预约系统、报表看板、番茄钟/天气/记账等），**命中即中止**——不得建副本、出题、打快照，先提示用户换素材。
 
-1. **AI 生成的交付文本必须先经去 AI 化**：凡 AI 起草、将进入交付物（用户提示词、五维打分依据、其他问题等）的文本，落盘/投递前**必须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**。**去 AI 化 = 实际调用并执行该 skill 的完整流程**（28 条规则全查：AI 符号、AI 词汇、句式套路、三/金字式、翻译腔、长定语等），**不得只做删符号、避关键词这种手动修补**。练习阶段允许 AI 直接打分与写依据、无需人工逐条确认，但去 AI 化这一步不可省；正式交付在此基础上再人工复核。
+1. **AI 生成的交付文本必须先经去 AI 化**：凡 AI 起草、将进入交付物（用户提示词、五维打分依据、其他问题等）的文本，落盘/投递前**必须先经 `skills/humanizer-zh/SKILL.md` 去 AI 化**。**去 AI 化 = 实际调用并执行该 skill 的完整流程**（28 条规则全查：AI 符号、AI 词汇、句式套路、三/金字式、翻译腔、长定语等），**不得只做删符号、避关键词这种手动修补**。**提交 body 里的所有字段都要过这一步**（不只五维描述）；`build_eval_result.py` 只做机械兜底（humanizer 强制符号命中即 error 阻塞提交、AI 高频词记 warn），**替代不了实际调用该 skill**。练习阶段允许 AI 直接打分与写依据、无需人工逐条确认，但去 AI 化这一步不可省；正式交付在此基础上再人工复核。
+   - **评价结果里一律不用 AI 套话词**：`落地`、`模型`、`赋能`、`助力`、`闭环`、`抓手`、`沉淀`、`复用`、`对齐`、`打通`、`链路`、`颗粒度`、`场景化`、`心智`、`拉通`、`复盘`、`生态`、`矩阵`、`调性`、`层面`、`体现`。
+   - 两个容易混的写法：**指被评测的 AI 时用「它」**（全篇都在评它，反复写「模型」是废话且是 AI 腔）；**指 Django 数据模型时写「数据定义」或直接引用 `models.py` 里的类名**（技术术语不能硬换，否则失真）。
+   - **尽量写成中文，不要出现长英文串（红线）**：评价里避免连续 ≥12 个英文字符的命令、参数、标识符或路径（如 `--break-system-packages`、`unique_together`、`config/settings/local.py`）。平台的 **B-5「公共长片段」查重按连续字符比对**，这类长英文串在别人的提交里也常见，极易被判「套模板」打回——已有实测打回记录。改成中文说法（「包管理器的强制安装参数」「唯一约束」「本地配置模块」）；短标识（JWT、400、HTTP 这类）不受影响。
+   - 这两条已做成 `build_eval_result.py` 的**机械检查**：套话词与 ≥16 字符的长英文串记 error（阻塞提交），AI 高频词与 12–15 字符的长串记 warn；词表以 `docs/annotate-guide.md` §9 为准。
 2. **人工原文不改写**：专家/用户亲手输入的 prompt、亲手撰写的打分依据，保持原文原样录入；不得为了“显得自然”擅自用 AI 改写人工内容（除非用户明确要求）。
 3. **依据必须可核验**：打分依据需基于真实轨迹与产物，写明具体证据（文件/报错/步骤/动作）。AI 起草时不得脱离依据编造；人工复核时逐条核对。
 4. **分析必须读轨迹 + 调用 implementation-reviewer（红线）**：AI 代打分数时，**必须**读真实轨迹文件（`records/{任务}/{任务}-trajectory.jsonl`）并**必须**调用 `skills/implementation-reviewer/SKILL.md` 做代码产物评价，二者缺一即视为脱离依据、整批拒收；分析方法参照 `projects/code-eval-solo/skills/02-result-analysis.md`（把「读对话内容」适配为「读轨迹文件」）。交付文本仍须经 humanizer-zh 去 AI 化。

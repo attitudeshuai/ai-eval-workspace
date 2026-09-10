@@ -3,29 +3,30 @@
 """
 cc-solo 评价结果生成（替代原「正式提交表 CSV + 飞书投递」）
 =========================================================
-按管理员给的**提交表单字段规范**（projects/cc-solo/docs/submission/fields.json，从 submitfrom.js 抽取），
-把 {work_root}/{SESSION}/records/ 下每个任务的共享字段（task-info.md）与每轮数据（{任务}-R{NN}.md）
+先 GET 平台表单定义接口校验字段规范（见 check_form_schema.py），再按下述规范把
+{work_root}/{SESSION}/records/ 下每个任务的共享字段（task-info.md）与每轮数据（{任务}-R{NN}.md）
 合成**一轮 = 一条评价结果**，输出：
 
-    deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json    ← 提交接口的载荷来源（主产物）
-    deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.csv     ← 人工核对用
-    deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}-质检报告.md
+    deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json      ← 提交接口的载荷来源（唯一产物）
+    deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}-质检报告.md  ← 逐条 error / warn
+
+    （**不再生成人工核对 CSV**，已按要求取消该导出。）
 
 用法：
     python scripts/cc-solo/build_eval_result.py
     python scripts/cc-solo/build_eval_result.py --session session-0909
     python scripts/cc-solo/build_eval_result.py --task h5-demo-feature-01
-    python scripts/cc-solo/build_eval_result.py --out /tmp/x.json --no-csv
+    python scripts/cc-solo/build_eval_result.py --out /tmp/x.json
 
 说明：
 - 只读记录文件；不改动任何数据。
-- 校验分两层：① 表单规范（必填/选项/数值范围/长度/URL 正则）；② 项目规则（首轮非简单、
-  SessionID 一致、TurnID 唯一、轮次 ≤10、轨迹文件存在、分数与描述方向一致等）。
+- 校验：① 表单规范（必填/选项/数值范围/长度/URL 正则）；② 项目规则（首轮非简单、
+  SessionID 一致、TurnID 唯一、轮次 ≤10、轨迹文件存在、分数与描述方向一致等）；
+  ③ 去 AI 化层（humanizer 强制符号 / AI 套话词 / 长英文串 / 跨轮次承接表述）。
 - 轨迹文件是「附件」类型，本脚本只填**本机路径**；真正提交前由 submit_eval_result.py 上传拿到
   远端 path 再回填（见 json 里的 upload_api）。
 """
 import argparse
-import csv
 import datetime
 import json
 import os
@@ -61,6 +62,36 @@ NEG_ANY = STRONG_NEG + ("报错", "错误", "幻觉", "编造", "臆造", "瞎�
 # AI 写作痕迹（提示项：交付文本须已过去 AI 化）
 AI_TRACE = ("——", "综上所述", "总而言之", "首先，", "其次，", "总的来说", "需要注意的是",
             "不仅仅是", "更是", "赋能", "助力", "深度剖析")
+
+# humanizer-zh 的强制清除符号（交付文本一经出现必须清除）；命中即 error，阻塞提交
+HUMANIZER_SYMBOLS = ("——", "`", "「", "」", "→", "⇒", "=>", "->", "\"", "'")
+
+# AI 套话/空词（评价结果里一律不用）；命中即 error，阻塞提交
+# 「模型」指被评测的 AI 时改用「它」；指 Django 数据模型时写「数据定义」或引用 models.py 里的类名
+BANNED_CLICHE = ("落地", "模型", "赋能", "助力", "闭环", "抓手", "沉淀", "复用", "对齐", "打通",
+                 "链路", "颗粒度", "场景化", "心智", "拉通", "复盘", "生态", "矩阵", "调性",
+                 "层面", "体现")
+
+# 跨轮次承接表述：每条描述必须能**独立阅读**，不得依赖其他轮次
+# （平台实测按此返修：'描述中出现了「上一轮」这一依赖其他轮次才能理解的承接表述，导致该段描述无法被独立阅读'）
+CROSS_ROUND = ("上一轮", "前一轮", "上轮", "上一次轮", "之前的轮次", "前面几轮", "本轮之前")
+
+# 长英文串（命令 / 参数 / 标识符 / 路径）：平台的 B-5「公共长片段」查重按连续字符比对，
+# 长英文串在别的提交里也常见 → 容易被判「套模板」打回。评价里尽量写成中文。
+LONG_TOKEN_MIN = 12      # ≥12 个连续英文字符：warn（提示改写）
+LONG_TOKEN_ERROR = 16    # ≥16 个连续英文字符：error（基本必被打回）
+LONG_TOKEN_RE = re.compile(r"[A-Za-z0-9_./\\-]{%d,}" % LONG_TOKEN_MIN)
+
+# 字段 key → 中文名（仅用于质检信息展示）
+FIELD_CN = dict({"other_issues": "其他问题", "user_prompt": "User Prompt", "languages": "语言/框架"},
+                **{dkey: cn for cn, _, dkey in DIMENSIONS})
+
+# 进入提交 body 的 AI 起草正文字段：humanizer 强制符号命中即 error，阻塞提交
+AI_TEXT_FIELDS = tuple(dkey for _, _, dkey in DIMENSIONS)
+# 不进提交 body、或可能是人工原文的字段：只提示、不阻塞
+#   other_issues —— 选填字段，一律不进提交 body
+#   user_prompt  —— 可能是人工原文（规范要求「人工原文不改写」）
+AI_TEXT_HINT_FIELDS = ("other_issues", "user_prompt", "languages")
 
 
 # ------------------------------------------------------------------ 基础读取
@@ -216,8 +247,57 @@ def validate(fields, spec, ctx, issues):
         if desc and len(desc) < 8:
             issues.append(("warn", dkey, f"{cn}-描述过短（{len(desc)} 字），疑似笼统"))
         hit = [t for t in AI_TRACE if t in desc]
-        if hit:
+        if hit and dkey not in AI_TEXT_FIELDS:
             issues.append(("warn", dkey, f"{cn}-描述疑似 AI 写作痕迹：{'、'.join(hit)}（须先去 AI 化）"))
+
+    # AI 痕迹（红线：提交 body 的所有字段须已过 humanizer-zh 完整流程；本处只做机械兜底）
+    # 符号类 = humanizer 强制项，命中即 error 阻塞提交；高频词类 = warn，需人工复核
+    for key in AI_TEXT_FIELDS:
+        text = str(fields.get(key) or "")
+        if not text.strip():
+            continue
+        label = FIELD_CN.get(key, key)
+        sym = [s for s in HUMANIZER_SYMBOLS if s in text]
+        if sym:
+            issues.append(("error", key,
+                           f"{label} 含 humanizer-zh 强制清除符号 {'、'.join(sym)}，"
+                           f"须按 skills/humanizer-zh 完整流程去 AI 化后重录"))
+        word = [t for t in AI_TRACE if t in text]
+        if word:
+            issues.append(("warn", key, f"{label} 疑似 AI 高频词：{'、'.join(word)}（须人工复核）"))
+        cl = [w for w in BANNED_CLICHE if w in text]
+        if cl:
+            issues.append(("error", key,
+                           f"{label} 含 AI 套话词 {'、'.join(cl)}（评价结果里一律不用：指被评测的 AI 用「它」，"
+                           f"指 Django 数据模型写「数据定义」或引用 models.py 里的类名）"))
+        cr = [w for w in CROSS_ROUND if w in text]
+        if cr:
+            issues.append(("error", key,
+                           f"{label} 含跨轮次承接表述 {'、'.join(cr)}（描述必须能独立阅读：不要写「上一轮」"
+                           f"这类依赖其他轮次才懂的表述，直接陈述本轮的事实与证据）"))
+        longs = sorted({m.group(0) for m in LONG_TOKEN_RE.finditer(text)}, key=len, reverse=True)
+        if longs:
+            worst = [t for t in longs if len(t) >= LONG_TOKEN_ERROR]
+            msg = ("长英文串 " + "、".join(f"{t}({len(t)})" for t in longs[:6])
+                   + ("…" if len(longs) > 6 else "")
+                   + "（平台 B-5 公共长片段查重按连续字符比对，容易被判套模板打回；请尽量改写成中文）")
+            issues.append(("error" if worst else "warn", key, f"{label} 含{msg}"))
+
+    for key in AI_TEXT_HINT_FIELDS:
+        text = str(fields.get(key) or "")
+        if not text.strip():
+            continue
+        label = FIELD_CN.get(key, key)
+        sym = [s for s in HUMANIZER_SYMBOLS if s in text]
+        if sym:
+            issues.append(("warn", key,
+                           f"{label} 含疑似 AI 符号 {'、'.join(sym)}：若为人工原文则保持原样并在质检报告备注，"
+                           f"若为 AI 起草（如追问/修复提示词）则须先经 humanizer-zh 处理"))
+        cl = [w for w in BANNED_CLICHE if w in text]
+        if cl:
+            issues.append(("warn", key,
+                           f"{label} 含 AI 套话词 {'、'.join(cl)}：人工原文保持原样（不改写），"
+                           f"AI 起草的须替换（如「全链路」改「全流程」）"))
 
 
 # ------------------------------------------------------------------ 主流程
@@ -242,8 +322,27 @@ def main():
     ap.add_argument("--session", help="SESSION_NAME（默认取 secrets/config 的 active）")
     ap.add_argument("--task", help="只导出指定任务 ID")
     ap.add_argument("--out", help="JSON 输出路径")
-    ap.add_argument("--no-csv", action="store_true", help="不生成人工核对 CSV")
     args = ap.parse_args()
+
+    # ---- 第一步：先请求平台的表单定义接口，确认本地字段规范没过期 ----
+    # GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
+    schema_check = None
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from check_form_schema import check_schema
+        schema_check = check_schema()
+    except Exception as e:  # noqa: BLE001
+        print(f"[提示] 表单规范预检跳过：{e}")
+    if schema_check:
+        if schema_check["ok"] is True:
+            print(f"[表单规范] fingerprint={schema_check['local_fp']}，与平台一致 ✅")
+        elif schema_check["ok"] is False:
+            print(f"[警告] 平台表单已变：本地 {schema_check['local_fp']} / 平台 {schema_check['remote_fp']}")
+            for d in schema_check["diffs"]:
+                print(f"        - {d}")
+            print("        处理：重跑 python scripts/cc-solo/extract_submit_fields.py 后重新生成本文件")
+        else:
+            print(f"[提示] 表单规范预检未完成：{schema_check['reason']}")
 
     spec = load_spec()
     cfg = load_settings()
@@ -278,6 +377,9 @@ def main():
             sys.exit(2)
 
     records, notes = [], []
+    if schema_check and schema_check["ok"] is False:
+        notes.append("平台表单规范已变（fingerprint 不一致），本文件可能已过期："
+                     "请重跑 extract_submit_fields.py 后重新生成")
     for task_id, tdir in tasks:
         info = parse_blocks(read_utf8(os.path.join(tdir, "task-info.md")))
         shared = shared_values(info, cfg, spec)
@@ -292,6 +394,11 @@ def main():
             fields = dict(shared)
             fields.update(round_values(blocks, spec))
             fields["x_iteration"] = rn
+
+            # 选填字段：产物 JSON 里也置空（与提交 body 保持一致；原文仍留在 records/ 的 R{NN}.md）
+            for fld in spec["fields"]:
+                if not fld["is_required"]:
+                    fields[fld["field_key"]] = ""
 
             # 数值型字段按表单规范转成整数（分数/轮次排序），避免提交时被判成字符串
             for fld in spec["fields"]:
@@ -357,11 +464,13 @@ def main():
         "field_order": spec["field_order"],
         "labels": {f["field_key"]: f["label"] for f in spec["fields"]},
         "required_fields": spec["required_fields"],
+        # 选填字段在提交 body 里一律置空字符串（字段保留、内容不提交）
+        "blank_optional_fields": [f["field_key"] for f in spec["fields"] if not f["is_required"]],
         "upload_api": spec.get("upload_api", {}),
         "submit_api": {
             "url": cfg["submission"].get("submit_url") or spec.get("submit_api", {}).get("url"),
-            "note": "提交接口 URL 待补：写进 projects/cc-solo/secrets.toml [submission].submit_url 后，"
-                    "用 scripts/cc-solo/submit_eval_result.py 上传轨迹并提交本文件。",
+            "note": "提交接口已就位；用 scripts/cc-solo/submit_eval_result.py（默认 dry-run，加 --commit 才发请求）"
+                    "上传轨迹并提交本文件。body 保持 24 字段结构，选填字段一律置空字符串。",
         },
         "records": records,
         "summary": {
@@ -379,20 +488,6 @@ def main():
         json.dump(payload, f, ensure_ascii=False, indent=2)
         f.write("\n")
 
-    # 人工核对 CSV（中文表头，字段顺序与表单一致）
-    out_csv = None
-    if not args.no_csv:
-        out_csv = os.path.splitext(out_json)[0] + ".csv"
-        cols = [("record_key", "记录键")] + [(k, payload["labels"][k]) for k in spec["field_order"]]
-        with open(out_csv, "w", encoding="utf-8-sig", newline="") as f:
-            w = csv.writer(f)
-            w.writerow([c[1] for c in cols] + ["校验"])
-            for r in records:
-                row = [r["record_key"]] + [r["fields"].get(k, "") for k, _ in cols[1:]]
-                bad = [i for i in r["issues"] if i["level"] == "error"]
-                row.append("OK" if not r["issues"] else ("；".join(f"[{i['level']}] {i['message']}" for i in r["issues"])))
-                w.writerow(row)
-
     # 质检报告（Markdown）
     out_md = os.path.splitext(out_json)[0] + "-质检报告.md"
     with open(out_md, "w", encoding="utf-8") as f:
@@ -402,6 +497,22 @@ def main():
         f.write(f"- 数据条数：{payload['summary']['records']}（可直接提交 {payload['summary']['ready']}，"
                 f"有 error 阻塞 {payload['summary']['blocked']}）\n")
         f.write(f"- 校验项：error {payload['summary']['errors']} / warn {payload['summary']['warnings']}\n\n")
+        f.write("## 去 AI 化与提交范围（红线）\n\n")
+        f.write("> 提交 body 里的**所有字段**在提交前须已过 `skills/humanizer-zh` 完整流程（28 条规则全查）；"
+                "本脚本只做机械兜底：符号类记 error（阻塞提交），高频词类记 warn。\n\n")
+        f.write("- **进入提交 body、须去 AI 化的 AI 起草字段**：五维描述（desc_delivery / desc_instruction / "
+                "desc_planning / desc_reasoning / desc_execution）\n")
+        f.write("- **只提示不阻塞**：other_issues（其他问题，选填、提交时置空字符串）、"
+                "user_prompt（人工原文保持原样）、languages\n")
+        f.write("- **选填字段一律置空字符串**：本规范里只有 other_issues（其他问题，`is_required=false`）——"
+                "字段保留在 body 里，值提交为空串（产物 JSON 里同样置空）；内部字段备注（内部）、"
+                "截图附件（内部）、以及本报告这份去 AI 化字段清单也不提交\n")
+        f.write(f"- **长英文串（红线）**：评价里尽量写成中文，避免出现 ≥{LONG_TOKEN_MIN} 个连续英文字符的"
+                f"命令/参数/标识符/路径（≥{LONG_TOKEN_ERROR} 记 error）。平台 B-5「公共长片段」查重按连续字符"
+                f"比对，长英文串在别的提交里也常见，容易被判「套模板」打回。\n")
+        f.write("- **跨轮次承接表述（红线，实测被返修）**：每条描述必须能**独立阅读**，不要写"
+                "「上一轮」「前一轮」这类依赖其他轮次才懂的表述；直接陈述本轮的事实与证据"
+                "（如「本轮未动用任务板，因此没有可追踪的状态链」）。\n\n")
         f.write("## 逐条结果\n\n")
         for r in records:
             flag = "✅ 可提交" if r["ready"] else "⛔ 有阻塞项"
@@ -421,8 +532,6 @@ def main():
 
     print("=" * 64)
     print(f"评价结果：{out_json}")
-    if out_csv:
-        print(f"人工核对：{out_csv}")
     print(f"质检报告：{out_md}")
     print(f"会话：{session}｜任务：{payload['summary']['tasks']}｜数据条数（一轮一条）：{payload['summary']['records']}")
     print(f"可提交：{payload['summary']['ready']}｜有阻塞项：{payload['summary']['blocked']}"

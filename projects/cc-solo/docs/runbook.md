@@ -20,6 +20,8 @@ cc-solo {项目} {操作}
 
 > 这里的 `cc-solo {项目} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Mac 容器**没有** `cc` 题号入口（新版隔离镜像已废弃题号与 `cc`），两者不要混淆。
 >
+> **你只发指令，不跑命令**：本手册里出现的 `python …` 与 `docker …` 命令**全部由 agent 在宿主机执行**，你只需要发上面这类自然语言指令（`generate` / `round N` / `score N` / `export` …），不必自己敲任何 Python 或 docker 命令。
+>
 > **容器模型（2026-09-10 起）**：**1 任务 = 1 会话 = 1 容器 = 1 本机工作目录**；容器名固定 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`）；容器内工作目录恒为 `/workspace`（内容 = 本题任务副本）；轨迹恒在 `/home/node/.claude/projects/-workspace/`。
 > 与旧版（常驻容器 + `cc <题号>` + `docker cp` 搬代码）的差异与原因见 [image-upgrade-review.md](image-upgrade-review.md)。
 
@@ -227,15 +229,17 @@ cc-solo export
 
 ### AI 会执行
 
-1. 如表单字段有变化，先重新抽取规范：`python scripts/cc-solo/extract_submit_fields.py`（→ `docs/submission/fields.json`）
-2. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
-3. 运行质检（表单规范层 + 项目规则层），逐条给出 error / warn
-4. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ 同名 `.csv`（人工核对）+ `-质检报告.md`
+1. **先请求平台表单定义接口**（`GET .../submissions/form-schema`），与本地 `docs/submission/fields.json` 比对 fingerprint 与字段集合，防止平台表单改了本地还按旧规范生成；不一致就重跑抽取再继续。
+2. 如需更新规范：`python scripts/cc-solo/extract_submit_fields.py`（**默认拉平台实时接口**，`--source js` 用本地快照）→ 写 `docs/submission/fields.json`
+3. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
+4. 运行质检（表单规范层 + 项目规则层 + 去 AI 化层），逐条给出 error / warn
+5. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ 同名 `.csv`（人工核对）+ `-质检报告.md`
 
 > ⚠️ **多轮任务的轨迹附件口径（导出前必读）**：同一任务（同一 SessionID）的各轮记录，`轨迹文件` 都指向**同一份最终完整轨迹** `{任务}-trajectory.jsonl`（含该会话全部轮次），各轮靠 `SessionID` + `TurnID` 定位。
 > 所以**导出与提交必须在任务会话结束之后执行**——会话还没结束就导出，整份轨迹只含到当时为止的轮次，后面几轮的记录会挂着一份不完整的轨迹。每轮的 `{任务}-R{NN}-trajectory.jsonl` 切片只是打分阶段定位单轮用的中间产物，**不作提交附件**。
 
 ```bash
+# 由 agent 执行，你只发上面的 cc-solo export 指令即可
 python scripts/cc-solo/build_eval_result.py
 ```
 
@@ -251,11 +255,15 @@ deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.
 
 ---
 
-## 第 7 步：提交（提交接口）
+## 第 7 步：提交（提交接口）—— ⛔ 本阶段先不提交
 
-> **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（已写在 `config.toml [submission].submit_url`；若 `secrets.toml [submission].submit_url` 有值则以它为准）。凭据在 `secrets.toml [submission].cookie`（或 `token`），会过期，报 401/403 时重新从浏览器复制。
+> **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。
+>
+> 但**本阶段先不提交数据**（用户决定）：只做到第 6 步——生成评价结果 + 质检，**不上传轨迹附件、不调提交接口**。需要提交时用户说一声，由 agent 执行本节。
+>
+> 凭据在 `secrets.toml [submission].cookie`（或 `token`），会过期，报 401/403 时重新从浏览器复制。
 
-### 指令模板
+### 指令模板（本阶段先不执行）
 
 ```text
 cc-solo export submit

@@ -9,7 +9,8 @@ cc-solo 评价结果提交（轨迹上传 + 提交接口）
  2. 再提交到 https://solo2.jzxhnh.com/api/v1/submissions，请求体：
 
     {
-      "data": { question_type, difficulty, …, score_execution, desc_*, other_issues, x_iteration,
+      "data": { 全部字段都在（保持 24 字段结构）；但**选填字段一律置空字符串**
+                （fields.json 里 is_required=false 的，本期为 other_issues 其他问题）；
                 "trace_file": [{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}] },
       "schema_fingerprint": "cc4da53236368ac2"
     }
@@ -38,7 +39,9 @@ cc-solo 评价结果提交（轨迹上传 + 提交接口）
 import argparse
 import json
 import os
+import re
 import sys
+import time
 import urllib.error
 import urllib.request
 import uuid
@@ -68,7 +71,44 @@ def load_settings():
 
 
 # ---------------------------------------------------------------- 网络
-def post_multipart(url, cookie, file_path, form_field="file", timeout=180):
+# 该平台对请求头敏感：只带 Cookie 会被 401，必须配齐浏览器那套头（Referer/Accept/Sec-* 等）
+BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+              "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36 Edg/152.0.0.0")
+
+
+def origin_of(url):
+    from urllib.parse import urlparse
+    p = urlparse(url)
+    return f"{p.scheme}://{p.netloc}" if p.scheme and p.netloc else "https://solo2.jzxhnh.com"
+
+
+def browser_headers(url, cookie=None, csrf=None, accept="application/json, text/plain, */*",
+                     fetch_site="same-origin"):
+    """浏览器同类请求的请求头集合（照浏览器抓包配上，避免 401）。"""
+    h = {
+        "Accept": accept,
+        "Accept-Language": "zh-CN,zh;q=0.9",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "User-Agent": BROWSER_UA,
+        "Referer": origin_of(url) + "/app/submit",
+        "Sec-Ch-Ua": '"Chromium";v="152", "Not?A_Brand";v="24", "Microsoft Edge";v="152"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": fetch_site,
+    }
+    if cookie:
+        h["Cookie"] = cookie
+    if csrf:
+        # 两个头名都发，覆盖 Django 默认（X-CSRFToken）与带连字符写法（X-CSRF-Token）
+        h["X-CSRF-Token"] = csrf
+        h["X-CSRFToken"] = csrf
+    return h
+
+
+def post_multipart(url, cookie, file_path, form_field="file", timeout=180, csrf=None):
     """上传文件：multipart/form-data，返回解析后的 JSON（形如 {"name":…,"path":…,"size":…}）。"""
     boundary = "----ccsolo" + uuid.uuid4().hex
     filename = os.path.basename(file_path)
@@ -82,9 +122,10 @@ def post_multipart(url, cookie, file_path, form_field="file", timeout=180):
         f"\r\n--{boundary}--\r\n".encode(),
     ])
     req = urllib.request.Request(url, data=body, method="POST")
+    for k, v in browser_headers(url, cookie, csrf=csrf).items():
+        req.add_header(k, v)
     req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
-    if cookie:
-        req.add_header("Cookie", cookie)
+    req.add_header("Origin", origin_of(url))
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
@@ -92,11 +133,10 @@ def post_multipart(url, cookie, file_path, form_field="file", timeout=180):
 def post_json(url, cookie, payload, csrf_header=None, timeout=120):
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(url, data=body, method="POST")
+    for k, v in browser_headers(url, cookie, csrf=csrf_header, accept="application/json, text/plain, */*").items():
+        req.add_header(k, v)
     req.add_header("Content-Type", "application/json; charset=utf-8")
-    if cookie:
-        req.add_header("Cookie", cookie)
-    if csrf_header:
-        req.add_header("X-CSRF-Token", csrf_header)
+    req.add_header("Origin", origin_of(url))
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read().decode("utf-8", "replace")
     try:
@@ -105,12 +145,16 @@ def post_json(url, cookie, payload, csrf_header=None, timeout=120):
         return {"_raw": raw}
 
 
-def build_payload(record, field_order, fingerprint):
+def build_payload(record, field_order, fingerprint, blank_keys=None):
     """一条记录 → 提交请求体：{"data": {24 字段}, "schema_fingerprint": …}。
+
+    选填字段（fields.json 里 is_required=false，本期为 other_issues）**字段保留、值置空字符串**：
+    不把内容提交出去，同时保持 body 的字段结构完整。
 
     trace_file 为附件数组 [{name,path,size}]，由上传步骤回填；未上传时为空数组。
     """
-    data = {k: record["fields"].get(k, "") for k in field_order}
+    blank = set(blank_keys or ())
+    data = {k: ("" if k in blank else record["fields"].get(k, "")) for k in field_order}
     tf = record["fields"].get("trace_file")
     data["trace_file"] = tf if isinstance(tf, list) else []
     return {"data": data, "schema_fingerprint": fingerprint}
@@ -126,6 +170,8 @@ def main():
     ap.add_argument("--only-ready", action="store_true", help="只提交 ready=true 的记录（跳过有 error 的）")
     ap.add_argument("--upload-only", action="store_true", help="只上传轨迹、回填附件信息，不提交")
     ap.add_argument("--commit", action="store_true", help="真的发请求；不加则只打印计划（dry-run）")
+    ap.add_argument("--interval", type=float, default=5.0,
+                    help="逐条提交时每条之间的等待秒数（接口不支持批量，默认 5）")
     ap.add_argument("--show-payload", action="store_true", help="打印完整请求体（含 desc 全文）")
     ap.add_argument("--write-back", action="store_true", help="把上传结果/接口返回回写到结果 JSON")
     args = ap.parse_args()
@@ -136,6 +182,11 @@ def main():
     cfg_sec, sec = load_settings()
     cookie = args.cookie or sec.get("cookie") or sec.get("token") or ""
     csrf_header = sec.get("csrf_header") or ""
+    # secrets 里没显式配 csrf_header 时，从 cookie 的 solo_qa_csrf 取（上传/提交都要这个头，缺了会 403）
+    if not csrf_header and cookie:
+        m = re.search(r"solo_qa_csrf=([^;]+)", cookie)
+        if m:
+            csrf_header = m.group(1).strip()
     upload_api = data.get("upload_api", {}) or {}
     upload_url = sec.get("upload_url") or cfg_sec.get("upload_url") or upload_api.get("url")
     form_field = cfg_sec.get("upload_form_field") or upload_api.get("form_field", "file")
@@ -158,14 +209,49 @@ def main():
     print(f"提交接口：{submit_url or '【未配置】'}")
     print(f"schema_fingerprint：{fingerprint or '【缺失】'}")
     print(f"凭据：{'已提供' if cookie else '【缺失】需要从浏览器复制整条 cookie'}"
-          f"｜csrf header：{'已设置' if csrf_header else '（未设置）'}")
+          f"｜csrf header：{'已就位（' + ('secrets 配置' if sec.get('csrf_header') else '取自 cookie 的 solo_qa_csrf') + '）' if csrf_header else '【缺失】会 403'}")
     print(f"模式：{'正式执行（--commit）' if args.commit else 'DRY-RUN（只打印计划，不发请求）'}")
+    print(f"提交方式：逐条提交（接口不支持批量），每条间隔 {args.interval:.0f}s")
     print("-" * 64)
 
+    # 正式提交前：先请求平台表单定义接口，确认字段规范没过期（变了就不提交）
+    if args.commit:
+        sc = None
+        try:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from check_form_schema import check_schema
+            sc = check_schema()
+        except Exception as e:  # noqa: BLE001
+            print(f"[提示] 表单规范预检跳过：{e}")
+        if sc:
+            if sc["ok"] is True:
+                print(f"[表单规范] fingerprint={sc['local_fp']}，与平台一致 ✅")
+            elif sc["ok"] is False:
+                print(f"[中止] 平台表单已变：本地 {sc['local_fp']} / 平台 {sc['remote_fp']}")
+                for d in sc["diffs"]:
+                    print(f"        - {d}")
+                print("        未发送任何提交请求。请重跑 extract_submit_fields.py 后重新生成评价结果。")
+                sys.exit(3)
+            else:
+                print(f"[提示] 表单规范预检未完成（{sc['reason']}），继续按本地规范提交，请自行留意 schema_stale")
+        print("-" * 64)
+
     field_order = data.get("field_order") or (list(records[0]["fields"].keys()) if records else [])
+    # 选填字段一律置空字符串：字段保留在 body 里，但不提交内容
+    blank_keys = set(data.get("blank_optional_fields")
+                     or (data.get("excluded_optional_fields") or []))
+    if blank_keys:
+        print(f"选填字段置空（字段保留、内容不提交）：{'、'.join(sorted(blank_keys))}")
+    else:
+        print("[提示] 结果文件里没有 blank_optional_fields，选填字段将按原值提交")
     changed = False
 
+    submitted = 0
     for r in records:
+        # 接口不支持批量：逐条提交，每条之间留间隔（第一条不等待）
+        if args.commit and submitted > 0:
+            print(f"· 等待 {args.interval:.0f}s 后提交下一条（接口不支持批量）…")
+            time.sleep(args.interval)
         tag = r["record_key"]
         local = r.get("trace_file_local")
         abs_local = os.path.join(WORKSPACE, local) if local else None
@@ -179,9 +265,9 @@ def main():
         if not args.commit:
             if args.show_payload:
                 print("    请求体：")
-                print(json.dumps(build_payload(r, field_order, fingerprint), ensure_ascii=False, indent=2))
+                print(json.dumps(build_payload(r, field_order, fingerprint, blank_keys), ensure_ascii=False, indent=2))
             else:
-                preview = json.dumps(build_payload(r, field_order, fingerprint), ensure_ascii=False)
+                preview = json.dumps(build_payload(r, field_order, fingerprint, blank_keys), ensure_ascii=False)
                 print(f"    请求体（截断）：{preview[:300]}…")
             continue
 
@@ -198,7 +284,7 @@ def main():
         already = isinstance(tf, list) and bool(tf) and bool(tf[0].get("path"))
         if not already:
             try:
-                up = post_multipart(upload_url, cookie, abs_local, form_field=form_field)
+                up = post_multipart(upload_url, cookie, abs_local, form_field=form_field, csrf=csrf_header)
                 remote = up.get(path_key) or (up.get("data") or {}).get(path_key)
                 if not remote:
                     print(f"    [失败] 上传返回里没找到 {path_key}：{up}")
@@ -226,7 +312,8 @@ def main():
         if not submit_url:
             print("    [跳过提交] 提交接口 URL 未配置（轨迹已上传）")
             continue
-        payload = build_payload(r, field_order, fingerprint)
+        payload = build_payload(r, field_order, fingerprint, blank_keys)
+        submitted += 1
         try:
             resp = post_json(submit_url, cookie, payload, csrf_header or None)
         except urllib.error.HTTPError as e:

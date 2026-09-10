@@ -151,7 +151,10 @@ cc-solo-app-12-codegen-06  →  /workspace  = 本机 source-code/app-12/app-12-c
   Mac    ：收尾回导源码到任务副本（rsync 按 .gitignore 排除），再 docker rm 容器。
 ```
 
-### Step 5: 生成评价结果 + 提交（提交接口已就位）
+### Step 5: 生成评价结果 + 提交（接口已就位；本阶段先不提交）
+
+> 指令：用户发 `cc-solo export`，脚本由 agent 执行（用户不跑 Python 命令）。
+
 ```
 新增:
   deliverables/cc-solo/cc-solo-0909/
@@ -159,9 +162,11 @@ cc-solo-app-12-codegen-06  →  /workspace  = 本机 source-code/app-12/app-12-c
     ├── 评价结果-cc-solo-0909-<date>.csv         # 人工核对（中文表头）
     └── 评价结果-cc-solo-0909-<date>-质检报告.md  # 逐条 error / warn
 
-  命令：python scripts/cc-solo/build_eval_result.py
-        python scripts/cc-solo/submit_eval_result.py --result <json>            # dry-run
-        python scripts/cc-solo/submit_eval_result.py --result <json> --commit   # 上传轨迹 + 提交
+  agent 执行（本阶段只跑第一条）：
+    python scripts/cc-solo/build_eval_result.py
+    # 以下两条等用户确认要提交时再执行
+    # python scripts/cc-solo/submit_eval_result.py --result <json>            # dry-run
+    # python scripts/cc-solo/submit_eval_result.py --result <json> --commit   # 上传轨迹 + 提交
 ```
 
 ---

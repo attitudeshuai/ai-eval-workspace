@@ -152,6 +152,9 @@ upload_response_path_key = "path"   # 返回体里作为附件标识的字段
 #   响应 {"id":1196,"status":"SUBMITTED","round_no":1,"schema_stale":false,"message":…}
 # secrets.toml [submission].submit_url 若填写则优先于这里
 submit_url = "https://solo2.jzxhnh.com/api/v1/submissions"
+# 表单定义接口：生成/提交前先 GET 这个接口，把平台当前字段规范与本地 fields.json 比对，
+# 防止平台表单改了本地还按旧规范生成/提交（实现见 scripts/cc-solo/check_form_schema.py）
+form_schema_url = "https://solo2.jzxhnh.com/api/v1/submissions/form-schema"
 attachment_max_mb = 20
 
 # ============================================================
