@@ -78,11 +78,15 @@ python scripts/cc-solo/submit_eval_result.py --result <json> --url https://... -
 | `env_snapshot` | 初始环境快照 | url | `task-info.md`（**须 GitHub 40 位 SHA permalink**） |
 | `user_prompt` | User Prompt | textarea | `## User Prompt`（原文，不改写） |
 | `session_id` / `turn_id` | SessionID / TurnID | text | `task-info.md` / `## TurnID/PromptID` |
-| `trace_file` | 轨迹文件 | **attachment** | 本轮切片 `{任务}-R{NN}-trajectory.jsonl`（无则整份轨迹）→ 提交前需上传换远端 path |
+| `trace_file` | 轨迹文件 | **attachment** | **整份轨迹** `{任务}-trajectory.jsonl`（= 容器 `/home/node/.claude/projects/-workspace/<SessionID>.jsonl` 导出的原始会话文件；平台 `help_text` 明确指向 `~/.codex/sessions/` 或 `~/.claude/projects/`，配 SessionID + TurnID 定位到某一轮）。整份缺失时才回退本轮切片 `{任务}-R{NN}-trajectory.jsonl`（切片仅用于打分阶段定位单轮）→ 提交前需上传换远端 path |
 | `score_delivery/instruction/planning/reasoning/execution` | 五维分数 | number 1-5 | `## 交付完整性` 等 |
 | `desc_*` | 五维描述 | textarea | `## 交付完整性-描述` 等 |
 | `other_issues` | 其他问题 | textarea（选填） | `## 其他问题` |
 | `x_iteration` | 当前对话轮次排序 | number | 轮次序号（R01 → 1） |
+
+> ⚠️ **多轮任务的轨迹附件口径（重要）**：同一任务（同一 `SessionID`）的各轮记录，`trace_file` **都指向同一份「最终完整轨迹」** `{任务}-trajectory.jsonl`（含该会话全部轮次），各轮靠 `SessionID` + `turn_id` 定位。
+> 因此**导出与提交必须在该任务会话结束之后执行**——否则整份轨迹只含到当时为止的轮次，后面几轮的记录就会挂着一份不完整的轨迹。
+> 每轮的 `{任务}-R{NN}-trajectory.jsonl` 切片只是打分阶段定位单轮用的中间产物，**不作提交附件**。
 
 ### 步骤 3：质检（脚本内嵌，两层）
 
@@ -113,5 +117,5 @@ python scripts/cc-solo/submit_eval_result.py --result <json> --url https://... -
 3. 数据不允许返修：提交前完成自查；被抽检不合格的整批可能被拒收。
 4. `build_eval_result.py` 只读记录、只写 deliverables；`submit_eval_result.py` 不加 `--commit` 不发任何请求。
 5. 中文文件一律 UTF-8（CSV 用 UTF-8 BOM，便于 Excel 打开）。
-6. 附件上限 20 MB（表单定义 `attachment_max_mb`）；轨迹切片通常远小于此，若超限先排查是否误传了整目录或依赖包。
+6. 附件上限 20 MB（表单定义 `attachment_max_mb`）；整份轨迹通常远小于此（单题量级几百 KB），若超限先排查是否误传了整目录或依赖包。
 7. 旧产物口径（`正式提交表-*.csv`、飞书表 `Lg0mbjRpPaxjhmsj27MckrJLnec/tble0z2KnzCfjJmZ`）仅作历史留存，不再使用。

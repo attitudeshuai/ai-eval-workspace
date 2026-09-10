@@ -160,7 +160,7 @@ cc-solo app-12-bugfix-01 round 1
 ### AI 会执行
 
 1. **导出本轮轨迹（agent 执行 docker 命令）**：等模型答完静止后 —— `docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." {RECORD_DIR}/{项目}/{项目}-{类型}/{任务}/`（容器停止状态下也能导出）。**代码产物不需要回导**：容器 `/workspace` 就是本机挂载目录，模型改完的代码已经在盘上；任务收尾时再由 agent 按 `.gitignore` 排除依赖包（node_modules/.venv/__pycache__ 等），把源码回导到任务副本 `{REPO_BASE_PATH}/{项目}/{项目}-{类型}/{任务}/`，供 `03-score-annotate` 做 git diff 对照。
-2. 从轨迹切出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId；本轮那段存 `records/<repo>/<题号>/<题号>-R0N-trajectory.jsonl`，完整轨迹保留为 `records/<repo>/<题号>/<题号>-trajectory.jsonl`。
+2. 从轨迹切出第 N 轮（一轮=一次 user 键入），取其 User Prompt 原文与 promptId；本轮那段存 `records/<repo>/<题号>/<题号>-R0N-trajectory.jsonl`（**仅用于打分阶段定位单轮**），完整轨迹保留为 `records/<repo>/<题号>/<题号>-trajectory.jsonl`（**提交时的轨迹附件**，随轮次追加，会话结束才是最终版）。
 3. 创建 `records/<repo>/<题号>/<题号>-R0N.md`，回填 User Prompt、任务类型/难度、语言/框架、TurnID。
 4. 从 `task-info.md` 继承 SessionID 等共享字段（导出时合并），并按 Harness 分行回填轨迹根目录。
 5. 校验：轮次 ≤ 10；TurnID 在任务内唯一；SessionID 与任务一致。
@@ -231,6 +231,9 @@ cc-solo export
 2. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
 3. 运行质检（表单规范层 + 项目规则层），逐条给出 error / warn
 4. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ 同名 `.csv`（人工核对）+ `-质检报告.md`
+
+> ⚠️ **多轮任务的轨迹附件口径（导出前必读）**：同一任务（同一 SessionID）的各轮记录，`轨迹文件` 都指向**同一份最终完整轨迹** `{任务}-trajectory.jsonl`（含该会话全部轮次），各轮靠 `SessionID` + `TurnID` 定位。
+> 所以**导出与提交必须在任务会话结束之后执行**——会话还没结束就导出，整份轨迹只含到当时为止的轮次，后面几轮的记录会挂着一份不完整的轨迹。每轮的 `{任务}-R{NN}-trajectory.jsonl` 切片只是打分阶段定位单轮用的中间产物，**不作提交附件**。
 
 ```bash
 python scripts/cc-solo/build_eval_result.py

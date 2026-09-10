@@ -90,7 +90,7 @@ type == "user" 且 message.content 是字符串（用户实际输入的那段文
 1. **确认任务与轮次**：读 `{RECORD_DIR}/{项目}/{任务}/task-info.md` 校验存在；计算已有轮次。
    - 若 N > 已有最大轮次 + 1 → 提示中间有缺失轮次。
    - 若 N > `[limits].max_rounds`（10）→ **中止**：会话满 10 轮必须开新任务，不再录入。
-2. **定位本轮 + 切片**：读取本机轨迹（Claude Code：刚导出的 `<SessionID>.jsonl`），按上面「拆轮次」找到第 N 轮 user 键入条目，取其 prompt 原文与 promptId；把第 N 轮那段（该 user 条目到下一个 user 条目之前，不含下一个）**切出来**存 `{RECORD_DIR}/{项目}/{任务}/{任务}-R{NN}-trajectory.jsonl`；完整文件保留为 `{RECORD_DIR}/{项目}/{任务}/{任务}-trajectory.jsonl`（交付/上传用）。
+2. **定位本轮 + 切片**：读取本机轨迹（Claude Code：刚导出的 `<SessionID>.jsonl`），按上面「拆轮次」找到第 N 轮 user 键入条目，取其 prompt 原文与 promptId；把第 N 轮那段（该 user 条目到下一个 user 条目之前，不含下一个）**切出来**存 `{RECORD_DIR}/{项目}/{任务}/{任务}-R{NN}-trajectory.jsonl`（**仅用于打分阶段定位单轮**）；完整会话保留为 `{RECORD_DIR}/{项目}/{任务}/{任务}-trajectory.jsonl`（**提交时的轨迹附件**：平台 `trace_file` 的 help_text 指向 `~/.codex/sessions/` 或 `~/.claude/projects/`，要的就是这份原始会话文件，配 SessionID + TurnID 定位到某一轮）。
    - 读取失败或用户明确要求 → 回到「输入」，向用户索要 SessionID/TurnID/User Prompt。
 3. **创建/回填数据文件** `{RECORD_DIR}/{项目}/{任务}/{任务}-R{NN}.md`（NN 两位补零），按模板 `templates/round-file.md` 写入：User Prompt（原文）、任务类型、任务难度、语言/框架、TurnID/PromptID、模型回答存档（可选）。
 4. **SessionID/轨迹根目录回填**：若 `task-info.md` 中 SessionID 为空 → 用本步解析到的 SessionID 回填，并按 Harness 分行定位「轨迹根目录」（Claude Code → 本机 `records/{项目}/{任务}/{任务}-trajectory.jsonl`，来源容器 `cc-solo-{任务}` 的 `/home/node/.claude/projects/-workspace/<SessionID>.jsonl`），同任务所有轮同一值。

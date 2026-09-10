@@ -300,12 +300,14 @@ def main():
                     if iv is not None:
                         fields[fld["field_key"]] = iv
 
-            # 轨迹附件：优先本轮切片，其次整份轨迹
-            slice_name = f"{task_id}-R{rn:02d}-trajectory.jsonl"
+            # 轨迹附件：优先整份轨迹（平台 trace_file 的 help_text 指向 ~/.codex/sessions/ 或
+            # ~/.claude/projects/ 的原始会话文件，配 SessionID + TurnID 定位到某一轮）；
+            # 整份缺失时才回退本轮切片（切片只用于打分阶段定位单轮）
             full_name = f"{task_id}-trajectory.jsonl"
-            cand = os.path.join(tdir, slice_name)
+            slice_name = f"{task_id}-R{rn:02d}-trajectory.jsonl"
+            cand = os.path.join(tdir, full_name)
             if not os.path.exists(cand):
-                cand = os.path.join(tdir, full_name)
+                cand = os.path.join(tdir, slice_name)
             trace_local = os.path.relpath(cand, WORKSPACE).replace("\\", "/")
             fields["trace_file"] = trace_local
             trace_exists = os.path.exists(cand)
