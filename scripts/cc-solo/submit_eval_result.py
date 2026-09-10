@@ -116,7 +116,8 @@ def main():
         data = json.load(f)
 
     sec = load_submission_settings()
-    cookie = args.cookie or sec.get("cookie") or ""
+    # 凭据：cookie / token 两个键都认（secrets.toml [submission]）
+    cookie = args.cookie or sec.get("cookie") or sec.get("token") or ""
     csrf_header = sec.get("csrf_header") or ""
     upload_api = data.get("upload_api", {}) or {}
     upload_url = sec.get("upload_url") or upload_api.get("url")

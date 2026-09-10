@@ -1097,7 +1097,8 @@ var submitFields = {
 //轨迹文件上传接口
 //content-type:multipart/form-data; boundary=----WebKitFormBoundaryUdA2ui65omuE25BN
 //请求头 cookie：
-//solo_qa_session=ZFFffZQ4kL4LXdxAc-YkbeD2Gd1TLUXfAH05iho9-Fw; solo_qa_csrf=dhY3bn_NdjrdLuwRd7JjMnW0Fepx_F94akFgARLGvIk
+//凭据值放 projects/cc-solo/secrets.toml [submission].cookie（或 token）；本文件会入库，不要写真实值
+//solo_qa_session=<REDACTED>; solo_qa_csrf=<REDACTED>
 
 //表单数据：
 // ------WebKitFormBoundaryUdA2ui65omuE25BN
@@ -1109,7 +1110,7 @@ var upload_config = {
     method: "POST",
     content_type: "multipart/form-data",
     headers: {
-        "cookie": "solo_qa_session=ZFFffZQ4kL4LXdxAc-YkbeD2Gd1TLUXfAH05iho9-Fw; solo_qa_csrf=dhY3bn_NdjrdLuwRd7JjMnW0Fepx_F94akFgARLGvIk"
+        "cookie": "<见 projects/cc-solo/secrets.toml [submission].cookie（或 token）>"
     },
     body: "参考表单数据",
     response: {
