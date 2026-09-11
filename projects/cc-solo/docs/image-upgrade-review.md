@@ -124,7 +124,7 @@ exec claude "${ARGS[@]}"
 | 权限 | v2 文档未提 chown；v1 文档要求 `chown -R node:node`（针对 `docker cp` 进去的文件） | ✅ **已实测**：Windows 挂载目录在容器内显示为 `-rwxrwxrwx root root`，`node` 用户可直接新建/追加文件 → **不需要 chown**；但挂载目录里带 `.git` 时会报 `fatal: detected dubious ownership in repository at '/workspace'`，**必须先执行 `git config --global --add safe.directory /workspace`**（实测确认，v2 文档这一步必需） |
 | `cc` 命令 | 镜像内有 `/usr/bin/cc` | ⚠️ **那是 gcc 的 C 编译器**（实测 `which cc` → `/usr/bin/cc`），**不是** Claude 入口；写文档时要说清，别让使用者误以为有入口脚本 |
 | 轨迹 | cwd = `/workspace` → `/home/node/.claude/projects/-workspace/` | 与 Mac 新镜像一致（都是 `-workspace`），这点反而统一了 |
-| 审批 | 普通 `claude`，执行命令前会询问；**可加 `--dangerously-skip-permissions` 免确认** | 默认与 Mac 的 `--dangerously-skip-permissions` 不一致 → 需在 task-info 记录；Windows 开免确认后两侧口径即对齐（见 runbook-windows.md 第 2 步） |
+| 审批 | 进入命令显式带 `--dangerously-skip-permissions`（免确认；评审当时 Windows 侧默认是普通 `claude` 逐条询问，2026-09-11 起改为统一免确认） | 已与 Mac 内置的免确认口径**对齐**（见 runbook-windows.md 第 2 步）；实际审批模式记进 task-info |
 
 顺带一个可用性提升：`windows-v2.md` 第 3.4 节明确允许"同一项目多道题承接上一题代码"（`01 → 02 → 03`），当前 `runbook.md` 第 5 步只写了"新开任务"，可以考虑把"承接产物"写成 `feature/refactor` 类型的标准变体。
 
@@ -188,7 +188,7 @@ docker run -d --name "cc-solo-$task" `
   nicehey/benzhi-claude-code:1.0
 
 docker exec "cc-solo-$task" git config --global --add safe.directory /workspace
-docker exec -it -w /workspace "cc-solo-$task" claude
+docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions
 ```
 
 每轮导出（注意容器名换成任务名，路径仍是 `-workspace`）：

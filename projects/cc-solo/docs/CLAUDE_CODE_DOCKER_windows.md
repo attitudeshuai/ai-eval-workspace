@@ -13,7 +13,7 @@
 > - **模型 env 必传 5 个**：镜像固化的模型名（`ark/urm-01`）可能与 Key 权限不匹配（否则报 403 `key not allowed to access model`）。
 > - **依赖包会写进本机副本目录**：模型执行 `npm install`/`pip install` 后产物直接落在本机；按 `.gitignore` 排除，任务结束后清理，别把依赖提交进快照。
 > - `chown` 只在容器内改文件报 `Permission denied` 时才需要补一条（`docker exec -u root "cc-solo-{任务}" chown -R node:node /workspace`），不再作为标准步骤。
-> - **审批模式（可对齐 Mac）**：默认普通 `claude` 会逐条询问；加 `--dangerously-skip-permissions` 即免确认，与 Mac 镜像内置的免确认口径一致（等价 `--permission-mode bypassPermissions`）。同一批数据须统一，并把实际审批模式记进 `task-info.md`。
+> - **审批模式：统一免确认**。本文正文所有 `claude` 命令都带 `--dangerously-skip-permissions`（等价 `--permission-mode bypassPermissions`），与 Mac 镜像内置口径一致，**不要用裸 `claude`**。免确认 = Claude 自动执行命令/改文件/联网，不再逐条询问；容器内影响范围仅限挂载进来的那个任务副本目录。`task-info.md` 的「审批模式」字段按此填写。
 > - 轨迹目录恒为 `/home/node/.claude/projects/-workspace/`（工作目录就是 `/workspace`），导出命令见第五节；第二题导出只需换容器名与保存名。
 
 
@@ -55,14 +55,10 @@ docker ps --filter "name=$containerName"
 ```powershell
 docker exec benzhi-claude-01 git config --global --add safe.directory /workspace
 
-# 默认：逐条确认权限
-docker exec -it -w /workspace benzhi-claude-01 claude
-
-# 免确认（自动模式）：跳过全部权限询问，行为与 Mac 镜像一致
 docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions
 ```
 
-默认 `claude` 会在每次执行命令/改文件前询问；加 `--dangerously-skip-permissions`（等价 `--permission-mode bypassPermissions`）即免确认。已经开着的会话想切换：`/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
+`--dangerously-skip-permissions`（等价 `--permission-mode bypassPermissions`）跳过全部权限询问，行为与 Mac 镜像一致：Claude 自动执行命令、改文件、联网，不再逐条询问。容器内影响范围仅限挂载进来的本机目录。万一进成了普通模式（漏了 flag），`/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
 
 出现 Claude 的输入框后，就可以输入本题需求。换题时，新建文件夹 `02`，在 `02` 中重新完成第 1 步，使用新容器名 `benzhi-claude-02` 并填写本次 key 和 model，再进入新容器。每个容器内的工作目录都保持 `/workspace`。
 
@@ -248,7 +244,7 @@ Docker 会记住这个位置。以后可以从其他地方打开 PowerShell 来�
 
 ```powershell
 docker exec benzhi-claude-01 git config --global --add safe.directory /workspace
-docker exec -it -w /workspace benzhi-claude-01 claude
+docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions
 ```
 
 第一条命令是告诉 Git，本题工作目录可以信任，避免之后出现 `dubious ownership` 报错。每个新容器首次使用时执行一次即可。如果仓库还在更深一层的文件夹里，处理方法见第七章。
@@ -285,7 +281,7 @@ docker ps --filter "name=$containerName"
 
 ```powershell
 docker exec benzhi-claude-02 git config --global --add safe.directory /workspace
-docker exec -it -w /workspace benzhi-claude-02 claude
+docker exec -it -w /workspace benzhi-claude-02 claude --dangerously-skip-permissions
 ```
 
 第二题使用 `benzhi-claude-02` 内的 `/workspace`，对应本机 `02`，有自己独立的 Claude 配置和会话记录。不要进入 `benzhi-claude-01` 做第二题，也不要把第一题的 `.claude` 配置或数据卷接到新容器。
@@ -327,7 +323,7 @@ docker exec -it -w /workspace benzhi-claude-02 claude
 
 上面这句话仅用于演示。正式做题时，请直接发送实际题目，不要先在这道题的文件夹里试聊，以免把测试对话混入正式轨迹。
 
-Claude 工作时可能询问是否允许修改文件或执行命令。看清它准备做什么，再按界面提示确认。
+免确认模式下 Claude 不会逐条询问，会直接执行命令、改文件、联网。它工作时留意终端里打印出来的操作，确认它只在本任务文件夹（容器内 `/workspace`）里改动。
 
 想看生成的代码，直接在本机打开这道题的文件夹即可。文件已经保存在那里，不需要再从容器复制一遍。
 
@@ -347,7 +343,7 @@ Claude 工作时可能询问是否允许修改文件或执行命令。看清它�
 
 ```powershell
 docker start benzhi-claude-01
-docker exec -it -w /workspace benzhi-claude-01 claude
+docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions
 ```
 
 这两条命令会启动第一题原来的容器，并在其 `/workspace` 中打开一次新对话，之前的代码仍然保留。返回第二题时改用 `benzhi-claude-02`，目录仍是 `/workspace`。
@@ -355,13 +351,13 @@ docker exec -it -w /workspace benzhi-claude-01 claude
 如果你想接着上一次的对话往下做，先确保容器已经启动，再用下面这条命令进入：
 
 ```powershell
-docker exec -it -w /workspace benzhi-claude-01 claude --continue
+docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions --continue
 ```
 
 如果这个文件夹里有多次历史对话，想自己选择恢复哪一次，可以执行：
 
 ```powershell
-docker exec -it -w /workspace benzhi-claude-01 claude --resume
+docker exec -it -w /workspace benzhi-claude-01 claude --dangerously-skip-permissions --resume
 ```
 
 这里恢复的是本题的对话记录，代码仍然是文件夹里当前的版本。正式做题时，还要遵守任务对对话轮次的要求；换题必须另建文件夹和容器，从新对话开始。

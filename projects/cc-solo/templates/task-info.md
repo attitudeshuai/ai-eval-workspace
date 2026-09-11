@@ -50,6 +50,12 @@
 
 ## 轨迹根目录（轨迹文件）
 <Claude Code（容器做，1 题 1 容器 cc-solo-{任务}）→ records/{任务}/{任务}-trajectory.jsonl（来源容器 /home/node/.claude/projects/-workspace/<SessionID>.jsonl）；首轮 SessionID 回填后定位>
+
+## 镜像
+<nicehey/benzhi-claude-code:1.0（Windows）/ adminfather/benzhi-claude-code:20260909-isolated-git（Mac）；须记 tag + manifest digest>
+
+## 审批模式（隔离模式）
+claude --dangerously-skip-permissions（免确认 / permission-mode=bypassPermissions，自动执行命令与改文件）
 ```
 
 ## 字段说明
@@ -63,6 +69,7 @@
 | SessionID | 首轮完成后由 `02-round-capture` 回填 |
 | 轨迹根目录 | Claude Code→`records/{任务}/{任务}-trajectory.jsonl`（嵌套布局写作 `records/{项目}/{任务}/{任务}-trajectory.jsonl`，来自容器 `/home/node/.claude/projects/-workspace/` 导出）；提交表「轨迹文件」列据此生成 |
 | 镜像 / 隔离模式 | **须记录镜像 tag + manifest digest**：Mac `adminfather/benzhi-claude-code:20260909-isolated-git`（digest `sha256:f77014d9e56cd3db2ac96627a286814cb1aa9f0b4bb807bea98a01383c9bc4d8`）；Windows `nicehey/benzhi-claude-code:1.0`。Mac 新镜像为**隔离模式**：工具集被裁剪为 Bash/Read/Write/Edit/Glob/Grep、禁斜杠命令、会话不可恢复（误关窗即报废）；Windows 仍为常驻容器、可 `--continue`（仅同题）。 |
+| 审批模式 | **两平台统一免确认**：`claude --dangerously-skip-permissions`（等价 `--permission-mode bypassPermissions`，自动执行命令/改文件/联网）。Mac 由镜像启动参数内置；Windows 在进入命令里显式带上（见 [runbook-windows.md](../docs/runbook-windows.md) 第 2 步）。**按实际使用的那种填，不要留空**；同一批数据必须统一。 |
 
 ## 注意事项
 

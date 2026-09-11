@@ -14,7 +14,7 @@
 > - **会话不可恢复**：本镜像拒绝在同一个容器里再开一次会话（`--continue`/`--resume` 均不支持）。同一道题的所有轮次必须一口气做完，**中途不要退出**；误退出即该任务无法继续（已导出的轮次仍然有效）。
 > - **不要 `chown`**：容器以 `--cap-drop ALL` 运行，CAP_CHOWN 被掉，连 `-u root` 也改不了文件归属；Mac 挂载目录的归属会自动映射，本来就不需要 chown。
 > - **工具集被裁剪**：镜像内 Claude Code 以 `--safe-mode --disable-slash-commands --tools 'Bash,Read,Write,Edit,Glob,Grep'` 启动（版本锁定 2.1.197），**没有子代理（Task）、没有 TodoWrite、没有联网抓取、没有斜杠命令**。标注时须把这一点记进 `task-info.md`，因为它影响「任务规划」等维度的判据。
-> - **审批口径**：镜像启动参数**已内置 `--dangerously-skip-permissions`**（免确认，自动执行命令/改文件），Mac 侧**不用也无需在 `docker run` 里手写该 flag**。标注时须把实际审批模式记进 `task-info.md`；Windows 侧默认为逐条确认，可加 `claude --dangerously-skip-permissions` 与之对齐（见 [runbook-windows.md](runbook-windows.md) 第 2 步）。
+> - **审批口径（两平台统一免确认）**：镜像启动参数**已内置 `--dangerously-skip-permissions`**（免确认，自动执行命令/改文件），Mac 侧**不用也无需在 `docker run` 里手写该 flag**。Windows 侧同为免确认，进入命令显式带 `--dangerously-skip-permissions`，两侧口径一致（见 [runbook-windows.md](runbook-windows.md) 第 2 步）。标注时须把实际审批模式记进 `task-info.md`。
 
 ## 1. 准备
 

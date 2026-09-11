@@ -165,18 +165,18 @@ docker inspect --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{print
 
 ```powershell
 docker exec "cc-solo-$task" git config --global --add safe.directory /workspace
-docker exec -it -w /workspace "cc-solo-$task" claude
+docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions
 ```
 
 - 第一条告诉 Git 信任 `/workspace`，避免 `dubious ownership` 报错；每个新容器首次执行一次即可。
 - 第二条打开 Claude，在容器 `/workspace`（= 本机本题文件夹）里工作。首次进入会询问界面主题/是否信任当前目录，选信任即可（确认路径是 `/workspace`）。
+- `--dangerously-skip-permissions` 是**统一写法**（免确认模式，与 Mac 镜像内置口径一致），不要用裸 `claude`。
 
 ---
 
-## 六、第 5 步：与 Claude 对话（权限确认 + 会话处理）
+## 六、第 5 步：与 Claude 对话（会话处理）
 
-- **命令审批**：默认未启用免确认模式，Claude 每次执行命令/改文件前会询问，**确认后选「允许」**。
-- **想开免确认（自动模式）**：进入时加 `--dangerously-skip-permissions` —— `docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions`（容器内是 `node` 非 root，可用）。同一批数据要么全开、要么全不开；已经开着的会话可 `/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
+- **命令审批**：免确认模式下 Claude 自动执行命令、改文件、联网，**不再逐条询问**；容器内影响范围仅限挂载进来的本题文件夹。漏了 flag 进成普通模式时，`/exit` 后用 `claude --dangerously-skip-permissions --continue` 重进，SessionID 不变。
 - **一题一个会话窗口（一个 SessionID）**：几轮对话必须落在**同一个**会话里。
 
 推荐做法：
@@ -245,8 +245,8 @@ docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-c
 | 批量启动多题容器（循环，变量与循环同一段一次贴完） | `$root='<各副本上级目录>'; $tasks=6..10 \| ForEach-Object { 'cc-001-feature-{0:D2}' -f $_ }; foreach ($task in $tasks) { $src=(Resolve-Path (Join-Path $root $task)).Path; docker run -d --name "cc-solo-$task" --mount "type=bind,source=$src,target=/workspace" -e "apikey=你的Key" -e "ANTHROPIC_MODEL=$model" -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" nicehey/benzhi-claude-code:1.0 }` |
 | 启动已停止的容器（同题） | `docker start "cc-solo-$task"` |
 | 查看容器 | `docker ps` / `docker ps -a` |
-| 进入 Claude | `docker exec "cc-solo-$task" git config --global --add safe.directory /workspace` + `docker exec -it -w /workspace "cc-solo-$task" claude` |
-| 启动/恢复会话（同题） | `claude`（新）/ `claude --continue`（恢复最近）/ `claude --resume <SessionID>` |
+| 进入 Claude（免确认） | `docker exec "cc-solo-$task" git config --global --add safe.directory /workspace` + `docker exec -it -w /workspace "cc-solo-$task" claude --dangerously-skip-permissions` |
+| 启动/恢复会话（同题） | `claude --dangerously-skip-permissions`（新）/ 同名 `--continue`（恢复最近）/ 同名 `--resume <SessionID>` |
 | 导出轨迹 | `docker cp "cc-solo-${task}:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"` |
 | 看轨迹目录名 | `docker exec "cc-solo-$task" ls -1 /home/node/.claude/projects` |
 | 看模型 | `docker exec "cc-solo-$task" printenv ANTHROPIC_MODEL` |
