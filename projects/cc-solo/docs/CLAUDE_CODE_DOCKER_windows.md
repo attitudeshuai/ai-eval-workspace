@@ -185,6 +185,39 @@ docker ps --filter "name=$containerName"
 
 **每道新题都执行一次创建流程。** 换题时，从新的题目文件夹打开 PowerShell，使用新的容器名，并重新核对 key 和 model。三个 PowerShell 变量只存在于当前窗口，另开窗口时需要重新填写；容器创建后会保存当时传入的配置。
 
+### 2.1 同一批多题：用循环一次创建（推荐，已实测）
+
+一批要跑多题时，不必一题一个窗口重复粘贴。**变量和循环必须写在同一个 PowerShell 窗口、同一段里一次贴完**（变量只在当前窗口有效，换窗口就没了）：
+
+```powershell
+$root   = 'D:\path\to\source-code\cc-001\cc-001-feature'   # 各任务副本目录的上级目录
+$apiKey = '这里填写本次使用的key'
+$model  = 'ark/urm-01'
+$tasks  = 6..10 | ForEach-Object { 'cc-001-feature-{0:D2}' -f $_ }
+
+foreach ($task in $tasks) {
+  $src = (Resolve-Path (Join-Path $root $task)).Path
+  Write-Host "启动 $task  <-  $src" -ForegroundColor Cyan
+  docker run -d --name "cc-solo-$task" `
+    --mount "type=bind,source=$src,target=/workspace" `
+    -e "apikey=$apiKey" `
+    -e "ANTHROPIC_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+    -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+    nicehey/benzhi-claude-code:1.0
+}
+
+docker ps --format "{{.Names}}`t{{.Status}}"
+```
+
+- 容器名与挂载源由循环自动拼（`cc-solo-{任务}` ↔ 该题副本目录，命名沿用 cc-solo 约定），不用一题一窗口去 `Get-Location` 核对；**但每题仍必须挂该题自己的副本目录**，不能指向所有题目的总目录。
+- `Join-Path` + `Resolve-Path` 会在目录不存在时立刻报错，而不是把空字符串塞进 `--mount`。
+- 报错 `docker: Error response from daemon: \cc-001-feature-06%!(EXTRA string=is not a valid Windows path)`：`source` 拼出来是空的，基本都是 `$root` 这类变量没在当前窗口赋值（换窗口/新开窗口后要重新贴整段）。
+- 重建同名容器前先清残留：`foreach ($task in $tasks) { docker rm -f "cc-solo-$task" 2>$null }`。
+- 起完照第 3 节逐个确认挂载：`docker inspect --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' "cc-solo-$task"`。
+
 ### 3. 检查 Docker 是否用对了文件夹
 
 在 PowerShell 中执行：

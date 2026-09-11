@@ -155,6 +155,9 @@ submit_url = "https://solo2.jzxhnh.com/api/v1/submissions"
 # 表单定义接口：生成/提交前先 GET 这个接口，把平台当前字段规范与本地 fields.json 比对，
 # 防止平台表单改了本地还按旧规范生成/提交（实现见 scripts/cc-solo/check_form_schema.py）
 form_schema_url = "https://solo2.jzxhnh.com/api/v1/submissions/form-schema"
+# 登录接口：cookie（solo_qa_session / solo_qa_csrf）过期时，脚本用 secrets.toml [submission].username/password
+# 自动登录刷新（请求体 {"username":…,"password":…}，从响应 Set-Cookie 取新 cookie 并回写 secrets.toml）
+login_url = "https://solo2.jzxhnh.com/api/v1/auth/login"
 attachment_max_mb = 20
 
 # ============================================================

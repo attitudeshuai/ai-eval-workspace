@@ -118,6 +118,34 @@ docker ps --filter "name=cc-solo-$task"
 - **5 个模型 env 必须一起传**，覆盖镜像固化的模型名，避免与 Key 权限不匹配报 `403 key not allowed to access model`。
 - 第一次运行会自动下载镜像（约 1~2GB），看到下载进度等待完成。最后一条 `docker ps` 里找到本题容器、`STATUS` 为 `Up` 即成功。
 
+**同一批多题（一次起好几个容器，推荐）**：多题批次不必一题开一个窗口。把变量和循环写在**同一段**里一次贴完（变量只在当前 PowerShell 窗口有效，换窗口就丢），`$root` 填各任务副本目录的上级目录：
+
+```powershell
+$root   = 'D:\path\to\source-code\cc-001\cc-001-feature'
+$apiKey = '你的Key'
+$model  = '管理员给的完整模型名'
+$tasks  = 6..10 | ForEach-Object { 'cc-001-feature-{0:D2}' -f $_ }
+
+foreach ($task in $tasks) {
+  $src = (Resolve-Path (Join-Path $root $task)).Path
+  Write-Host "启动 $task  <-  $src" -ForegroundColor Cyan
+  docker run -d --name "cc-solo-$task" `
+    --mount "type=bind,source=$src,target=/workspace" `
+    -e "apikey=$apiKey" `
+    -e "ANTHROPIC_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+    -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+    nicehey/benzhi-claude-code:1.0
+}
+docker ps --format "{{.Names}}`t{{.Status}}"   # 每个任务应各有一行 Up
+```
+
+- 每题挂载的仍必须是**该题自己的副本目录**，不能指向所有题目的总目录。
+- `Join-Path` + `Resolve-Path` 会在目录不存在时立刻报错，避免把空字符串拼进 `--mount`（那就是下面第八章 `is not a valid Windows path` 那个报错的成因）。
+- 重建同名容器前先清残留：`foreach ($task in $tasks) { docker rm -f "cc-solo-$task" 2>$null }`。
+
 ### 4.3 确认容器在运行与挂载正确
 
 ```powershell
@@ -198,6 +226,8 @@ docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-c
 
 **容器名已被占用（name is already in use）**：同名容器已创建过。同题继续用 `docker start "cc-solo-$task"`；换题请用新的 `$task` 和新的挂载文件夹，不要拿旧容器做别的题。
 
+**`docker run` 报 `\cc-001-feature-06%!(EXTRA string=is not a valid Windows path)`**：`--mount` 的 `source` 拼出来是空的。九成是变量（`$root` / `$task` / `$taskDir`）没在**当前 PowerShell 窗口**赋值——变量跨窗口会丢，另开窗口要重新贴整段；少数是副本目录不存在。按第 4 步「同一批多题」的循环写法（变量与循环写在同一段 + `Resolve-Path`）一次贴完即可。
+
 **本机文件没有出现在容器里 / Claude 看不到题目文件**：检查挂载是否指向本题文件夹：`docker inspect --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' "cc-solo-$task"`，确认左边是本题文件夹、右边是 `/workspace`。
 
 **Claude 改文件报 Permission denied**：挂载目录的文件归属不对（少见）。仅在实测报错时才补：`docker exec -u root "cc-solo-$task" chown -R node:node /workspace`，不作为标准步骤。
@@ -211,6 +241,7 @@ docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-c
 | 用途 | 命令 |
 |---|---|
 | 启动本题容器（挂载 + 5 模型 env） | `docker run -d --name "cc-solo-$task" --mount "type=bind,source=$($PWD.Path),target=/workspace" -e "apikey=你的Key" -e "ANTHROPIC_MODEL=$model" -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" nicehey/benzhi-claude-code:1.0` |
+| 批量启动多题容器（循环，变量与循环同一段一次贴完） | `$root='<各副本上级目录>'; $tasks=6..10 \| ForEach-Object { 'cc-001-feature-{0:D2}' -f $_ }; foreach ($task in $tasks) { $src=(Resolve-Path (Join-Path $root $task)).Path; docker run -d --name "cc-solo-$task" --mount "type=bind,source=$src,target=/workspace" -e "apikey=你的Key" -e "ANTHROPIC_MODEL=$model" -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" nicehey/benzhi-claude-code:1.0 }` |
 | 启动已停止的容器（同题） | `docker start "cc-solo-$task"` |
 | 查看容器 | `docker ps` / `docker ps -a` |
 | 进入 Claude | `docker exec "cc-solo-$task" git config --global --add safe.directory /workspace` + `docker exec -it -w /workspace "cc-solo-$task" claude` |

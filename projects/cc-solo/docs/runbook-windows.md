@@ -12,6 +12,7 @@
 |---|---|---|
 | 镜像 | `adminfather/benzhi-claude-code:20260909-isolated-git`（固定 tag，勿用 latest） | `nicehey/benzhi-claude-code:1.0`（Windows 侧无新镜像，仅此一个 tag） |
 | 启动方式 | `docker run -it`（前台直接进 Claude，启动后 agent 再播种） | `docker run -d`（后台常驻）+ 挂载本机任务副本目录为 `/workspace` |
+| 批量建容器 | **逐题**前台启动（镜像要求空目录 + 启动后播种，循环批量**不可照搬**，见 [runbook.md](runbook.md) 第 2 步） | **`foreach` 循环一次起多题（已实测）**，见第 2 步「单题 vs 多题」 |
 | 容器入口 | 启动即进入 Claude | `docker exec -it -w /workspace "cc-solo-{任务}" claude` |
 | 命令审批 | 镜像**内置** `--dangerously-skip-permissions`，Claude 自动执行命令（无需人工确认） | 默认普通 `claude`（逐条询问）；**可加 `--dangerously-skip-permissions` 免确认**，见第 2 步第 1 条 |
 | 退出方式 | Ctrl+D 两次（无 `/exit`） | `/exit` 一次，容器保留 |
@@ -59,6 +60,8 @@ cc-solo {项目} {操作}
 | 切轮次、写 R0N、五维打分、导出 | **agent 自动** | 你只发指令（`round N`/`score N`） |
 
 > 一句话：你只在容器里跑 Claude Code；其余建副本、挂载、导出轨迹、切片、录入、打分、导出全由 agent 在宿主机直接执行。
+
+> **📌 交付约定：agent 每完成一步，都要在同一条回复里写出下一步。** 必须给全 **① 下一步要敲的命令原文**（可直接照抄，要替换的值标出来）、**② 怎么操作**（预期看到什么才算成功、常见报错长什么样、出错查哪一节）。不要只说一句「已完成」把下一步留到下一轮问答；多题批次还要讲清**哪几题、什么顺序、哪些能并行**。
 
 ## 前置准备
 
@@ -138,7 +141,7 @@ records/app-12/app-12-codegen/task-info.md
 >
 > 容器名统一 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`），`{任务}` 就是任务 ID；`docker ps -a` 可查。
 
-### 前置：确保容器可用（首次启动 + 三个踩坑）
+### 前置：确保容器可用（首次启动 + 常见踩坑）
 
 首次启动容器（**每题一个容器**，勿复用做别的题；同题中断后可用 `docker start "cc-solo-$task"` 续用）：
 
@@ -154,11 +157,44 @@ docker run -d --name "cc-solo-$task" `
   nicehey/benzhi-claude-code:1.0
 ```
 
-跑之前先看这三个最常踩的坑，出事按序处理：
+### 单题 vs 多题：一次起好几题用循环（推荐）
+
+- **只起一题**：用上面那条单题命令即可。
+- **一次起多题（多题批次推荐，已实测）**：变量与循环写在**同一段**里一次贴完，需要哪几题就改 `$tasks`。
+
+```powershell
+$root  = 'D:\charles\program\ai\ai-eval-workspace\sessions\cc-solo\session-0909\source-code\cc-001\cc-001-feature'
+$model = 'auto_model/urm'          # 网关允许的完整模型名（本机 secrets.toml [claude_gateway].model）
+$key   = '<你的Key>'
+$tasks = 6..10 | ForEach-Object { 'cc-001-feature-{0:D2}' -f $_ }
+
+foreach ($task in $tasks) {
+  $src = (Resolve-Path (Join-Path $root $task)).Path   # 目录不存在/变量为空会当场报错，不会拼出非法路径
+  Write-Host "启动 $task  <-  $src" -ForegroundColor Cyan
+  docker run -d --name "cc-solo-$task" `
+    --mount "type=bind,source=$src,target=/workspace" `
+    -e "apikey=$key" `
+    -e "ANTHROPIC_MODEL=$model" -e "ANTHROPIC_DEFAULT_OPUS_MODEL=$model" `
+    -e "ANTHROPIC_DEFAULT_SONNET_MODEL=$model" -e "ANTHROPIC_DEFAULT_HAIKU_MODEL=$model" `
+    -e "CLAUDE_CODE_SUBAGENT_MODEL=$model" `
+    nicehey/benzhi-claude-code:1.0
+}
+docker ps --format "{{.Names}}`t{{.Status}}"   # 每个任务应各有一行 Up
+```
+
+> 三个要点：① **变量只在当前 PowerShell 窗口有效**，换窗口/重开就没了，所以「设变量」和「跑循环」必须一次贴完（已实测踩坑：`$root` 为空时 `--mount` 会拼成 `\cc-001-feature-06`，docker 报 `is not a valid Windows path`）；② 用 `Join-Path` + `Resolve-Path` 拼路径，目录不存在时提前报错，而不是把空字符串塞进 `--mount`；③ 每轮 `Write-Host` 打印真实挂载源，出问题一眼看出是哪个变量空了。
+>
+> 重建前先清残留（`docker ps -a` 里状态不是 `Up` 的同名容器）：
+> ```powershell
+> foreach ($task in $tasks) { docker rm -f "cc-solo-$task" 2>$null }
+> ```
+
+跑之前先看这四个最常踩的坑，出事按序处理：
 
 - **PIPE 连不上引擎**：报错 `failed to connect to the docker API at npipe://… dockerDesktopLinuxEngine … The system cannot find the file specified`，说明 Docker Desktop 没启动或引擎未就绪。打开 Docker Desktop，等 `docker info` 能返回 `ServerVersion`，确认处于 **Linux 容器模式**，再执行 `docker run`。
 - **直连 Docker Hub 拉镜像超时**：报错 `dialing registry-1.docker.io:443 … connection attempt failed`，是国内网络访问 Docker Hub 不通。或在 Docker Desktop 配 `registry-mirrors`，或改用加速地址拉取再打回标准标签，例如 `docker pull docker.1ms.run/nicehey/benzhi-claude-code:1.0` → `docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-code:1.0`。
 - **进容器后 Claude 报 `403 key not allowed to access model`**（`can only access models=['…']. Tried to access ark/urm-01`）：镜像固化的模型名与 Key 实际可访问的模型不一致。把上面的 5 个模型环境变量（`$model`）都覆盖成网关允许的完整模型名后重建容器。
+- **`docker run` 报 `\cc-001-feature-06%!(EXTRA string=is not a valid Windows path)`**：`--mount` 的 `source` 拼出来是空的——九成是 `$root`/`$taskDir` 这类变量没在**当前窗口**赋值（变量跨窗口会丢），少数是副本目录不存在。按上面的循环写法（变量与循环写在同一段 + `Resolve-Path`）一次贴完即可。
 
 详细排障见 [CLAUDE_CODE_DOCKER_windows.md](CLAUDE_CODE_DOCKER_windows.md)「常见问题」。
 
@@ -298,7 +334,7 @@ deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.
 >
 > 但**本阶段先不提交数据**（用户决定）：只做到第 6 步——生成评价结果 + 质检，**不上传轨迹附件、不调提交接口**。需要提交时用户说一声，由 agent 执行本节。
 >
-> 凭据在 `secrets.toml [submission].cookie`（或 `token`），会过期，报 401/403 时重新从浏览器复制。
+> 凭据在 `secrets.toml [submission]`（`cookie` + `username` / `password`）；cookie 约 2 天过期，**脚本会自动登录刷新并回写**，无需手工复制。登录结果缓存在 `projects/cc-solo/.solo_session.json`（gitignore），**没过期就不会重复登录**（`--status` 查看）。
 
 ### 指令模板（本阶段先不执行）
 
@@ -322,6 +358,6 @@ cc-solo export submit
 ### 注意事项
 
 - 轨迹是**附件**字段：必须先用上传接口拿远端 path，再写进 `trace_file` 提交（脚本自动处理）。
-- `secrets.toml [submission].cookie` 会过期，401/403 时重新从浏览器复制。
+- cookie 会过期（约 2 天）：脚本优先复用会话缓存，缺失/过期或遇到 401、403 时才自动登录刷新（也可 `--login-only --commit` 主动续期、`--status` 查看剩余有效期）。
 - 时限沿用约定：当天 20:00 前产生的数据当天提交，20:00 之后的次日 14:00 前提交。
 - 旧的飞书投递（`append_delivery_feishu.py`）与 CSV 提交表（`export_submit.py`）**已退役**，仅作历史留存。

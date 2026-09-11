@@ -11,6 +11,8 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 
 > 🧑💻 **分工：你只发指令，命令由 agent 跑**。你只需发自然语言指令（`cc-solo {项目} generate`、`cc-solo {任务} round N` / `score N`、`cc-solo export`），本仓库里出现的 `docker …` 与 `python scripts/cc-solo/…` 全部由 **agent 在宿主机执行**。唯一需要你自己敲的是「进容器跟 Claude 对话」那两条 docker 命令（见 runbook）。
 
+> 📌 **交付约定：agent 每完成一步，都要在同一条回复里写出下一步**——① 下一步要敲的**命令原文**（可直接照抄，要替换的值标出来）+ ② **怎么操作**（预期看到什么、常见报错、出错查哪一节）。不要只说「已完成」把下一步留到下一轮问答；多题批次还要讲清**哪几题、什么顺序、哪些能并行**。Windows 侧多题批量建容器优先用 `foreach` 循环一次起（见 [runbook-windows.md](docs/runbook-windows.md) 第 2 步「单题 vs 多题」）；Mac 侧因镜像要求空目录 + 启动后播种 + 会话不可恢复，**不能照搬循环**（见 [runbook.md](docs/runbook.md) 第 2 步）。
+
 > ⛔ **本阶段只生成、先不提交**：提交接口已就位（`config.toml [submission].submit_url`），但当前只做到「生成评价结果 + 质检」，**不上传轨迹附件、不调提交接口**；要提交时用户说一声，由 agent 执行。
 
 ## 数据模型（先读）
@@ -96,7 +98,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 > **提交（对外接口，2026-09-10 已确认）**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（地址在 `config.toml [submission].submit_url`）
 > - 请求体：`{"data": {24 字段}, "schema_fingerprint": "cc4da53236368ac2"}`；其中 `trace_file` 是**附件数组** `[{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]`——先传 `…/submissions/upload`（multipart 字段 `file`）拿 `path` 再回填。
 > - 响应：`{"id":1196,"status":"SUBMITTED","round_no":1,"schema_stale":false,"message":…}`；`schema_stale=true` 说明表单字段变了。
-> - 凭据在 `secrets.toml [submission].cookie`（或 `token`，会过期）；字段规范在 `docs/submission/fields.json`（从 `submitfrom.js` 抽取，24 字段）。
+> - 凭据在 `secrets.toml [submission]`：`cookie`（或 `token`）+ `username` / `password`；**cookie 约 2 天过期，脚本会自动登录刷新并回写**（`--login-only --commit` 可手动刷新）：登录结果缓存在 `projects/cc-solo/.solo_session.json`（gitignore），**未过期不会重复登录**，`--status` 查状态。字段规范在 `docs/submission/fields.json`（从 `submitfrom.js` 抽取，24 字段）。
 > - ⚠️ 轨迹附件是**整份会话轨迹**，同一 SessionID 各轮共用 ⇒ **导出与提交要在该任务会话结束之后做**。
 > - 生成与提交：`python scripts/cc-solo/build_eval_result.py` → `python scripts/cc-solo/submit_eval_result.py --result <json> --commit`（不加 `--commit` 为 dry-run）。细节见 [skills/04-export-submit.md](skills/04-export-submit.md)。
 

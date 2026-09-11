@@ -65,6 +65,12 @@ python scripts/cc-solo/extract_submit_fields.py
 python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/session-0909/评价结果-session-0909-2026-09-10.json
 # 只上传轨迹并回填附件信息（验凭据与上传链路，不提交）
 python scripts/cc-solo/submit_eval_result.py --result <json> --upload-only --commit --write-back
+
+# 3.5) 只刷新 cookie（登录一次并写回 secrets.toml；cookie 约 2 天过期，平时不用手动跑）
+python scripts/cc-solo/submit_eval_result.py --login-only --commit
+
+# 3.6) 看 cookie 状态（来源 / 到期时间 / 剩余多久，不发请求）
+python scripts/cc-solo/submit_eval_result.py --status
 # 正式提交
 python scripts/cc-solo/submit_eval_result.py --result <json> --commit --write-back
 python scripts/cc-solo/submit_eval_result.py --result <json> --record h5-demo-feature-01#R02 --commit
@@ -87,7 +93,7 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
   - `build_eval_result.py` 第一步就会请求；不一致只在日志与质检报告里告警；
   - `submit_eval_result.py --commit` 提交前也会请求；**不一致直接中止（退出码 3），一条请求都不发**。
 - 不一致时的处理：重跑 `python scripts/cc-solo/extract_submit_fields.py`（**默认就拉这个实时接口**，fingerprint 随平台更新；如需离线可用 `--source js` 走本地快照），再重新生成评价结果。
-- 取不到（如 cookie 过期）时：脚本会提示「凭据可能已过期」，从浏览器重新复制整条 cookie 填进 `secrets.toml [submission].cookie`。
+- 取不到（如 cookie 过期）时：**不需要手工复制** —— 脚本会用 `secrets.toml [submission].username / password` 自动登录刷新（见步骤 4）。
 
 ### 步骤 1：确认字段规范与范围
 
@@ -138,8 +144,8 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
 > 本节先留着，等用户确认要提交时再执行。
 
 - 轨迹是**附件**字段，不能直接写文本路径：先 `POST {upload_url}`（`multipart/form-data`，表单字段 `file`）拿返回的 `path`，再把该 `path` 写进 `trace_file` 提交。
-- 认证：`secrets.toml [submission].cookie`（浏览器里复制的整条 cookie，含 `solo_qa_session` / `solo_qa_csrf`）；若接口要求 `X-CSRF-Token`，填 `csrf_header`。
-- **cookie 会过期**：401/403 时重新复制 cookie。
+- 认证：`secrets.toml [submission].cookie`（含 `solo_qa_session` / `solo_qa_csrf`）。`csrf_header` 留空时自动取 cookie 里的 `solo_qa_csrf`，且 `X-CSRF-Token` / `X-CSRFToken` 两个头名都发。
+- **cookie 会过期（服务端约 2 天）——脚本自动续，不用手工复制**：`secrets.toml [submission]` 里配好 `username` / `password`（`login_url` 默认 `https://solo2.jzxhnh.com/api/v1/auth/login`，非敏感项在 `config.toml [submission]`）。脚本在**没有 cookie、或请求返回 401/403** 时会自动登录一次、拿到新的 `solo_qa_session` / `solo_qa_csrf` 后**重试原请求**，并把新 cookie **就地回写 secrets.toml**；`--refresh-cookie` 可在处理前强制刷新，`--login-only --commit` 只刷新 cookie 不提交，`--no-auto-login` 可关掉自动登录；登录成功后，cookie **连同到期时间**存进 `projects/cc-solo/.solo_session.json`（已 gitignore）；**之后每次运行优先复用缓存，没过期就不会再登录**，只有「缓存缺失 / 已过期 / 请求 401、403」时才重新登录一次。`--status` 随时看来源与剩余有效期，`--no-cache` 可只用 secrets.toml。
 - **提交接口（已确认）**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（写在 `config.toml [submission].submit_url`；`secrets.toml [submission].submit_url` 优先，`--url` 可临时覆盖）。
 - **请求体**：`{"data": {24 个字段}, "schema_fingerprint": "<fields.json 的 fingerprint>"}`；其中 `trace_file` 是**附件数组** `[{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]`，由上传步骤回填。
 - **响应**：`{"id":1196,"status":"SUBMITTED","status_label":"已提交","round_no":1,"schema_stale":false,"message":"…"}`；脚本按 `status==SUBMITTED` 或有 `id` 判成功，`schema_stale=true` 会告警（表单字段变了，需重跑 `extract_submit_fields.py` 并重新生成）。
