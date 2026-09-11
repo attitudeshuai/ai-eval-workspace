@@ -191,10 +191,11 @@ docker exec -it -w /workspace "cc-solo-$task" claude
 **推荐在另一个 PowerShell 窗口执行**（与 Claude 会话互不干扰，无需退出 Claude），把容器内的轨迹导出到本机记录目录：
 
 ```powershell
-docker cp "cc-solo-$task:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"
+docker cp "cc-solo-${task}:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"
 ```
 
 - 轨迹目录恒为 `/home/node/.claude/projects/-workspace/`（工作目录就是 `/workspace`），**与题号无关**；换题只换容器名 `cc-solo-$task` 和保存目录。
+- **⚠️ PowerShell 写法坑**：容器名后面紧跟冒号时**必须写成 `${task}`**（`"cc-solo-${task}:/home/…"`）。写成 `"cc-solo-$task:/home/…"` 会被 PowerShell 当成「盘符限定的变量名」，直接报 `Variable reference is not valid. ':' was not followed by a valid variable name character`，命令根本不执行。同理，凡是 `$task` 后面跟 `:` 的地方都加花括号。
 - **导出时机**：等 Claude 把当前这轮答完、处于等待输入的静止状态再拷（别在它正跑工具时拷）。
 - **保留整个文件夹结构**，别只挑一个 JSONL（可能还有子代理记录、工具输出）。
 
@@ -246,7 +247,7 @@ docker tag docker.1ms.run/nicehey/benzhi-claude-code:1.0 nicehey/benzhi-claude-c
 | 查看容器 | `docker ps` / `docker ps -a` |
 | 进入 Claude | `docker exec "cc-solo-$task" git config --global --add safe.directory /workspace` + `docker exec -it -w /workspace "cc-solo-$task" claude` |
 | 启动/恢复会话（同题） | `claude`（新）/ `claude --continue`（恢复最近）/ `claude --resume <SessionID>` |
-| 导出轨迹 | `docker cp "cc-solo-$task:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"` |
+| 导出轨迹 | `docker cp "cc-solo-${task}:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"` |
 | 看轨迹目录名 | `docker exec "cc-solo-$task" ls -1 /home/node/.claude/projects` |
 | 看模型 | `docker exec "cc-solo-$task" printenv ANTHROPIC_MODEL` |
 | 看版本 | `docker exec "cc-solo-$task" claude --version` |

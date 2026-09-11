@@ -66,6 +66,11 @@ AI_TRACE = ("——", "综上所述", "总而言之", "首先，", "其次，", 
 # humanizer-zh 的强制清除符号（交付文本一经出现必须清除）；命中即 error，阻塞提交
 HUMANIZER_SYMBOLS = ("——", "`", "「", "」", "→", "⇒", "=>", "->", "\"", "'")
 
+# 项目补充红线：形近破折号的写法（连续两个汉字「一」），机器审核容易与「——」混淆
+# 命中即 error（五个「-描述」），hint 字段记 warn（可能含人工原文，不改写）
+PROJECT_SYMBOLS = ("一一",)
+PROJECT_SYMBOLS_FIX = "改写成「逐条对上」「逐项对应」「各条对应」这类说法"
+
 # AI 套话/空词（评价结果里一律不用）；命中即 error，阻塞提交
 # 「模型」指被评测的 AI 时改用「它」；指 Django 数据模型时写「数据定义」或引用 models.py 里的类名
 BANNED_CLICHE = ("落地", "模型", "赋能", "助力", "闭环", "抓手", "沉淀", "复用", "对齐", "打通",
@@ -262,6 +267,11 @@ def validate(fields, spec, ctx, issues):
             issues.append(("error", key,
                            f"{label} 含 humanizer-zh 强制清除符号 {'、'.join(sym)}，"
                            f"须按 skills/humanizer-zh 完整流程去 AI 化后重录"))
+        psym = [s for s in PROJECT_SYMBOLS if s in text]
+        if psym:
+            issues.append(("error", key,
+                           f"{label} 含项目补充红线写法（形近破折号，易与 —— 混淆）：{'、'.join(psym)}；"
+                           f"{PROJECT_SYMBOLS_FIX}"))
         word = [t for t in AI_TRACE if t in text]
         if word:
             issues.append(("warn", key, f"{label} 疑似 AI 高频词：{'、'.join(word)}（须人工复核）"))
@@ -293,6 +303,11 @@ def validate(fields, spec, ctx, issues):
             issues.append(("warn", key,
                            f"{label} 含疑似 AI 符号 {'、'.join(sym)}：若为人工原文则保持原样并在质检报告备注，"
                            f"若为 AI 起草（如追问/修复提示词）则须先经 humanizer-zh 处理"))
+        psym = [s for s in PROJECT_SYMBOLS if s in text]
+        if psym:
+            issues.append(("warn", key,
+                           f"{label} 含项目补充红线写法 {'、'.join(psym)}（形近破折号，易与 —— 混淆）："
+                           f"若为人工原文则保持原样并在质检报告备注，AI 起草的须{PROJECT_SYMBOLS_FIX}"))
         cl = [w for w in BANNED_CLICHE if w in text]
         if cl:
             issues.append(("warn", key,

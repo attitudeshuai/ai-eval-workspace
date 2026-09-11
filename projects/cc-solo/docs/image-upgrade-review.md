@@ -194,8 +194,10 @@ docker exec -it -w /workspace "cc-solo-$task" claude
 每轮导出（注意容器名换成任务名，路径仍是 `-workspace`）：
 
 ```powershell
-docker cp "cc-solo-$task:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"
+docker cp "cc-solo-${task}:/home/node/.claude/projects/-workspace/." "records\app-12\app-12-bugfix\app-12-bugfix-01\"
 ```
+
+> ⚠️ PowerShell 里容器名后紧跟冒号必须用 `${task}`：写成 `$task:` 会报 `Variable reference is not valid. ':' was not followed by a valid variable name character`（PowerShell 把它当盘符变量）。
 
 > ✅ **已实测（Windows）**：挂载目录在容器内是 `-rwxrwxrwx root root`，`node` 用户可直接新建/追加文件 ⇒ **不需要 `chown`**；但挂载**带 `.git` 的仓库**时必须先执行上面那条 `git config --global --add safe.directory /workspace`，否则 `git status` 报 `fatal: detected dubious ownership in repository at '/workspace'`。容器 `stop` → `start` → `exec` 实测正常，可复用。
 
