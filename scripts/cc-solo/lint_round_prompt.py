@@ -32,6 +32,10 @@ except ImportError:
 FIX_ERROR = ("改成", "改为", "换成", "加个", "加一个", "补一条", "补上", "抽成", "统一成", "限住",
              "去掉", "直接引用", "二选一", "收口", "先按", "再按", "需要改", "记得加", "别忘")
 FIX_WARN = ("应该", "建议", "需要把", "要把", "最好是")
+# 不要求对方验证、不要求回报结果（2026-09-12 口径，见 03-score-annotate「下一轮提示词生成」）。
+# 用不带「了」的祈使形态做匹配，避开「我各走了一遍」这类用户自述动作的误报。
+ASK_RESULT = ("发我", "发回", "发过来", "把结果", "结果发", "报给我", "回我", "告诉我结果", "给我看")
+ASK_VERIFY = ("跑一遍", "走一遍", "点一遍", "验证一下", "起服务", "起起来跑", "跑起来", "试一遍", "测一遍")
 NUM_RE = re.compile(r"^\s*(\d+[\.、)）]|第[一二三四五六七八九十]+[，、)])")
 
 
@@ -99,6 +103,12 @@ def main():
                     hit = [w for w in FIX_ERROR if w in text]
                     if hit:
                         errors.append("%s：出现改法类措辞 %s（第二轮起只描述现象）" % (tag, "、".join(hit)))
+                    ar = [w for w in ASK_RESULT if w in text]
+                    if ar:
+                        errors.append("%s：要求对方回报结果 %s（不要求验证、不要求回报结果）" % (tag, "、".join(ar)))
+                    av = [w for w in ASK_VERIFY if w in text]
+                    if av:
+                        errors.append("%s：要求对方跑一遍验证 %s（不要求验证、不要求回报结果）" % (tag, "、".join(av)))
                     warn_hit = [w for w in FIX_WARN if w in text]
                     if warn_hit:
                         warns.append("%s：含建议类措辞 %s，确认是在描述现象还是在给方案" % (tag, "、".join(warn_hit)))
