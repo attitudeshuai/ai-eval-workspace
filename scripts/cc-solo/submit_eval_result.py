@@ -230,6 +230,36 @@ def post_json(url, cookie, payload, csrf_header=None, timeout=120, referer_path=
         return {"_raw": raw}, resp
 
 
+def request_json(url, cookie, method="POST", payload=None, csrf_header=None, timeout=120,
+                 referer_path="/app/submit"):
+    """通用请求：method=GET 时不带 body；POST/PUT 时带 JSON body。"""
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(url, data=body, method=method)
+    for k, v in browser_headers(url, cookie, csrf=csrf_header, referer_path=referer_path).items():
+        req.add_header(k, v)
+    if body is not None:
+        req.add_header("Content-Type", "application/json; charset=utf-8")
+    req.add_header("Origin", origin_of(url))
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        raw = resp.read().decode("utf-8", "replace")
+    try:
+        return json.loads(raw), resp
+    except json.JSONDecodeError:
+        return {"_raw": raw}, resp
+
+
+def get_json(url, cookie, csrf_header=None, timeout=60, referer_path="/app/submit"):
+    """查提交详情：GET {提交接口}/{id}。"""
+    return request_json(url, cookie, method="GET", payload=None, csrf_header=csrf_header,
+                        timeout=timeout, referer_path=referer_path)
+
+
+def put_json(url, cookie, payload, csrf_header=None, timeout=120, referer_path="/app/submit"):
+    """返修更新：PUT {提交接口}/{id}，body 与提交同形，另带 comment。"""
+    return request_json(url, cookie, method="PUT", payload=payload, csrf_header=csrf_header,
+                        timeout=timeout, referer_path=referer_path)
+
+
 def _set_cookies_from(resp):
     """从响应里吸收 Set-Cookie（返回 {name: value}）。"""
     out = {}
@@ -482,20 +512,118 @@ class Session:
             return obj
         return self._with_relogin(call, "上传轨迹")
 
+    def _absorb(self, resp):
+        """响应里带 Set-Cookie 时吸收并持久化（提交/查详情/更新共用）。"""
+        new = _set_cookies_from(resp)
+        if not new:
+            return
+        merged = dict(p.split("=", 1) for p in self.cookie.split(";") if "=" in p)
+        merged.update(new)
+        self.cookie = "; ".join(f"{k.strip()}={v.strip()}" for k, v in merged.items())
+        self.csrf = self._csrf_of()
+        self.expires_at = _expiry_from(resp) or self.expires_at
+        write_session_cache(self.cookie, self.csrf, self.expires_at, source="request")
+        self.persist_cookies()
+
     def submit(self, url, payload):
         def call():
             obj, resp = post_json(url, self.cookie, payload, csrf_header=self.csrf or None)
-            new = _set_cookies_from(resp)
-            if new:
-                merged = dict(p.split("=", 1) for p in self.cookie.split(";") if "=" in p)
-                merged.update(new)
-                self.cookie = "; ".join(f"{k.strip()}={v.strip()}" for k, v in merged.items())
-                self.csrf = self._csrf_of()
-                self.expires_at = _expiry_from(resp) or self.expires_at
-                write_session_cache(self.cookie, self.csrf, self.expires_at, source="request")
-                self.persist_cookies()
+            self._absorb(resp)
             return obj
         return self._with_relogin(call, "提交")
+
+    def detail(self, url):
+        def call():
+            obj, resp = get_json(url, self.cookie, csrf_header=self.csrf or None)
+            self._absorb(resp)
+            return obj
+        return self._with_relogin(call, "查询提交详情")
+
+    def update(self, url, payload):
+        def call():
+            obj, resp = put_json(url, self.cookie, payload, csrf_header=self.csrf or None)
+            self._absorb(resp)
+            return obj
+        return self._with_relogin(call, "更新提交")
+
+
+def _submission_url(submit_url, sid):
+    return f"{submit_url.rstrip('/')}/{int(sid)}"
+
+
+def submission_detail_dir(cfg=None):
+    """没给 --result 时，详情文件落到当前会话的 deliverables 目录下。
+
+    会话名取 secrets.toml 的 active_session，其次 config.toml [sessions].active
+    （与 build_eval_result.py 的口径一致）。
+    """
+    root_toml = load_toml(CONFIG_PATH)
+    rel = (root_toml.get("paths", {}) or {}).get("deliverables_root") or os.path.join(
+        "deliverables", "cc-solo")
+    sess = (load_toml(SECRETS_PATH).get("active_session")
+            or (root_toml.get("sessions", {}) or {}).get("active") or "")
+    return os.path.join(WORKSPACE, rel, sess) if sess else os.path.join(WORKSPACE, rel)
+
+
+def fetch_detail(session, submit_url, sid, out_dir):
+    """GET 一条提交的详情，落盘原始 JSON；返回 (detail, 落盘路径)。"""
+    url = _submission_url(submit_url, sid)
+    try:
+        detail = session.detail(url)
+    except urllib.error.HTTPError as e:
+        print(f"  [失败] 查详情 HTTP {e.code}：{e.read()[:200]!r}")
+        return None
+    except Exception as e:  # noqa: BLE001
+        print(f"  [失败] 查详情异常：{e}")
+        return None
+    if not isinstance(detail, dict) or detail.get("_raw") is not None:
+        print(f"  [失败] 详情返回无法解析：{str(detail)[:200]}")
+        return None
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, f"submission-{int(sid)}-detail.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(detail, f, ensure_ascii=False, indent=2)
+    return detail, path
+
+
+def pick_record(records, detail, want_keys=None):
+    """按 --record 或 session_id + turn_id 在结果文件里定位对应记录。"""
+    if want_keys:
+        want = set(want_keys)
+        for r in records:
+            if r.get("record_key") in want:
+                return r
+    sid, tid = detail.get("session_id"), detail.get("turn_id")
+    for r in records:
+        f = r.get("fields") or {}
+        if sid and f.get("session_id") == sid and f.get("turn_id") == tid:
+            return r
+    return None
+
+
+def print_detail(detail, path):
+    """打印一条提交的关键状态与打回原因（供整改时对照）。"""
+    print(f"提交 #{detail.get('id')}｜状态 {detail.get('status')}（{detail.get('status_label')}）"
+          f"｜当前版本 v{detail.get('current_version')}｜可修改：{detail.get('editable')}")
+    print(f"  定位：session_id={detail.get('session_id')}｜turn_id={detail.get('turn_id')}"
+          f"｜轮次={detail.get('x_iteration')}")
+    if detail.get("qc_conclusion") or detail.get("qc_hit_rule_label"):
+        print(f"  质检结论：{detail.get('qc_conclusion') or '—'}"
+              f"｜命中规则：{detail.get('qc_hit_rule_label') or '—'}")
+    if detail.get("qc_summary"):
+        print(f"  打回原因：{detail.get('qc_summary')}")
+    for h in (detail.get("dedup_hits") or []):
+        peer = h.get("peer") or {}
+        print(f"  · 命中字段 {h.get('field_label')}｜{h.get('sub_rule_label')}"
+              f"｜相似度 {h.get('similarity')}｜对比 {peer.get('ref')}"
+              f"（{peer.get('repo_id')}，{peer.get('submit_date')}）")
+        if h.get("peer_excerpt"):
+            print(f"      历史侧：{h['peer_excerpt'][:110]}")
+        if h.get("self_excerpt"):
+            print(f"      本次侧：{h['self_excerpt'][:110]}")
+    if detail.get("locked_fields"):
+        print(f"  锁定字段（不可改）：{'、'.join(detail['locked_fields'])}")
+    print(f"  详情原文：{os.path.relpath(path, WORKSPACE)}")
 
 
 def build_payload(record, field_order, fingerprint, blank_keys=None):
@@ -532,10 +660,15 @@ def main():
                     help="逐条提交时每条之间的等待秒数（接口不支持批量，默认 5）")
     ap.add_argument("--show-payload", action="store_true", help="打印完整请求体（含 desc 全文）")
     ap.add_argument("--write-back", action="store_true", help="把上传结果/接口返回回写到结果 JSON")
+    ap.add_argument("--detail-id", action="append", type=int, metavar="ID",
+                    help="返修用：查这些提交 ID 的详情（GET，只读），打印状态与打回原因，可多次")
+    ap.add_argument("--update-id", action="append", type=int, metavar="ID",
+                    help="返修用：按本地整改后的记录 PUT 更新这些提交 ID，可多次；不加 --commit 只预览")
+    ap.add_argument("--comment", default="", help="返修更新时写入平台的备注（--update-id 用）")
     args = ap.parse_args()
 
-    if not args.result and not args.login_only and not args.status:
-        ap.error("必须提供 --result（或用 --login-only / --status）")
+    if not args.result and not args.login_only and not args.status and not args.detail_id:
+        ap.error("必须提供 --result（或用 --login-only / --status / --detail-id）")
 
     data = None
     if args.result:
@@ -593,6 +726,88 @@ def main():
               f"｜expires_at={session.expires_at or '—'}｜{_left}")
         print(f"  secrets.toml 里的 cookie：{'有' if (sec.get('cookie') or sec.get('token')) else '无'}")
         print(f"  结论：{'可直接复用，无需登录' if not session.needs_login else '需要登录刷新'}")
+        return
+
+    # ---------------- 返修①：查详情（GET，只读）----------------
+    if args.detail_id:
+        if not submit_url:
+            ap.error("提交接口未配置，无法查详情")
+        out_dir = (os.path.dirname(os.path.abspath(args.result)) if args.result
+                   else submission_detail_dir(cfg_sec))
+        for sid in args.detail_id:
+            print("=" * 64)
+            got = fetch_detail(session, submit_url, sid, out_dir)
+            if got:
+                print_detail(got[0], got[1])
+        print("=" * 64)
+        return
+
+    # ---------------- 返修②：整改后更新（PUT）----------------
+    if args.update_id:
+        if not args.result:
+            ap.error("--update-id 需要同时给 --result（用本地记录构造更新载荷）")
+        if not submit_url:
+            ap.error("提交接口未配置，无法更新")
+        out_dir = os.path.dirname(os.path.abspath(args.result))
+        field_order = data.get("field_order") or []
+        blank_keys = data.get("blank_optional_fields")
+        for sid in args.update_id:
+            print("=" * 64)
+            got = fetch_detail(session, submit_url, sid, out_dir)
+            if not got:
+                continue
+            detail, dpath = got
+            print_detail(detail, dpath)
+            if not detail.get("editable"):
+                print(f"  [跳过] 该条当前不可修改（status={detail.get('status')}）——"
+                      f"等质检跑完或状态变回待返修再试")
+                continue
+            rec = pick_record(records, detail, args.record)
+            if rec is None:
+                print("  [跳过] 结果文件里找不到对应记录（按 session_id + turn_id 未匹配，"
+                      "可用 --record 指定 record_key）")
+                continue
+            payload = build_payload(rec, field_order, fingerprint, blank_keys)
+            # 附件沿用平台上已有的那份（url 形式），不重新上传
+            tf = detail.get("trace_file")
+            if isinstance(tf, list) and tf:
+                payload["data"]["trace_file"] = tf
+            payload["comment"] = args.comment or "按质检打回意见整改后更新"
+            changes = []
+            for k in field_order:
+                old, new = str(detail.get(k, "")), str(payload["data"].get(k, ""))
+                if old != new:
+                    changes.append((k, old, new))
+            print(f"  对应记录：{rec['record_key']}｜将更新 {len(changes)} 个字段")
+            for k, old, new in changes:
+                print(f"    · {k}：{len(old)} 字 → {len(new)} 字")
+                if len(new) <= 120:
+                    print(f"        新值：{new}")
+            if not changes:
+                print("    （与平台现有内容一致，无需更新）")
+                continue
+            url = _submission_url(submit_url, sid)
+            if not args.commit:
+                print(f"  [dry-run] 将 PUT {url}（加 --commit 才真的发请求）")
+                continue
+            try:
+                resp = session.update(url, payload)
+            except urllib.error.HTTPError as e:
+                print(f"  [失败] 更新 HTTP {e.code}：{e.read()[:300]!r}")
+                continue
+            except Exception as e:  # noqa: BLE001
+                print(f"  [失败] 更新异常：{e}")
+                continue
+            print(f"  ✅ 已更新 → 版本 v{resp.get('current_version')}"
+                  f"｜状态 {resp.get('status')}（{resp.get('status_label')}）")
+            if resp.get("message"):
+                print(f"     平台消息：{resp.get('message')}")
+            rec["update_response"] = resp
+            if args.write_back:
+                with open(args.result, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+                print(f"     已回写更新结果到：{args.result}")
+        print("=" * 64)
         return
 
     # ---------------- dry-run ----------------

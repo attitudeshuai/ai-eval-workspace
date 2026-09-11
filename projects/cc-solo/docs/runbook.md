@@ -259,15 +259,13 @@ deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.
 
 ---
 
-## 第 7 步：提交（提交接口）—— ⛔ 本阶段先不提交
+## 第 7 步：提交（提交接口）
 
-> **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。
->
-> 但**本阶段先不提交数据**（用户决定）：只做到第 6 步——生成评价结果 + 质检，**不上传轨迹附件、不调提交接口**。需要提交时用户说一声，由 agent 执行本节。
+> **提交接口已启用**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。2026-09-12 起已实际提交（app-001-codegen-03~10 共 10 条）。
 >
 > 凭据在 `secrets.toml [submission]`（`cookie` + `username` / `password`）；cookie 约 2 天过期，**脚本会自动登录刷新并回写**，无需手工复制。登录结果缓存在 `projects/cc-solo/.solo_session.json`（gitignore），**没过期就不会重复登录**（`--status` 查看）。
 
-### 指令模板（本阶段先不执行）
+### 指令模板
 
 ```text
 cc-solo export submit
@@ -279,8 +277,8 @@ cc-solo export submit
 2. **先 dry-run**（不发任何请求，只打印将上传的轨迹与将提交的字段）：
    `python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json`
 3. 先只上传轨迹、验证 cookie 与附件链路：`… --upload-only --commit --write-back`（会把远端 path 回写进结果文件）
-4. 正式提交：`… --commit`（或加 `--url <提交接口>`；`--only-ready` 可跳过仍有 error 的条目）
-5. 输出每条的上传结果与接口返回；失败的条目修正后重试，避免重复提交
+4. 正式提交：`… --commit`（或加 `--url <提交接口>`；`--only-ready` 可跳过仍有 error 的条目、`--record <任务#轮次>` 可只提某一条）
+5. 输出每条的上传结果与接口返回；失败的条目修正后重试，**已提交的同一条不要再 POST**（平台按 SessionID + TurnID 判重，会返回 422）
 
 ### 产物
 
@@ -292,3 +290,46 @@ cc-solo export submit
 - cookie 会过期（约 2 天）：脚本优先复用会话缓存，缺失/过期或遇到 401、403 时才自动登录刷新（也可 `--login-only --commit` 主动续期、`--status` 查看剩余有效期）。
 - 时限沿用约定：当天 20:00 前产生的数据当天提交，20:00 之后的次日 14:00 前提交。
 - 旧的飞书投递（`append_delivery_feishu.py`）与 CSV 提交表（`export_submit.py`）**已退役**，仅作历史留存。
+
+---
+
+## 第 8 步：返修（提交被打回后整改并更新）
+
+> 平台质检（本地规则 / 查重 B 与 A / 五维描述）会给每条提交一个结论：**通过**（`QC_PASSED`）或以 **待返修**（`PENDING_FIX`）退回，退回时给出命中规则与原因（如「任务规划 - 描述」与历史数据 #1196 重复，命中子规则 B-7 分段复读，相似度 39.8%）。
+
+### 指令模板
+
+```text
+cc-solo 返修 3347
+```
+
+多个 ID 一起发：`cc-solo 返修 3347 3351`（或逗号分隔）。**你只发这一行**，下面全部由 agent 执行。
+
+### AI 会执行
+
+1. **查详情**（只读 GET `{提交接口}/{ID}`）：读出该条的状态（`status` / `status_label`）、`current_version`、`editable`、命中规则（`qc_hit_rule_label`）、打回原因（`qc_summary`）、重复命中明细（`dedup_hits[]`：命中字段、相似度、对比来源、历史侧与本次侧摘要）、锁定字段（`locked_fields`）。原始详情落盘到 `deliverables/cc-solo/{SESSION}/submission-{ID}-detail.json` 备查。
+   ```bash
+   python scripts/cc-solo/submit_eval_result.py --detail-id 3347
+   ```
+2. **按原因整改 `records/` 里对应轮的描述**（不是改平台上的字，也不是改产物文件）：
+   - 命中 **B-7 分段复读 / 长片段** → **针对本轮实际轨迹重写**该字段：换掉与历史池重合的句式，写进这一轮独有的证据（读了哪些文件、依赖顺序、中途改了什么方案、哪一步没核实），依据一件不减、不添新说法；
+   - 命中 **A 表套话词 / 符号 / 长英文串** → 按 `docs/annotate-guide.md` §9 改写；文件路径与命令一律写成业务语义；
+   - 命中 **跨轮次 / 前后对比** → 去掉「上一轮／原来／原先／本来」这类说法，直接陈述现象与现状。
+   改完过门禁：`python scripts/cc-solo/check_round_files.py --task {任务}`（要 `error 0`）。
+3. **更新到平台**（PUT `{提交接口}/{ID}`，body 与提交同形，另带 `comment`）：轨迹附件**沿用平台上已有的那一份**，不重新上传；字段逐项与平台现值比对，只把改动写上去，更新前打印「将更新 N 个字段」供确认。
+   ```bash
+   # 先预览（不发请求）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 3347
+   # 确认后执行（把 --commit 加上；--comment 可自定义备注）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
+     --update-id 3347 --comment "按质检打回意见整改后更新" --commit --write-back
+   ```
+4. **回报**：新版本号（`current_version`）、新状态，以及这次改了哪个字段、改前改后字数；平台随即重新质检，稍后可再 `--detail-id` 查看新结论。
+
+### 注意事项
+
+- `editable=false`（如质检中、已通过、已裁决）时**不能改**，脚本会跳过并说明当前状态；只有 `PENDING_FIX`（待返修）才可更新。
+- **锁定字段不可改**：`env_snapshot`、`harness`、`repro_level`（平台侧 `locked_fields` 给出，改别的字段即可）。
+- 附件沿用平台的远端文件，**不要**为了返修重新上传轨迹（上传会生成新文件，白占空间）。
+- 返修改的是 `records/` 数据文件，**改完要重新生成评价结果**（`cc-solo export`）再走本步，别手改产物 JSON。
+- 返修不产生新记录，只升版本号；同一条反复被打回时，每次都要按**新的打回原因**重新整改，别只改一处字。
