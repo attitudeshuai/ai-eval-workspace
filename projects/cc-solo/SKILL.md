@@ -38,7 +38,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 1 | **任务初始化** | [skills/01-task-create.md](skills/01-task-create.md) | 建任务目录 + 初始快照（commit permalink）+ 环境字段 + 出题（首轮提示词） |
 | 2 | **单轮录入** | [skills/02-round-capture.md](skills/02-round-capture.md) | 一轮交互后回填：User Prompt / TurnID / SessionID / 任务类型 / 难度 / 语言框架；SessionID 与 TurnID 由 agent 从本机轨迹自取、多轮自动拆轮 |
 | 3 | **五维打分** | [skills/03-score-annotate.md](skills/03-score-annotate.md) | 读轨迹 → 调 implementation-reviewer + 过程分析 → 五维打分（1-5）+ 依据录入 + 硬性校验 |
-| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」评价结果 JSON（+ 核对 CSV + 质检报告）；提交接口已就位（`POST https://solo2.jzxhnh.com/api/v1/submissions`）但**本阶段先不提交**。脚本 `extract_submit_fields.py` / `build_eval_result.py` / `submit_eval_result.py` 全部由 **agent 执行**，用户只发 `cc-solo export` 这类指令。旧的 CSV 提交表与飞书投递已退役 |
+| 4 | **评价结果与提交** | [skills/04-export-submit.md](skills/04-export-submit.md) | 按提交表单字段规范（`docs/submission/fields.json`，24 字段）生成「一轮 = 一条」评价结果 JSON（+ 质检报告；不再产出核对 CSV）；提交接口已就位（`POST https://solo2.jzxhnh.com/api/v1/submissions`）但**本阶段先不提交**。脚本 `extract_submit_fields.py` / `build_eval_result.py` / `submit_eval_result.py` 全部由 **agent 执行**，用户只发 `cc-solo export` 这类指令。旧的 CSV 提交表与飞书投递已退役 |
 
 ## 共享资源
 
@@ -142,7 +142,7 @@ sessions/cc-solo/{SESSION_NAME}/            # 工作数据（gitignore；仅 dem
                 └── {项目}-bugfix-01-trajectory.jsonl       # 完整轨迹
         …（{项目}-codegen/、{项目}-feature/ … 按类型分组，与 source-code 同名）
 
-deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核对 CSV + 质检报告
+deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条 JSON）+ 质检报告
 ```
 
 > **容器镜像与 Harness 口径（2026-09-10 起，务必先读 [docs/image-upgrade-review.md](docs/image-upgrade-review.md)）**：
@@ -173,7 +173,7 @@ deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核
 
 | 脚本 | 说明 |
 |------|------|
-| `scripts/cc-solo/build_eval_result.py` | 生成评价结果（24 字段 × 每轮一条）+ 核对 CSV + 质检报告；词表与符号检查的唯一来源 |
+| `scripts/cc-solo/build_eval_result.py` | 生成评价结果（24 字段 × 每轮一条）+ 质检报告；词表与符号检查的唯一来源 |
 | `scripts/cc-solo/check_round_files.py` | **轮次文件机械校验**（只读）：分数/描述/词表/符号/跨轮次与前后对比/轨迹文件一次跑完，有 error 返回码 1，可当导出前门禁；支持 `--project` `--task` |
 | `scripts/cc-solo/lint_round_prompt.py` | **下一轮提示词校验**（只读）：查是否「只写现象、不分条、无改法措辞」，附建议类措辞与 B 表密度 warn |
 | `scripts/cc-solo/extract_submit_fields.py` | 从平台表单定义抽取 `docs/submission/fields.json` |

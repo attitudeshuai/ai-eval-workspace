@@ -1,6 +1,6 @@
 ---
 name: cc-solo-export-submit
-description: "cc-solo 生成评价结果：按平台提交表单的字段规范（24 字段，含五维分数与描述、会话轨迹定位），把全部任务/轮次合成「一轮 = 一条」的评价结果 JSON（附人工核对 CSV + 质检报告）。用户只发指令（如 cc-solo export），Python 脚本由 agent 执行。提交接口已就位，但本阶段先不提交。Use when: cc-solo 生成评价结果, 评价结果文件, 质检, 提交接口, 轨迹上传。"
+description: "cc-solo 生成评价结果：按平台提交表单的字段规范（24 字段，含五维分数与描述、会话轨迹定位），把全部任务/轮次合成「一轮 = 一条」的评价结果 JSON（附质检报告；不再产出人工核对 CSV）。用户只发指令（如 cc-solo export），Python 脚本由 agent 执行。提交接口已就位，但本阶段先不提交。Use when: cc-solo 生成评价结果, 评价结果文件, 质检, 提交接口, 轨迹上传。"
 ---
 
 ## ⚙️ 当前期配置
@@ -20,7 +20,7 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 ## ⛔ 本阶段：只生成、先不提交（用户决定）
 
 - **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。
-- 但**本阶段先不提交数据**：只做**生成评价结果 JSON + 人工核对 CSV + 质检报告**，**不上传轨迹附件、不调提交接口**。
+- 但**本阶段先不提交数据**：只做**生成评价结果 JSON + 质检报告**，**不上传轨迹附件、不调提交接口**。
 - 「步骤 4 上传轨迹附件 + 提交」与「步骤 5 交付核对」暂时**不执行**；需要提交时用户说一声，由 agent 执行。
 
 ## 分工：你只发指令，脚本由 agent 跑
@@ -36,7 +36,6 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 | 产物 | 用途 |
 |---|---|
 | `deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json` | **主产物**：提交接口的载荷来源（24 字段 / 条 + 轨迹附件路径） |
-| `…-{date}.csv` | 人工核对（中文表头，字段顺序与表单一致） |
 | `…-{date}-质检报告.md` | 逐条 error / warn 明细 |
 
 ## 指令 ↔ agent 动作对照
@@ -45,7 +44,7 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 
 | 你发的指令 | agent 执行 | 说明 |
 |------|------|------|
-| `cc-solo export` | `python scripts/cc-solo/build_eval_result.py` | 扫描全部任务 → 评价结果 JSON + CSV + 质检报告（**内部第一步会自动先请求表单定义接口**） |
+| `cc-solo export` | `python scripts/cc-solo/build_eval_result.py` | 扫描全部任务 → 评价结果 JSON + 质检报告（**内部第一步会自动先请求表单定义接口**） |
 | `cc-solo export <任务名>` | `python scripts/cc-solo/build_eval_result.py --task <任务名>` | 只生成指定任务 |
 | `cc-solo export fields` | `python scripts/cc-solo/extract_submit_fields.py` | 抽取/更新字段规范（**默认拉平台实时接口**；`--source js` 走本地快照离线兜底） |
 | `cc-solo export submit` | `python scripts/cc-solo/submit_eval_result.py …` | ⛔ **本阶段先不执行**（接口已就位，等用户确认后再提交） |
@@ -163,8 +162,9 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
 2. **交付物无 AI 痕迹（红线）**：**提交 body 的所有字段**须已在 score 阶段去 AI 化。导出阶段的机械兜底只做符号类 error 与高频词类 warn，**不代改**；命中 error 的条目必须先回 `records/` 重新去 AI 化，再重新生成。
 3. **选填字段一律置空字符串**：提交 body 仍保持 24 字段的完整结构，但**所有选填字段（`is_required=false`）的值提交为空串**——本规范里只有 `other_issues`（其他问题）。内容仍留在 `records/` 与质检报告里备查，但**不提交内容**。
 4. **不提交到 API 的内部字段**：`备注（内部）`、`截图附件（内部）`、质检报告里的「去 AI 化字段清单」——这些只在 `records/` 与质检报告里留档，**不进提交 body**。
-3. 数据不允许返修：提交前完成自查；被抽检不合格的整批可能被拒收。
-4. `build_eval_result.py` 只读记录、只写 deliverables；`submit_eval_result.py` 不加 `--commit` 不发任何请求。**本阶段先不执行 `submit_eval_result.py`**（用户决定先不提交）。
-5. 中文文件一律 UTF-8（CSV 用 UTF-8 BOM，便于 Excel 打开）。
-6. 附件上限 20 MB（表单定义 `attachment_max_mb`）；整份轨迹通常远小于此（单题量级几百 KB），若超限先排查是否误传了整目录或依赖包。
-7. 旧产物口径（`正式提交表-*.csv`、飞书表 `Lg0mbjRpPaxjhmsj27MckrJLnec/tble0z2KnzCfjJmZ`）仅作历史留存，不再使用。
+5. 数据不允许返修：提交前完成自查；被抽检不合格的整批可能被拒收。
+6. `build_eval_result.py` 只读记录、只写 deliverables；`submit_eval_result.py` 不加 `--commit` 不发任何请求。**本阶段先不执行 `submit_eval_result.py`**（用户决定先不提交）。
+7. 中文文件一律 UTF-8（JSON 与质检报告均为 UTF-8 无 BOM 文本）。
+8. 附件上限 20 MB（表单定义 `attachment_max_mb`）；整份轨迹通常远小于此（单题量级几百 KB），若超限先排查是否误传了整目录或依赖包。
+9. 旧产物口径（`正式提交表-*.csv`、飞书表 `Lg0mbjRpPaxjhmsj27MckrJLnec/tble0z2KnzCfjJmZ`）仅作历史留存，不再使用。
+10. **不产出人工核对 CSV**（2026-09-12 起）：产物只有评价结果 JSON + 质检报告；早期版本生成的 CSV 已作废，不作为交付物。

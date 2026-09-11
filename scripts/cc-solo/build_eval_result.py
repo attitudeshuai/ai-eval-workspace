@@ -423,7 +423,9 @@ def collect_tasks(records_root):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--session", help="SESSION_NAME（默认取 secrets/config 的 active）")
-    ap.add_argument("--task", help="只导出指定任务 ID")
+    ap.add_argument("--task", action="append",
+                    help="只导出指定任务 ID；可重复传入，也可逗号分隔多个"
+                         "（如 --task a --task b 或 --task a,b）")
     ap.add_argument("--out", help="JSON 输出路径")
     args = ap.parse_args()
 
@@ -474,10 +476,17 @@ def main():
 
     tasks = collect_tasks(records_root)
     if args.task:
-        tasks = [(t, p) for t, p in tasks if t == args.task]
+        wanted = []
+        for raw in args.task:
+            wanted.extend(x.strip() for x in raw.split(",") if x.strip())
+        tasks = [(t, p) for t, p in tasks if t in set(wanted)]
         if not tasks:
-            print(f"[错误] 未找到任务 {args.task}（在 {records_root} 下）")
+            print(f"[错误] 未找到任务 {', '.join(wanted)}（在 {records_root} 下）")
             sys.exit(2)
+        missing = [w for w in wanted if w not in {t for t, _ in tasks}]
+        if missing:
+            print(f"[提示] 以下任务 ID 未找到，已跳过：{', '.join(missing)}")
+        print(f"[范围] 指定 {len(wanted)} 个任务 ID，命中 {len(tasks)} 个任务")
 
     records, notes = [], []
     if schema_check and schema_check["ok"] is False:

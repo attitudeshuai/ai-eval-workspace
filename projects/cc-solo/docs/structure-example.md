@@ -18,7 +18,7 @@ ai-eval-workspace/
 │   ├── docs/                           # runbook / structure-example / annotate-guide / docker 系列
 │   └── templates/                      # task-info.md / round-file.md（submit-headers.csv 已随旧流程退役）
 │
-├── deliverables/cc-solo/            # 评价结果（每轮一条 JSON）+ 核对 CSV + 质检报告
+├── deliverables/cc-solo/            # 评价结果（每轮一条 JSON）+ 质检报告
 │   └── cc-solo-0909/
 │
 └── sessions/cc-solo/                # 工作数据（gitignore）
@@ -159,8 +159,7 @@ cc-solo-app-12-codegen-06  →  /workspace  = 本机 source-code/app-12/app-12-c
 新增:
   deliverables/cc-solo/cc-solo-0909/
     ├── 评价结果-cc-solo-0909-<date>.json        # 主产物：24 字段 × 每轮一条 + 轨迹附件路径
-    ├── 评价结果-cc-solo-0909-<date>.csv         # 人工核对（中文表头）
-    └── 评价结果-cc-solo-0909-<date>-质检报告.md  # 逐条 error / warn
+    └── 评价结果-cc-solo-0909-<date>-质检报告.md  # 逐条 error / warn（不再产出人工核对 CSV）
 
   agent 执行（本阶段只跑第一条）：
     python scripts/cc-solo/build_eval_result.py

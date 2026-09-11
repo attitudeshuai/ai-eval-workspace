@@ -84,7 +84,7 @@ cc-solo export
 cc-solo export submit
 ```
 
-按提交表单的字段规范（`docs/submission/fields.json`，24 字段）生成 `deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（**一轮一条**，附同名核对 CSV 与质检报告）：
+按提交表单的字段规范（`docs/submission/fields.json`，24 字段）生成 `deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（**一轮一条**，附质检报告；不再产出人工核对 CSV）：
 
 ```bash
 python scripts/cc-solo/build_eval_result.py
