@@ -166,4 +166,15 @@ deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条）+ 核
 | [archive/](docs/archive/) | **已废弃**：旧版常驻容器说明（`cc <题号>` + `docker cp` 搬代码），仅对旧的 `20260907`/`20260908` 标签有效 |
 | [structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 | [annotate-guide.md](docs/annotate-guide.md) | 评分表 / 原因写法 / 雷同题清单速查 |
+| [ai-cliche-wordlist.md](docs/ai-cliche-wordlist.md) | **AI 痕迹词表与改写对照**：A 表四类（344 词）/ B 表三组（64 词）/ 跨轮次与前后对比 / 句式与标点层 / 正反例 / 公开来源清单（机器表以 `scripts/cc-solo/build_eval_result.py` 为准） |
 | [ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx) | 项目源规范 |
+
+## 脚本
+
+| 脚本 | 说明 |
+|------|------|
+| `scripts/cc-solo/build_eval_result.py` | 生成评价结果（24 字段 × 每轮一条）+ 核对 CSV + 质检报告；词表与符号检查的唯一来源 |
+| `scripts/cc-solo/check_round_files.py` | **轮次文件机械校验**（只读）：分数/描述/词表/符号/跨轮次与前后对比/轨迹文件一次跑完，有 error 返回码 1，可当导出前门禁；支持 `--project` `--task` |
+| `scripts/cc-solo/lint_round_prompt.py` | **下一轮提示词校验**（只读）：查是否「只写现象、不分条、无改法措辞」，附建议类措辞与 B 表密度 warn |
+| `scripts/cc-solo/extract_submit_fields.py` | 从平台表单定义抽取 `docs/submission/fields.json` |
+| `scripts/cc-solo/submit_eval_result.py` | 上传轨迹附件 + 提交评价结果（默认 dry-run，`--commit` 才真提交） |
