@@ -22,7 +22,7 @@ cc-solo 评价结果生成（替代原「正式提交表 CSV + 飞书投递」�
 - 只读记录文件；不改动任何数据。
 - 校验：① 表单规范（必填/选项/数值范围/长度/URL 正则）；② 项目规则（首轮非简单、
   SessionID 一致、TurnID 唯一、轮次 ≤10、轨迹文件存在、分数与描述方向一致等）；
-  ③ 去 AI 化层（humanizer 强制符号 / AI 套话词 / 长英文串 / 跨轮次承接与前后对比表述）。
+  ③ 去 AI 化层（humanizer 强制符号 / AI 套话词 / 跨轮次承接与前后对比表述）。
 - 轨迹文件是「附件」类型，本脚本只填**本机路径**；真正提交前由 submit_eval_result.py 上传拿到
   远端 path 再回填（见 json 里的 upload_api）。
 """
@@ -157,10 +157,10 @@ CROSS_ROUND = ("上一轮", "前一轮", "上轮", "上一次轮", "之前的轮
 # 要说退步就直接陈述现象（写「正确选项不再高亮」），不要写「比改动前退了一步」。
 PAST_COMPARE = ("改动前", "修改前", "比之前", "之前还", "上一版", "此前", "原来", "原先", "原本", "本来")
 
-# 长英文串（命令 / 参数 / 标识符 / 路径）：平台的 B-5「公共长片段」查重按连续字符比对，
-# 长英文串在别的提交里也常见 → 容易被判「套模板」打回。评价里尽量写成中文。
-LONG_TOKEN_MIN = 12      # ≥12 个连续英文字符：warn（提示改写）
-LONG_TOKEN_ERROR = 16    # ≥16 个连续英文字符：error（基本必被打回）
+# 长英文串：2026-09-13 起平台质检不再把英文（文件名 / 方法名 / 命令 / 参数）判为红线，
+# 也不再做机械检查；定位信息可以直接写真实标识。这两个常量保留给旧脚本引用，不再产生问题项。
+LONG_TOKEN_MIN = 12
+LONG_TOKEN_ERROR = 16
 LONG_TOKEN_RE = re.compile(r"[A-Za-z0-9_./\\-]{%d,}" % LONG_TOKEN_MIN)
 
 # 字段 key → 中文名（仅用于质检信息展示）
@@ -375,13 +375,8 @@ def validate(fields, spec, ctx, issues):
             issues.append(("error", key,
                            f"{label} 含与改动前对比的表述 {'、'.join(pc)}（描述必须能独立阅读：不要写「比改动前」"
                            f"「原来」「此前」这类需要先知道改之前是什么样才读得懂的写法，直接陈述现象与现状）"))
-        longs = sorted({m.group(0) for m in LONG_TOKEN_RE.finditer(text)}, key=len, reverse=True)
-        if longs:
-            worst = [t for t in longs if len(t) >= LONG_TOKEN_ERROR]
-            msg = ("长英文串 " + "、".join(f"{t}({len(t)})" for t in longs[:6])
-                   + ("…" if len(longs) > 6 else "")
-                   + "（平台 B-5 公共长片段查重按连续字符比对，容易被判套模板打回；请尽量改写成中文）")
-            issues.append(("error" if worst else "warn", key, f"{label} 含{msg}"))
+        # 长英文串（文件名/方法名/命令/参数）自 2026-09-13 起平台不再判红线，也不再做机械检查。
+        # 定位信息可以直接写真实标识，见 docs/annotate-guide.md §9。
 
     for key in AI_TEXT_HINT_FIELDS:
         text = str(fields.get(key) or "")
@@ -637,9 +632,8 @@ def main():
         f.write("- **选填字段一律置空字符串**：本规范里只有 other_issues（其他问题，`is_required=false`）——"
                 "字段保留在 body 里，值提交为空串（产物 JSON 里同样置空）；内部字段备注（内部）、"
                 "截图附件（内部）、以及本报告这份去 AI 化字段清单也不提交\n")
-        f.write(f"- **长英文串（红线）**：评价里尽量写成中文，避免出现 ≥{LONG_TOKEN_MIN} 个连续英文字符的"
-                f"命令/参数/标识符/路径（≥{LONG_TOKEN_ERROR} 记 error）。平台 B-5「公共长片段」查重按连续字符"
-                f"比对，长英文串在别的提交里也常见，容易被判「套模板」打回。\n")
+        f.write("- **英文标识（2026-09-13 起不再受限）**：文件名、方法名、命令、参数等技术标识可以直接写，"
+                f"平台质检已不把英文重复判为红线；定位信息给得越具体越好，脚本也不再对英文串报问题。\n")
         f.write("- **跨轮次承接表述（红线，实测被返修）**：每条描述必须能**独立阅读**，不要写"
                 "「上一轮」「前一轮」这类依赖其他轮次才懂的表述；直接陈述本轮的事实与证据"
                 "（如「本轮未动用任务板，因此没有可追踪的状态链」）。\n")

@@ -4,7 +4,7 @@
 
 对 records/ 下每个任务的 {任务}-R{NN}.md 逐条检查：
   分数 1-5 整数、五条描述非空、humanizer 强制符号、项目补充符号、A 表套话词、B 表密度、
-  跨轮次与前后对比表述、长英文串、分数与描述方向一致、任务类型/难度合法（难度不写「简单」）、
+  跨轮次与前后对比表述、分数与描述方向一致、任务类型/难度合法（难度不写「简单」）、
   TurnID 任务内唯一、SessionID 已回填、完整轨迹与本轮切片文件存在。
 
 用法：
@@ -150,11 +150,7 @@ def main():
                         pc = [w for w in ber.PAST_COMPARE if w in desc]
                         if pc:
                             errors.append("%s %s：与改动前对比的表述 %s" % (tag, dim, "、".join(pc)))
-                        longs = sorted({m.group(0) for m in ber.LONG_TOKEN_RE.finditer(desc)}, reverse=True)
-                        if longs:
-                            worst = [t for t in longs if len(t) >= ber.LONG_TOKEN_ERROR]
-                            (errors if worst else warns).append(
-                                "%s %s：长英文串 %s" % (tag, dim, "、".join(longs[:4])))
+                        # 长英文串自 2026-09-13 起平台不再判红线，这里不再检查
                         if re.fullmatch(r"[4-5]", sc or "") and any(t in desc for t in ber.STRONG_NEG):
                             warns.append("%s %s=%s 但含强失败词，复核方向一致性" % (tag, dim, sc))
                         if re.fullmatch(r"[12]", sc or "") and not any(t in desc for t in ber.NEG_ANY):

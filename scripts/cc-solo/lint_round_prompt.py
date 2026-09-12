@@ -6,9 +6,9 @@
   第二轮及以后只描述现象、不写怎么改、不分条列举；开头固定「修复bug：」。
 
 error 级：开头不对、出现分条列举（行首 1. / 1、/「第一，」）、出现改法类措辞（改成/换成/加个/补一条/
-        抽成/统一成/限住/去掉/二选一/收口…）、humanizer 强制符号、A 表套话词、长英文串（≥16 字符）、
+        抽成/统一成/限住/去掉/二选一/收口…）、humanizer 强制符号、A 表套话词、
         **含空行（红线：提示词不得有空行，段落之间只用单个换行）**。
-warn 级：建议类措辞（应该/建议/需要把/要把）、B 表密集、跨轮次与前后对比表述、长英文串（12–15 字符）。
+warn 级：建议类措辞（应该/建议/需要把/要把）、B 表密集、跨轮次与前后对比表述。
 
 > 空行红线（2026-09-13 起）：提示词全文不得出现空行，一段一行、段间单换行即可。空行在粘贴进容器时会被
 > 当成回车提前提交，且提交表里的 User Prompt 会带上一串空行。此前已发出的提示词不追改，本脚本对它们
@@ -126,10 +126,7 @@ def main():
                     dw = [w for w in ber.DENSITY_WARN if w in text]
                     if len(dw) >= ber.DENSITY_WARN_MIN:
                         warns.append("%s：B 表密集 %s" % (tag, "、".join(dw)))
-                    longs = sorted({m.group(0) for m in ber.LONG_TOKEN_RE.finditer(text)}, reverse=True)
-                    if longs:
-                        worst = [t for t in longs if len(t) >= ber.LONG_TOKEN_ERROR]
-                        (errors if worst else warns).append("%s：长英文串 %s" % (tag, "、".join(longs[:4])))
+                    # 长英文串自 2026-09-13 起平台不再判红线，这里不再检查
                     cr = [w for w in ber.CROSS_ROUND if w in text]
                     pc = [w for w in ber.PAST_COMPARE if w in text]
                     if cr or pc:

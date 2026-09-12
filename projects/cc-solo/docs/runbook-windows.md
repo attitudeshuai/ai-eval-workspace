@@ -20,7 +20,7 @@
 | 轨迹目录 | `/home/node/.claude/projects/-workspace/` | 相同 |
 | 会话恢复 | 不可恢复（一次性容器，哨兵拒绝 `--continue`） | 同题可 `claude --continue` / `--resume` |
 
-> 除第 2 步的终端命令外，其余各步（建任务/出题/单轮录入/五维打分/生成评价结果/提交）与 Mac 版完全一致。第 3~7 步照抄 Mac 版即可。
+> 除第 2 步的终端命令外，其余各步（建任务/出题/单轮录入/五维打分/生成评价结果/提交/返修）与 Mac 版完全一致。第 3~8 步照抄 Mac 版即可；本文各步里凡涉及路径与命令的地方按 Windows 写法（反斜杠、PowerShell）。
 
 ---
 
@@ -47,6 +47,7 @@ cc-solo {项目} {操作}
 
 - **一个任务 = 一个会话窗口（≤10 轮）= 一个容器 = 一个本机工作目录；一轮 = 一条数据**。
 - **AI 交付文本必须先经去 AI 化**：AI 起草的提示词/评分依据无论练习还是正式，落盘/投递前都须先经 `skills/humanizer-zh` 去 AI 化（练习阶段允许 AI 直接打分、无需人工确认；正式交付再人工复核），并严格按五维模式；人工撰写的原文保持原样。
+- **提示词不得有空行（红线）**：首轮提示词与 `{任务}-R{NN}-prompt.md` 全文都不得出现空行，一段一段分行写、段间只用单个换行。空行粘进容器输入框会被当成回车提前提交，题会被截成两半（Windows 侧虽然能用 `claude --continue` 接着跑，但会白多出一轮）；提交表里的 `User Prompt` 也会原样带上这串空行。落盘前跑 `python scripts/cc-solo/lint_round_prompt.py --project {项目}`（含空行记 error）；此前已发出的提示词不追改。
 - 被标注模型跑在 **Claude Code** 里，由用户在终端里操作，本 skill 不代跑。
 - Windows 下 Claude Code 跑在 Docker 容器里，**终端命令用 PowerShell 执行**。
 
@@ -57,6 +58,7 @@ cc-solo {项目} {操作}
 | 本地 → 容器（挂载任务副本为 `/workspace`，无需 docker cp/chown） | **agent 自动** | Windows 直接挂载，Mac 由 agent 启动后播种 |
 | 容器 → 本地（导出轨迹；代码产物已在挂载目录，无需回导） | **agent 自动** | 依赖包按 `.gitignore` 排除/清理 |
 | 容器里跟 Claude Code 交互（贴提示词、追加轮次） | **人工** | 唯一需要你操作的环节 |
+| 收尾（导出完整轨迹核对 + 按 .gitignore 清理依赖 + 删容器） | **agent 自动** | Windows 直接挂载，源码不用回导，只清理依赖 |
 | 切轮次、写 R0N、五维打分、导出 | **agent 自动** | 你只发指令（`round N`/`score N`） |
 
 > 一句话：你只在容器里跑 Claude Code；其余建副本、挂载、导出轨迹、切片、录入、打分、导出全由 agent 在宿主机直接执行。
@@ -112,11 +114,11 @@ test*1
 
 ### AI 会执行
 
-0. **雷同题红线（第一步必检）**：对照 `docs/annotate-guide.md` §7「不被允许的雷同题」逐项核查素材源项目主题。**命中即中止**，提示用户换素材，不得继续建副本/出题/打快照。
+0. **雷同题红线（第一步必检）**：对照 `docs/annotate-guide.md` §7「不被允许的雷同题」逐项核查素材源项目主题（经典小游戏与变种、塔防/2D 解谜/潜行/平台跳跃、粒子物理、喂食小动物、CLI 工具、CRUD/后台/电商/预约系统、报表看板、番茄钟/天气/记账等）。**命中即中止**，提示用户换素材，不得继续建副本/出题/打快照。
 1. 校验仓库存在、工作区干净、`.gitignore` 无泄漏风险（`.env`/密钥/token 已覆盖）；**并校验仓库结构**：素材源是否位于 `source-code/{项目}/`（唯一 git 仓库），任务副本是否按类型分组 `{项目}-{类型}/{项目}-{类型}-{索引}/` 嵌套其下。结构不规范 → 先列「实际结构 vs 规范结构」差异 → **提示用户确认** → 确认后整理成该格式再继续（未确认不移动文件）。
 2. **准备远端（一个素材源 = 一个 base commit 快照）**：用 `github_username` + PAT 为**该素材源**新建（或复用）**一个** GitHub 仓库（`cc-solo-{项目}`，如 `cc-solo-app-12`），把本地 origin 指向它；来源仓库仅作内容来源，不向其提交。
 3. **打初始快照**：提交一个 baseline commit → push 到**该仓库** → 取**完整 40 位 SHA** 生成 permalink（`https://github.com/<owner>/cc-solo-{项目}/commit/<40sha>`）。**该素材源下所有任务副本共用这同一个快照地址。**
-4. 创建 `records/app-12/app-12-codegen/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 任务 ID。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Claude Code→本次导出到本机的 `records/{任务}/{任务}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace/`）
+4. 创建 `records/app-12/app-12-codegen/task-info.md`：Repo URL、本地路径、初始环境快照、Harness、Harness版本、操作系统、环境可复现等级（共享字段）；记录目录名 = 任务 ID。轨迹根目录留待首轮 SessionID 回填后按 Harness 定位（Claude Code→本次导出到本机的 `records/{任务}/{任务}-trajectory.jsonl`，其容器内来源为 `/home/node/.claude/projects/-workspace/`）。**建议同时记录镜像 tag + manifest digest 与隔离模式**，否则不同批次的数据无法追溯到底跑的是哪个镜像。
 5. 起草**首轮提示词**（真实用户口径、自然语言）：可引用 `prompt-architect` 起草；练习阶段经人工确认后写盘即可，正式交付时再先经 `humanizer-zh` 去 AI 化。
 6. **准备容器挂载源（Windows）**：任务副本目录就是模型工作目录。Windows 直接把本机任务副本目录 `{REPO_BASE_PATH}\{项目}\{项目}-{类型}\{项目}-{类型}-{索引}\` 挂载为容器的 `/workspace`（见第 2 步 `docker run -d --mount type=bind,source=<副本目录>,target=/workspace`），**不需要 `docker cp` 把代码放进容器，也不需要 chown**。⚠️ 挂载目录里**不要放依赖包**（node_modules/.venv/__pycache__/dist 等，体积大），副本应只含被 git 跟踪的源码文件；任务结束后按 `.gitignore` 清理模型新装的依赖。
 7. 输出：任务信息文件路径 + 首轮提示词，提示用户确认后到 Windows 容器内 Claude Code 执行
@@ -282,7 +284,12 @@ records/app-12/app-12-codegen/app-12-codegen-R01.md   # 已填入五维打分与
 ## 第 5 步：会话结束，开新任务
 
 - 达到 10 轮，或模型达成目标且无需继续时，本任务结束
-- 新开 Claude Code 会话窗口与任务目录，重复第 1-4 步：同一项目继续另一种类型用 `app-12-feat`（在生成产物上迭代）/ `app-12-bugfix`（埋点后修复）等新任务 ID；全新项目则用新仓库名（如 `app-13-codegen`）
+- **收尾三步（agent 执行）**：
+  1. 导出完整轨迹并核对：`docker cp "cc-solo-{任务}:/home/node/.claude/projects/-workspace/." <目标目录>`，与该任务已录入的各轮切片比对，确认不缺轮；
+  2. 源码不用回导——Windows 是把任务副本目录直接挂载成 `/workspace`，模型改的就是本机那份，只需按 `.gitignore` 排除/清理模型新装的依赖包（node_modules/.venv/__pycache__/dist 等）；
+  3. 该任务不再需要继续对话时 `docker rm "cc-solo-{任务}"`（**确认轨迹已导出后再删**）。Windows 侧容器支持 `--continue`，想留着补几轮就先别删；可用 `docker ps -a --filter name=cc-solo-` 盘点本期还有哪些容器。
+- 新开任务：重复第 1-4 步，使用**新的任务副本目录 + 新容器**（容器名换新任务名，不能复用旧容器）：同一项目继续另一种类型用 `app-12-feat`（在生成产物上迭代）/ `app-12-bugfix`（埋点后修复）等新任务 ID；全新项目则用新仓库名（如 `app-13-codegen`）
+- ⚠️ 若会话中途意外退出且无法继续：剩余轮次作废，按已导出的轮次收尾，并在 `task-info.md` 备注「会话提前终止（第 N 轮后）」
 
 ---
 
@@ -301,6 +308,7 @@ cc-solo export
 1. **先请求平台表单定义接口**（`GET .../submissions/form-schema`），与本地 `docs/submission/fields.json` 比对 fingerprint 与字段集合，防止平台表单改了本地还按旧规范生成；不一致就重跑抽取再继续。
 2. 如需更新规范：`python scripts/cc-solo/extract_submit_fields.py`（**默认拉平台实时接口**，`--source js` 用本地快照）→ 写 `docs/submission/fields.json`
 3. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
+   - **样例项目不导出、不提交**：`records/{项目}/` 下的 `h5-demo` 只是样例（快照填的是本地裸 SHA、首轮难度写了「简单」，本就不满足提交要求），导出脚本按 `config.toml [exclude].projects` 直接跳过并打印跳过了哪几条。新增样例项目时往那个数组里加名字即可，**不要靠临时参数或人工记得排除**。
 4. 运行质检（表单规范层 + 项目规则层 + 去 AI 化层），逐条给出 error / warn
 5. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ `-质检报告.md`（**不再产出人工核对 CSV**，2026-09-12 起取消）
 
@@ -323,15 +331,15 @@ deliverables/cc-solo/session-0909/评价结果-session-0909-<date>-质检报告.
 
 ---
 
-## 第 7 步：提交（提交接口）—— ⛔ 本阶段先不提交
+> **本节与 Mac 版完全一致**：提交走同一套接口与脚本，与容器跑在哪台机器无关；命令按 Windows 写法执行（PowerShell，路径用反斜杠）。
 
-> **提交接口已就位**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。
->
-> 但**本阶段先不提交数据**（用户决定）：只做到第 6 步——生成评价结果 + 质检，**不上传轨迹附件、不调提交接口**。需要提交时用户说一声，由 agent 执行本节。
+## 第 7 步：提交（提交接口）
+
+> **提交接口已启用**：`POST https://solo2.jzxhnh.com/api/v1/submissions`，已写在 `config.toml [submission].submit_url`（`secrets.toml [submission].submit_url` 若填写则优先），`docs/submission/fields.json` 的 `submit_api.url` 也已同步。2026-09-12 起已实际提交（app-001-codegen-03~10 共 10 条）。
 >
 > 凭据在 `secrets.toml [submission]`（`cookie` + `username` / `password`）；cookie 约 2 天过期，**脚本会自动登录刷新并回写**，无需手工复制。登录结果缓存在 `projects/cc-solo/.solo_session.json`（gitignore），**没过期就不会重复登录**（`--status` 查看）。
 
-### 指令模板（本阶段先不执行）
+### 指令模板
 
 ```text
 cc-solo export submit
@@ -343,8 +351,8 @@ cc-solo export submit
 2. **先 dry-run**（不发任何请求，只打印将上传的轨迹与将提交的字段）：
    `python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json`
 3. 先只上传轨迹、验证 cookie 与附件链路：`… --upload-only --commit --write-back`（会把远端 path 回写进结果文件）
-4. 正式提交：`… --commit`（或加 `--url <提交接口>`；`--only-ready` 可跳过仍有 error 的条目）
-5. 输出每条的上传结果与接口返回；失败的条目修正后重试，避免重复提交
+4. 正式提交：`… --commit`（或加 `--url <提交接口>`；`--only-ready` 可跳过仍有 error 的条目、`--record <任务#轮次>` 可只提某一条）
+5. 输出每条的上传结果与接口返回；失败的条目修正后重试，**已提交的同一条不要再 POST**（平台按 SessionID + TurnID 判重，会返回 422）
 
 ### 产物
 
@@ -356,3 +364,46 @@ cc-solo export submit
 - cookie 会过期（约 2 天）：脚本优先复用会话缓存，缺失/过期或遇到 401、403 时才自动登录刷新（也可 `--login-only --commit` 主动续期、`--status` 查看剩余有效期）。
 - 时限沿用约定：当天 20:00 前产生的数据当天提交，20:00 之后的次日 14:00 前提交。
 - 旧的飞书投递（`append_delivery_feishu.py`）与 CSV 提交表（`export_submit.py`）**已退役**，仅作历史留存。
+
+---
+
+## 第 8 步：返修（提交被打回后整改并更新）
+
+> 平台质检（本地规则 / 查重 B 与 A / 五维描述）会给每条提交一个结论：**通过**（`QC_PASSED`）或以 **待返修**（`PENDING_FIX`）退回，退回时给出命中规则与原因（如「任务规划 - 描述」与历史数据 #1196 重复，命中子规则 B-7 分段复读，相似度 39.8%）。
+
+### 指令模板
+
+```text
+cc-solo 返修 3347
+```
+
+多个 ID 一起发：`cc-solo 返修 3347 3351`（或逗号分隔）。**你只发这一行**，下面全部由 agent 执行。
+
+### AI 会执行
+
+1. **查详情**（只读 GET `{提交接口}/{ID}`）：读出该条的状态（`status` / `status_label`）、`current_version`、`editable`、命中规则（`qc_hit_rule_label`）、打回原因（`qc_summary`）、重复命中明细（`dedup_hits[]`：命中字段、相似度、对比来源、历史侧与本次侧摘要）、锁定字段（`locked_fields`）。原始详情落盘到 `deliverables/cc-solo/{SESSION}/submission-{ID}-detail.json` 备查。
+   ```powershell
+   python scripts/cc-solo/submit_eval_result.py --detail-id 3347
+   ```
+2. **按原因整改 `records/` 里对应轮的描述**（不是改平台上的字，也不是改产物文件）：
+   - 命中 **B-7 分段复读 / 长片段** → **针对本轮实际轨迹重写**该字段：换掉与历史池重合的句式，写进这一轮独有的证据（读了哪些文件、依赖顺序、中途改了什么方案、哪一步没核实），依据一件不减、不添新说法；
+   - 命中 **A 表套话词 / 符号** → 按 `docs/annotate-guide.md` §9 改写；定位信息写到页面、处理、第几步与对应文件或方法（英文标识可直接写）；
+   - 命中 **跨轮次 / 前后对比** → 去掉「上一轮／原来／原先／本来」这类说法，直接陈述现象与现状。
+   改完过门禁：`python scripts/cc-solo/check_round_files.py --task {任务}`（要 `error 0`）。
+3. **更新到平台**（PUT `{提交接口}/{ID}`，body 与提交同形，另带 `comment`）：轨迹附件**沿用平台上已有的那一份**，不重新上传；字段逐项与平台现值比对，只把改动写上去，更新前打印「将更新 N 个字段」供确认。
+   ```powershell
+   # 先预览（不发请求）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 3347
+   # 确认后执行（把 --commit 加上；--comment 可自定义备注）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
+     --update-id 3347 --comment "按质检打回意见整改后更新" --commit --write-back
+   ```
+4. **回报**：新版本号（`current_version`）、新状态，以及这次改了哪个字段、改前改后字数；平台随即重新质检，稍后可再 `--detail-id` 查看新结论。
+
+### 注意事项
+
+- `editable=false`（如质检中、已通过、已裁决）时**不能改**，脚本会跳过并说明当前状态；只有 `PENDING_FIX`（待返修）才可更新。
+- **锁定字段不可改**：`env_snapshot`、`harness`、`repro_level`（平台侧 `locked_fields` 给出，改别的字段即可）。
+- 附件沿用平台的远端文件，**不要**为了返修重新上传轨迹（上传会生成新文件，白占空间）。
+- 返修改的是 `records/` 数据文件，**改完要重新生成评价结果**（`cc-solo export`）再走本步，别手改产物 JSON。
+- 返修不产生新记录，只升版本号；同一条反复被打回时，每次都要按**新的打回原因**重新整改，别只改一处字。
