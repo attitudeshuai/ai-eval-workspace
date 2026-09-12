@@ -173,6 +173,10 @@ form_schema_url = "https://solo2.jzxhnh.com/api/v1/submissions/form-schema"
 # 自动登录刷新（请求体 {"username":…,"password":…}，从响应 Set-Cookie 取新 cookie 并回写 secrets.toml）
 login_url = "https://solo2.jzxhnh.com/api/v1/auth/login"
 attachment_max_mb = 20
+# 返修排除名单：这些提交 ID 一律不整改、不更新（规则的最终判定还没定，动了会与别人正在对齐的
+# 口径冲突）。scripts/cc-solo/list_pending_fix.py 默认读这里，并把它们从待处理清单里剔除；
+# 临时覆盖用 --exclude id1,id2。增删请连同原因一起写在这里。
+fix_exclude_ids = [4142, 4143, 4144]
 
 # ============================================================
 # [已退役] 飞书多维表格投递

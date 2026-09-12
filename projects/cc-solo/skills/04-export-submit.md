@@ -49,7 +49,8 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 | `cc-solo export <任务名>` | `python scripts/cc-solo/build_eval_result.py --task <任务名>` | 只生成指定任务 |
 | `cc-solo export fields` | `python scripts/cc-solo/extract_submit_fields.py` | 抽取/更新字段规范（**默认拉平台实时接口**；`--source js` 走本地快照离线兜底） |
 | `cc-solo export submit` | `python scripts/cc-solo/submit_eval_result.py …` | 上传轨迹附件 + 提交（先 dry-run，再 `--upload-only --commit --write-back`，最后 `--commit`） |
-| `cc-solo 返修 <提交ID>` | `python scripts/cc-solo/submit_eval_result.py --detail-id <ID>` → 整改 `records/` 描述 → `--update-id <ID> --commit --write-back` | 提交被打回后：查详情读打回原因 → 针对本轮轨迹重写描述 → 过门禁 → PUT 更新升版本。多个 ID 用空格或逗号分隔 |
+| `cc-solo 返修` | `python scripts/cc-solo/list_pending_fix.py --detail` → 归类打回原因 → 整改 `records/` → `--update-id <ID> --commit --write-back` | **不带 ID**：先拉提交列表筛出**待返修**（`PENDING_FIX`），**排除 `config.toml [submission].fix_exclude_ids` 里的 ID**，归类原因后逐条整改更新，最后把新规则写回文档（步骤 6） |
+| `cc-solo 返修 <提交ID>` | 同上（跳过发现步骤，直接整改这几条） | 已知 ID 时用这条；多个 ID 用空格或逗号分隔 |
 
 > 以下命令**仅供 agent 查阅与执行，你不需要手敲**（`--session` 缺省取 `config.toml [sessions].active`）：
 
@@ -140,6 +141,17 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
 
 > error 会阻塞该条（`ready=false`）；warn 只提示，需人工复核后决定。
 
+④ **描述风险自查（提示级，2026-09-13 新增脚本）**：`check_round_files.py` 只查得到硬红线，平台 LLM 质检打回的另一类写法（次数无对象、空指代、环境原因挂扣分、主观形容词）要靠这个脚本兜：
+
+```bash
+python scripts/cc-solo/scan_desc_risks.py --project cc-002                 # 全部任务
+python scripts/cc-solo/scan_desc_risks.py --project cc-002 --task cc-002-feature
+python scripts/cc-solo/scan_desc_risks.py --project cc-002 --json out.json  # 机器可读
+```
+
+- 四条规则：**R1 次数统计无对象**、**R2 空指代**、**R3 环境原因挂扣分（只看「执行能力」）**、**R4 主观形容词**；命中只是提示，**需人工判断**（脚本已排除「没有 / 都正常 / 第 N 次」这类已定位或全通过的表述，仍有少量误报）。
+- 命中的地方**不必逐条改**：逐条对照 `docs/annotate-guide.md` §9 判断该条是否真的缺位置或后果；缺就按 §9 改写，不缺就别动（避免为过自查把已经过关的描述改坏）。
+
 ### 步骤 4：上传轨迹附件 + 提交（submit）
 
 > 指令：`cc-solo export submit`。先 dry-run 看计划，再上传轨迹验证链路，最后正式提交。
@@ -161,24 +173,53 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
 
 ### 步骤 6：返修（提交被打回后整改并更新）
 
-> 指令：`cc-solo 返修 <提交ID>`（多个 ID 用空格或逗号分隔）。平台质检结论为 **待返修**（`PENDING_FIX`）时才会用到。
+> 指令：`cc-solo 返修`（**不带 ID**：先自己拉列表发现待返修）或 `cc-solo 返修 <提交ID>`（已知 ID，多个用空格或逗号）。平台质检结论为 **待返修**（`PENDING_FIX`）时才会用到。
 
-**链路**：查详情 → 按打回原因整改 `records/` 描述 → 过门禁 → PUT 更新升版本。
+**链路**：发现（列表）→ 归类打回原因 → 查详情 → 整改 `records/` 描述 → 过门禁 → 重新生成评价结果 → PUT 更新升版本 → **复盘：把新出现的规则写回本文档与 `docs/annotate-guide.md`**。
 
-1. **查详情**（只读）：
+**6.0 发现 + 归类**（`cc-solo 返修` 不带 ID 时的第一步）
+
+```bash
+python scripts/cc-solo/list_pending_fix.py --detail                      # 清单 + 逐条打回原因
+python scripts/cc-solo/list_pending_fix.py --detail --json <out.json>    # 机器可读清单（返修流水线用）
+```
+
+- 列表接口：`GET {提交接口}?page=1&page_size=20&stage=&keyword=&date_from=&date_to=&user_id=0`，返回 `items[]` 与 `meta{page,page_size,total,total_pages}`；脚本自动翻页，只看 `status == PENDING_FIX`。
+- **排除名单（红线）**：`config.toml [submission].fix_exclude_ids`（当前 `4142, 4143, 4144`）里的提交**一律不整改、不更新**——这几条规则的最终判定还没定，动了会与别人正在对齐的口径冲突。脚本会把它们从待处理清单里剔除并打印「另排除 N 条」；临时覆盖用 `--exclude id1,id2`。
+- **先归类再动手**：把失败项按「维度 · 规则」统计（`--detail` 的输出就是这个结构），先看清本批是**哪几条规则**在打回、各占多少条，再决定改法。同类规则要**批量改**，不要逐条凭感觉改字。
+
+**6.1 查详情**（只读，`list_pending_fix.py --detail` 已包含；也可单条查）：
    ```bash
    python scripts/cc-solo/submit_eval_result.py --detail-id 3347
    ```
    打印并落盘：`status` / `status_label`、`current_version`、`editable`、`qc_hit_rule_label`（命中规则）、`qc_summary`（打回原因）、`dedup_hits[]`（命中字段、相似度、对比来源 peer、历史侧与本次侧摘要）、`locked_fields`；原始详情存 `deliverables/cc-solo/{SESSION}/submission-{ID}-detail.json`。
+   **`list_pending_fix.py --detail` 直接把每条拆成「缺失要素 + 原文依据 + 修改建议」三行**（例：`· [执行能力] 把环境或界面问题当评价依据` / `原文依据：「有一次是环境里没装数据库访问依赖」` / `修改建议：扣分只保留模型自身造成的失败调用…`）——整改时**逐条对着这三行改**，不要只看 `qc_summary` 那段总述；平台给的建议句可以直接当改写目标，但**不要照抄它的示例句原文**（会把它的措辞带进评价结果）。
+   - 注意：`--detail` 输出较长，用 PowerShell 管道接 `Select-Object -First N` 会提前掐断管道并让进程以非零码退出，那不是脚本故障；要看全就整段输出或落盘后再看。
+   - 推送完不等于过关：平台重新质检后**同一条可能带着新打回原因再次退回**（实测 v2 整改推送后又有 2 条以新原因回到 `PENDING_FIX`，版本号升到 v3）。所以每次返修都要**重新拉一遍待处理清单**，别按旧清单收工。
 
-2. **整改（agent 做，改的是 `records/`，不是平台字、也不是产物 JSON）**：
+**6.2 整改（agent 做，改的是 `records/`，不是平台字、也不是产物 JSON）**：
+
    - **B-7 分段复读 / B 长片段**：**针对本轮实际轨迹重写该字段** —— 换掉与历史池重合的句式（如「在思考里先拆几步再动手…没给到 N 分是因为只有思考里的分步」这类通用句式），写进本轮独有的证据（读了哪些文件、依赖顺序、中途换过什么方案、哪一处没核实）；依据一件不减、不添新说法。
    - **A 表套话词 / 符号**：按 `docs/annotate-guide.md` §9 改写；定位信息可以带文件名与方法名（2026-09-13 起英文不再受限）。
    - **跨轮次 / 前后对比**：去掉「上一轮／原来／原先／本来／此前」，改成直接陈述现象与现状。
-   - 改完跑门禁，要 `error 0`：`python scripts/cc-solo/check_round_files.py --task {任务}`。
-   - 需要重新生成评价结果时：`python scripts/cc-solo/build_eval_result.py --task <任务1,任务2,…>`（只重生成指定任务，避免把别的任务一起刷新）。
+   - **非满分描述三要素（2026-09-12 实测打回，一批 22 条里 55 处栽在下面前四条）**：
+     1. 任何 **< 5 分**的维度，描述必须同时写清 ①**具体位置**（第几步 / 哪次工具调用 / 哪个页面或接口 / 哪个文件或函数 / 哪条命令或报错原文）②**该维度的负面判断**（这一维到底哪里不足）③**具体行为与客观后果**（返工、遗漏、用户看到什么、多花了哪些步骤、功能不可用）。只写「没有做／不够远／有问题」这类结论，必被打回。
+     2. **禁主观形容词**：不写「不可追踪」「轻微反复」「明显的猜测式推理」这类评价词，换成客观事实（几次调用、哪几步、哪个页面、哪条命令、具体少了哪一项）。
+     3. **必须成完整句**：每个分句都有主谓，不能名词短语堆砌（「十六次改动只读过一次文件，其余依赖对文件的印象」这种电报式短语被打回）。
+     4. **4 分档也要写扣分点**：整段只肯定、一句不足都没有，会被判「打分与描述极端背离」。
+     定位信息可以写中文业务语义，也可以点名具体文件、函数、命令——平台自 2026-09-13 起不再把英文技术标识判为红线，LLM 质检反而要求位置具体。
+    - **第二轮打回实测（2026-09-13，一批 29 条里 7 条二轮被打回，全部栽在「位置不够具体 + 没有后果」）**：
+      5. **次数统计 ≠ 具体位置**：「四十次调用里只有一次被拒」「三次没成功」「两次试探略冗余」这类**没有对象的次数**一律被打回，要求落到「第几次工具调用 + 文件名/函数名 + 命令原文/报错原文」。改法：把每次失误**逐条摊开**——`第 12 次调用改 backend/src/models/post.js 时把计数字符串当数字传入，接口回了参数类型不合法`，比「有一次因参数类型写错被拒」强得多。
+      6. **指代不能空**：`查不清的那条`、`同一条现象`、`这一步`、`那处判断` 这类没有具体指向的说法会被判「读者无法定位」，必须直接点名**哪一组现象 / 哪个页面 / 哪个文件 / 哪个函数 / 第几次调用**。
+      7. **环境原因不算能力扣分**：容器或环境缺依赖（没装数据库访问组件、基础镜像没编译工具链等）造成的调用失败，**不得作为「执行能力」的扣分依据**——平台明确判定「这不是模型自身能力造成的」。要换成**模型自己写错断言/桩、命令参数写错、同段逻辑换三版**这类自身失误来支撑扣分，分数档位不变。
+      8. **批量改会撞 B-6 骨架累加雷同**：同批多条用**同一套骨架句**改写（实测「用户报的 N 条逐条能对上…改动没有越出…偏差是…这个取舍它自己定了没有向用户求证」被判定与同批已交付数据骨架重合，相似度 47.7%）会被判重。**每条描述都要换结构**，别让同批文本读出同一个模板。
+      9. **改完必须重跑门禁 + 全字段红线扫描**：改写过程本身会引入新红线（实测一轮改写新引入 A 表词 `收尾` 1 处、humanizer 符号 `「」` 1 处）。门禁过后再扫一遍全字段，两个都干净才推平台。
 
-3. **更新到平台**（PUT）：
+   改完跑门禁，要 `error 0`：`python scripts/cc-solo/check_round_files.py --task {任务}`。
+   再跑一次描述风险自查看有没有新引入的问题写法：`python scripts/cc-solo/scan_desc_risks.py --project {PROJECT} --task {任务}`（提示级，命中需人工判断）。
+   需要重新生成评价结果时：`python scripts/cc-solo/build_eval_result.py --task <任务1,任务2,…>`（只重生成指定任务，避免把别的任务一起刷新）。
+
+**6.3 更新到平台**（PUT）：
    ```bash
    # 预览（不发请求）：逐字段与平台现值比对，打印「将更新 N 个字段」
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 3347
@@ -187,17 +228,24 @@ GET https://solo2.jzxhnh.com/api/v1/submissions/form-schema
      --update-id 3347 --comment "按质检打回意见整改后更新" --commit --write-back
    ```
    - 记录定位：优先用 `--record <任务#轮次>`，否则按详情里的 `session_id` + `turn_id` 在结果文件里匹配。
+   - `--update-id` 必须配 `--result <评价结果.json>`（只给 `--update-id` 会报「必须提供 --result」）；`--interval` 是**纯数字秒**（`--interval 5`，写 `5s` 会解析失败）。
    - **轨迹附件沿用平台上已有的那份**（`trace_file` 取详情返回值，url 形式），不重新上传。
    - 响应含 `current_version`（新版本号）与 `status`，加 `--write-back` 写回结果 JSON 的 `update_response`。
 
-4. **回报**：新版本号、新状态、改了哪个字段（改前改后字数）；平台随后重新质检，可再 `--detail-id` 看新结论。
+**6.4 回报 + 复盘（自我学习，必做）**：
+
+   - 回报：新版本号、新状态、改了哪个字段（改前改后字数）；平台随后重新质检，可再 `--detail-id` 看新结论。
+   - **复盘**：把这一轮**新出现的打回规则**补进本文档步骤 6、`docs/annotate-guide.md` §9、`skills/03-score-annotate.md` 的硬性要求。
+   - 规则要写成**可执行的自查项**（带反例与改写示例），不要只记一句结论；同一条规则再次打回，说明自查项没落地，**优先改自查项**而不是只改这一条数据。
 
 **硬性注意**：
 
 - `editable=false`（质检中 / 已通过 / 已裁决）**不能改**，脚本会跳过并说明当前状态；只有 `PENDING_FIX` 可更新。
 - **锁定字段不可改**：`env_snapshot`、`harness`、`repro_level`（详情里的 `locked_fields`）。
+- **排除名单里的 ID 一律不动**（`config.toml [submission].fix_exclude_ids`）。
 - 返修**只升版本、不新增记录**；反复被打回时每次都要按**新的打回原因**重新整改，别只改一处字就重提。
 - 更新前必须先把 `records/` 改好并过门禁——脚本只负责把本地现状推上去，不代改文案。
+- 返修不是「改字过关」：先归类、后批量改、最后复盘，才算走完一步。
 
 ## 注意事项
 
