@@ -110,7 +110,7 @@ projects/cc-solo/
 ├── config.toml                  # 项目配置（路径、类型、难度、评分、轮次上限）
 ├── secrets-simple.toml          # 本地敏感配置模板
 ├── README.md
-├── docs/                        # runbook / structure-example / annotate-guide / 源 docx
+├── docs/                        # runbook / structure-example / annotate-guide / reject-reasons / 源 docx
 ├── skills/                      # 01-task-create / 02-round-capture / 03-score-annotate / 04-export-submit
 └── templates/                   # task-info.md / round-file.md（submit-headers.csv 已随旧流程退役）
 
@@ -166,7 +166,8 @@ deliverables/cc-solo/{SESSION_NAME}/       # 评价结果（每轮一条 JSON）
 | [archive/](docs/archive/) | **已废弃**：旧版常驻容器说明（`cc <题号>` + `docker cp` 搬代码），仅对旧的 `20260907`/`20260908` 标签有效 |
 | [structure-example.md](docs/structure-example.md) | 完整目录结构样例（含路径映射） |
 | [annotate-guide.md](docs/annotate-guide.md) | 评分表 / 原因写法 / 雷同题清单速查 |
-| [ai-cliche-wordlist.md](docs/ai-cliche-wordlist.md) | **AI 痕迹词表与改写对照**：A 表四类（344 词）/ B 表三组（64 词）/ 跨轮次与前后对比 / 句式与标点层 / 正反例 / 公开来源清单（机器表以 `scripts/cc-solo/build_eval_result.py` 为准） |
+| [reject-reasons.md](docs/reject-reasons.md) | **平台质检打回原因与规避清单**：规则号 / 平台原文 / 触发条件 / 规避办法速查表，4 类打回（骨架雷同、电报式硬伤、缺定位信息、轨迹 T2）的逐条详解与正反例（含“不写字面代码”与“要给定位信息”的平衡写法），返修流程（`--detail-id` 查原因 → 改记录 → 重跑导出 → `--update-id` 更新），以及 2026-09-12 本批 8 条打回记录 |
+| [ai-cliche-wordlist.md](docs/ai-cliche-wordlist.md) | **AI 痕迹词表与改写对照**：A 表五类（349 词，含 A5 标注负责人点名不再使用的词）/ B 表三组（64 词）/ 跨轮次与前后对比 / 句式与标点层 / 正反例 / 公开来源清单（机器表以 `scripts/cc-solo/build_eval_result.py` 为准） |
 | [ClaudeCcode 用户满意度标注.docx](docs/ClaudeCcode%20用户满意度标注.docx) | 项目源规范 |
 
 ## 脚本
