@@ -45,7 +45,7 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 
 | 你发的指令 | agent 执行 | 说明 |
 |------|------|------|
-| `cc-solo export` | `python scripts/cc-solo/build_eval_result.py` | 扫描全部任务 → 评价结果 JSON + 质检报告（**内部第一步会自动先请求表单定义接口**） |
+| `cc-solo export` | `python scripts/cc-solo/build_eval_result.py` | 扫描全部任务 → 评价结果 JSON + 质检报告（**内部第一步会自动先请求表单定义接口**）。扫描时按 `config.toml [exclude].projects` **跳过样例项目**（`h5-demo` 只作样例，不导出不提交），并在输出里打印跳过了哪几条 |
 | `cc-solo export <任务名>` | `python scripts/cc-solo/build_eval_result.py --task <任务名>` | 只生成指定任务 |
 | `cc-solo export fields` | `python scripts/cc-solo/extract_submit_fields.py` | 抽取/更新字段规范（**默认拉平台实时接口**；`--source js` 走本地快照离线兜底） |
 | `cc-solo export submit` | `python scripts/cc-solo/submit_eval_result.py …` | 上传轨迹附件 + 提交（先 dry-run，再 `--upload-only --commit --write-back`，最后 `--commit`） |

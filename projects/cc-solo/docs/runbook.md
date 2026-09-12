@@ -238,6 +238,7 @@ cc-solo export
 1. **先请求平台表单定义接口**（`GET .../submissions/form-schema`），与本地 `docs/submission/fields.json` 比对 fingerprint 与字段集合，防止平台表单改了本地还按旧规范生成；不一致就重跑抽取再继续。
 2. 如需更新规范：`python scripts/cc-solo/extract_submit_fields.py`（**默认拉平台实时接口**，`--source js` 用本地快照）→ 写 `docs/submission/fields.json`
 3. 扫描 `{RECORD_DIR}` 全部任务，按 `task-info.md` + 各 `{任务}-R{NN}.md` 合成**24 个提交字段**（任务类型/难度/语言框架、Harness 及版本、操作系统、可复现等级、初始环境快照、User Prompt、SessionID、TurnID、轨迹文件、五维分数与描述、其他问题、轮次排序）
+   - **样例项目不导出、不提交**：`records/{项目}/` 下的 `h5-demo` 只是样例（快照填的是本地裸 SHA、首轮难度写了「简单」，本就不满足提交要求），导出脚本按 `config.toml [exclude].projects` 直接跳过并打印跳过了哪几条。新增样例项目时往那个数组里加名字即可，**不要靠临时参数或人工记得排除**。
 4. 运行质检（表单规范层 + 项目规则层 + 去 AI 化层），逐条给出 error / warn
 5. 输出：`deliverables/cc-solo/{SESSION_NAME}/评价结果-{SESSION_NAME}-{date}.json`（主产物）+ `-质检报告.md`（**不再产出人工核对 CSV**，2026-09-12 起取消）
 

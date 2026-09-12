@@ -100,6 +100,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 | 轮次上限 | 每个会话窗口 ≤ 10 轮；工程故障（网络波动/请求失败）不计轮次，思考超限需人为「继续」**计**轮次 |
 
 > **提交（对外接口，2026-09-10 已确认）**：`POST https://solo2.jzxhnh.com/api/v1/submissions`（地址在 `config.toml [submission].submit_url`）
+> - **样例项目不提交**：`records/{项目}/` 下的 `h5-demo` 只是样例（快照填的是本地裸 SHA、首轮难度写了「简单」），导出与提交都直接跳过；清单在 `config.toml [exclude].projects`，新增样例往那里加名字，不要靠人工记得排除。
 > - 请求体：`{"data": {24 字段}, "schema_fingerprint": "cc4da53236368ac2"}`；其中 `trace_file` 是**附件数组** `[{"name": "…-trajectory.jsonl", "path": "uploads/<id>.jsonl", "size": 321940}]`——先传 `…/submissions/upload`（multipart 字段 `file`）拿 `path` 再回填。
 > - 响应：`{"id":1196,"status":"SUBMITTED","round_no":1,"schema_stale":false,"message":…}`；`schema_stale=true` 说明表单字段变了。
 > - 凭据在 `secrets.toml [submission]`：`cookie`（或 `token`）+ `username` / `password`；**cookie 约 2 天过期，脚本会自动登录刷新并回写**（`--login-only --commit` 可手动刷新）：登录结果缓存在 `projects/cc-solo/.solo_session.json`（gitignore），**未过期不会重复登录**，`--status` 查状态。字段规范在 `docs/submission/fields.json`（从 `submitfrom.js` 抽取，24 字段）。

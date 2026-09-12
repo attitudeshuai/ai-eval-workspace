@@ -210,6 +210,8 @@ def load_settings():
     container = cfg.get("container", {})
     submission = dict(cfg.get("submission", {}))
     submission.update({k: v for k, v in sec.get("submission", {}).items() if v})
+    # 样例/练习项目：只存在于 records/ 里，不参与导出与提交（见 config.toml [exclude]）
+    exclude = list(cfg.get("exclude", {}).get("projects", ["h5-demo"]))
     return {
         "work_root": work_root,
         "records_dir": records_dir,
@@ -220,6 +222,7 @@ def load_settings():
         "max_rounds": int(cfg.get("limits", {}).get("max_rounds", 10)),
         "container": container,
         "submission": submission,
+        "exclude_projects": [str(x).strip() for x in exclude if str(x).strip()],
     }
 
 
@@ -479,6 +482,17 @@ def main():
         sys.exit(2)
 
     tasks = collect_tasks(records_root)
+    # 样例/练习项目一律不进交付文件（h5-demo 等；清单在 config.toml [exclude].projects）
+    if cfg.get("exclude_projects"):
+        def _project_of(path):
+            rel = os.path.relpath(path, records_root)
+            return rel.split(os.sep)[0]
+
+        skipped = [t for t, p in tasks if _project_of(p) in cfg["exclude_projects"]]
+        tasks = [(t, p) for t, p in tasks if _project_of(p) not in cfg["exclude_projects"]]
+        if skipped:
+            print(f"[排除] 跳过样例项目 {len(skipped)} 条"
+                  f"（{'、'.join(cfg['exclude_projects'])}，只作样例不提交）：{'、'.join(skipped)}")
     if args.task:
         wanted = []
         for raw in args.task:
