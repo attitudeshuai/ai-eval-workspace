@@ -356,10 +356,14 @@ cc-solo 返修 win        # 只看 Windows 机那侧（本机没有它的 record
      ⑨ **改完门禁 + 全字段红线扫描两遍都要干净**：改写本身会引入新红线（实测一轮改写新引入 A 表词 `收尾` 1 处、humanizer 符号 `「」` 1 处）。
    改完过门禁：`python scripts/cc-solo/check_round_files.py --task {任务}`（要 `error 0`），再跑一遍描述风险自查 `python scripts/cc-solo/scan_desc_risks.py --project {项目}`（提示级：R1 次数无对象 / R2 空指代 / R3 环境原因挂扣分 / R4 主观形容词，命中需人工判断），最后重新生成评价结果：`python scripts/cc-solo/build_eval_result.py --task <任务1,任务2,…>`。
 4. **更新到平台**（PUT `{提交接口}/{ID}`，body 与提交同形，另带 `comment`）：轨迹附件**沿用平台上已有的那一份**，不重新上传；字段逐项与平台现值比对，只把改动写上去，更新前打印「将更新 N 个字段」供确认。
+   > ⚠️ **PUT 的 body 必须字段齐全**：只带改动字段会被平台按 `422 提交数据校验未通过` 拒掉（逐项报「XX 为必填项」），**不存在真正的部分更新**。想名义上只改一个字段（如只更正 `question_type`）用 `--only-fields question_type`：它照发完整 body，但先逐字段比对本地与平台现值，指定字段之外一旦还有差异就跳过该条并列出差异字段。
    ```bash
    # 先预览（不发请求）
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 5237
-   # 确认后执行（把 --commit 加上；--comment 可自定义备注）
+   # 只更正任务类型（拦截式：其它字段有差异就不推）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
+     --only-fields question_type --update-id 4132 --update-id 4133 --commit --write-back
+   # 常规整改后更新（加 --commit；--comment 自定义备注）
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
      --update-id 5237 --comment "按质检打回意见整改后更新" --commit --write-back
    ```

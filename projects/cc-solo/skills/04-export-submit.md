@@ -226,13 +226,18 @@ python scripts/cc-solo/list_pending_fix.py --detail --json <out.json>    # 机�
    需要重新生成评价结果时：`python scripts/cc-solo/build_eval_result.py --task <任务1,任务2,…>`（只重生成指定任务，避免把别的任务一起刷新）。
 
 **6.3 更新到平台**（PUT）：
+   > ⚠️ **body 必须字段齐全**：PUT 只带改动字段会被平台按 `422 提交数据校验未通过` 拒掉（逐项提示「XX 为必填项」）；**真正的部分更新不存在**。想名义上只改一个字段（如只更正 `question_type`）用 `--only-fields`：它照发完整 body，但先逐字段比对本地与平台现值，指定字段之外一旦还有差异就跳过该条并列出差异字段。
    ```bash
    # 预览（不发请求）：逐字段与平台现值比对，打印「将更新 N 个字段」
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 3347
+   # 只更正任务类型（拦截式：其它字段有差异就不推）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
+     --only-fields question_type --update-id 4132 --update-id 4133 --commit --write-back
    # 执行（加 --commit；--comment 自定义备注，--record 显式指定记录）
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
      --update-id 3347 --comment "按质检打回意见整改后更新" --commit --write-back
    ```
+   > **任务类型打回**（`整体 · 任务类型与 Prompt 意图错配`）整改时：改的是 `records/` 里该轮的「任务类型」，改完重建结果再 PUT；**只改这一个字段**，描述与分数先不动。判定口径见 `docs/annotate-guide.md` §2.1。
    - 记录定位：优先用 `--record <任务#轮次>`，否则按详情里的 `session_id` + `turn_id` 在结果文件里匹配。
    - `--update-id` 必须配 `--result <评价结果.json>`（只给 `--update-id` 会报「必须提供 --result」）；`--interval` 是**纯数字秒**（`--interval 5`，写 `5s` 会解析失败）。
    - **轨迹附件沿用平台上已有的那份**（`trace_file` 取详情返回值，url 形式），不重新上传。

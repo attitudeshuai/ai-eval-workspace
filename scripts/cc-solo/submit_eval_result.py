@@ -665,6 +665,10 @@ def main():
     ap.add_argument("--update-id", action="append", type=int, metavar="ID",
                     help="返修用：按本地整改后的记录 PUT 更新这些提交 ID，可多次；不加 --commit 只预览")
     ap.add_argument("--comment", default="", help="返修更新时写入平台的备注（--update-id 用）")
+    ap.add_argument("--only-fields", default="",
+                    help="返修更新时的拦截式校验（逗号分隔，如 question_type）：body 仍带全字段"
+                         "（平台 PUT 要求字段齐全），但只要本地与平台在指定字段之外还有差异，"
+                         "就跳过该条并列出差异字段（仅 --update-id 生效）")
     args = ap.parse_args()
 
     if not args.result and not args.login_only and not args.status and not args.detail_id:
@@ -773,11 +777,32 @@ def main():
             if isinstance(tf, list) and tf:
                 payload["data"]["trace_file"] = tf
             payload["comment"] = args.comment or "按质检打回意见整改后更新"
+            # 平台 PUT 要求字段齐全（缺必填直接 422），所以 body 必须带全部字段；
+            # --only-fields 因此按「校验」用：先算出与平台现值的全部差异，
+            # 一旦发现指定字段之外还有差异就跳过该条（防止顺手覆盖其它字段）。
+            only = [x.strip() for x in args.only_fields.replace("，", ",").split(",") if x.strip()] \
+                if args.only_fields else []
+            if only:
+                bad = [k for k in only if k not in field_order]
+                if bad:
+                    ap.error(f"--only-fields 里有未知字段：{'、'.join(bad)}；"
+                             f"可用字段见结果文件的 field_order")
             changes = []
             for k in field_order:
                 old, new = str(detail.get(k, "")), str(payload["data"].get(k, ""))
                 if old != new:
                     changes.append((k, old, new))
+            if only:
+                extra = [k for k, _o, _n in changes if k not in only]
+                if extra:
+                    print(f"  [跳过] --only-fields={','.join(only)}，但本地与平台还有别的字段不一致："
+                          f"{'、'.join(extra)}——先确认这些字段是否也该改，或去掉 --only-fields"
+                          f"（body 必须带全字段，本参数只用于拦截）")
+                    continue
+                if not changes:
+                    print(f"  （指定字段 {','.join(only)} 与平台现值一致，无需更新）")
+                    continue
+                print(f"  [校验] 只有指定字段有差异（{len(changes)} 个），其余字段与平台逐字一致 ✅")
             print(f"  对应记录：{rec['record_key']}｜将更新 {len(changes)} 个字段")
             for k, old, new in changes:
                 print(f"    · {k}：{len(old)} 字 → {len(new)} 字")

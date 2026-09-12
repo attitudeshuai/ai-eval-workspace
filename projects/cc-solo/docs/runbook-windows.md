@@ -426,11 +426,15 @@ cc-solo 返修 mac        # 只看 Mac 机那侧（本机没有它的 records，
      ⑨ **改完门禁 + 全字段红线扫描两遍都要干净**：改写本身会引入新红线（实测一轮改写新引入 A 表词 `收尾` 1 处、humanizer 符号 `「」` 1 处）。
    改完过门禁：`python scripts/cc-solo/check_round_files.py --task {任务}`（要 `error 0`），再跑一遍描述风险自查 `python scripts/cc-solo/scan_desc_risks.py --project {项目}`（提示级：R1 次数无对象 / R2 空指代 / R3 环境原因挂扣分 / R4 主观形容词，命中需人工判断），最后重新生成评价结果：`python scripts/cc-solo/build_eval_result.py --task <任务1,任务2,…>`。
 4. **更新到平台**（PUT `{提交接口}/{ID}`，body 与提交同形，另带 `comment`）：轨迹附件**沿用平台上已有的那一份**，不重新上传；字段逐项与平台现值比对，只把改动写上去，更新前打印「将更新 N 个字段」供确认。
+   > ⚠️ **PUT 的 body 必须字段齐全**：只带一个字段会被平台按 `422 提交数据校验未通过` 拒掉（逐项报「XX 为必填项」），**做不了真正的部分更新**。想名义上只改一个字段（如只更正 `question_type`）用 `--only-fields question_type`：它照发完整 body，但**先逐字段比对本地与平台现值**，一旦指定字段之外还有差异就跳过该条并列出差异字段，「只改一个字段」是校验出来的，不是靠少发字段实现的。
    ```powershell
    # 先预览（不发请求）
    python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json --update-id 5237
-   # 确认后执行（把 --commit 加上；--comment 可自定义备注）
-   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json \
+   # 只更正任务类型（body 仍带全字段，但会拦截其它字段的差异）
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json `
+     --only-fields question_type --update-id 4132 --update-id 4133 --commit --write-back
+   # 常规整改后更新
+   python scripts/cc-solo/submit_eval_result.py --result deliverables/cc-solo/{SESSION}/评价结果-{SESSION}-{date}.json `
      --update-id 5237 --comment "按质检打回意见整改后更新" --commit --write-back
    ```
 5. **回报 + 复盘（自我学习）**：回报新版本号（`current_version`）、新状态，以及这次改了哪个字段、改前改后字数；平台随即重新质检，稍后可再 `--detail-id` 查看新结论。然后把这一轮**新出现的打回规则**补进 `docs/annotate-guide.md` §9、`skills/03-score-annotate.md` 的硬性要求、`skills/04-export-submit.md` 步骤 6——写成带反例与改写示例的**自查项**；同一条规则再次被打回，说明自查项没落地，**优先改自查项**而不是只改这一条数据。

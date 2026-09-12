@@ -96,7 +96,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
 
 | 项 | 取值 |
 |----|------|
-| 任务类型（每轮单选） | 0-1代码生成 / Feature迭代 / Bug修复 / 代码理解 / 代码重构 / 工程化 / 代码测试 |
+| 任务类型（每轮单选） | 0-1代码生成 / Feature迭代 / Bug修复 / 代码理解 / 代码重构 / 工程化 / 代码测试。**Prompt 里出现既有表/页面/接口/中间件 → 一律 Feature迭代**（本批实测 12 条被管理员按「任务类型与 Prompt 意图错配」打回，见 `docs/annotate-guide.md` §2.1） |
 | 任务难度 | 简单 / 中等 / 困难 / 地狱（首轮严禁「简单」） |
 | Harness | Claude Code（须记录版本号） |
 | 操作系统 | MacOS/Linux / Windows |
