@@ -176,7 +176,14 @@ attachment_max_mb = 20
 # 返修排除名单：这些提交 ID 一律不整改、不更新（规则的最终判定还没定，动了会与别人正在对齐的
 # 口径冲突）。scripts/cc-solo/list_pending_fix.py 默认读这里，并把它们从待处理清单里剔除；
 # 临时覆盖用 --exclude id1,id2。增删请连同原因一起写在这里。
-fix_exclude_ids = [4142, 4143, 4144]
+fix_exclude_ids = []
+
+# 机器归属（平台上的提交来自两台机器，仓库前缀区分归属）：
+#   Windows 机跑 cc-solo-cc-*（素材源 cc-001/cc-002…），Mac 机跑 cc-solo-app-*（素材源 app-001…）。
+#   每台机器只返修自己那一侧——另一侧的 records/ 与轨迹不在本机，没法按轨迹取证。
+#   list_pending_fix.py 按当前系统取这里的值做过滤（--scope auto 默认；--scope all 看全部）。
+#   换机器、换命名约定时只改这一行。
+machine_scope = { Windows = "cc-", Darwin = "app-", Linux = "app-" }
 
 # ============================================================
 # [已退役] 飞书多维表格投递

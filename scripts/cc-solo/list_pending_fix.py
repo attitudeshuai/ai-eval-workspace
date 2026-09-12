@@ -22,9 +22,21 @@ cc-solo 待返修清单（返修第一步：从提交列表发现 PENDING_FIX）
     # 覆盖排除名单（默认读 config；不给则用 4142/4143/4144）
     python scripts/cc-solo/list_pending_fix.py --exclude 4142,4143
 
+    # 只看本机范围（默认 auto：Windows→cc-*，Mac/Linux→app-*）
+    python scripts/cc-solo/list_pending_fix.py --detail --scope auto
+    python scripts/cc-solo/list_pending_fix.py --scope win       # 只要 Windows 机跑的那批（cc-*）
+    python scripts/cc-solo/list_pending_fix.py --scope mac       # 只要 Mac 机跑的那批（app-*）
+    python scripts/cc-solo/list_pending_fix.py --scope cc        # 等价写法：直接给仓库前缀
+    python scripts/cc-solo/list_pending_fix.py --scope all       # 两台机器的都列出来
+
 约定（重要）：
     · **排除名单里的 ID 一律不动**（规则未定，动了会污染别人正在对齐的口径）；
       名单在 `projects/cc-solo/config.toml [submission].fix_exclude_ids`。
+    · **机器归属**：同一批数据会从两台机器提交，仓库前缀区分归属——
+      Windows 机跑 `cc-solo-cc-*`（素材源 cc-001/cc-002…），Mac 机跑 `cc-solo-app-*`
+      （素材源 app-001…）。**每台机器只返修自己那一侧**：另一侧的 records/ 与轨迹根本不在本机，
+      改了也没法按轨迹取证。默认 `--scope auto` 按当前系统只列本机那侧。
+      前缀表在 `config.toml [submission].machine_scope`，换机器/换命名时改那里。
     · 详情 JSON 落盘到 `deliverables/cc-solo/<session>/submission-<id>-detail.json`，
       与 submit_eval_result.py --detail-id 的落盘位置一致。
 """
@@ -44,6 +56,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE = os.path.abspath(os.path.join(HERE, "..", ".."))
 PROJECT_DIR = os.path.join(WORKSPACE, "projects", "cc-solo")
 DEFAULT_EXCLUDE = [4142, 4143, 4144]
+# 机器归属：仓库名（cc-solo-<项目> 里的 <项目>）前缀 → 归属机器
+#   Windows 机跑 cc-*，Mac 机跑 app-*；见 config.toml [submission].machine_scope
+DEFAULT_MACHINE_SCOPE = {"Windows": "cc-", "Darwin": "app-", "Linux": "app-"}
+# --scope 的机器别名（`cc-solo 返修 win|mac` 用的就是这两个词）
+SCOPE_ALIAS = {"win": "Windows", "windows": "Windows", "mac": "Darwin", "macos": "Darwin"}
 STATUS_LABEL = {"PENDING_FIX": "待返修", "QC_PASSED": "质检通过"}
 
 
@@ -75,10 +92,17 @@ def settings():
             csrf = part.split("=", 1)[1].strip()
     exclude = sub_cfg.get("fix_exclude_ids")
     exclude = [int(x) for x in exclude] if exclude else DEFAULT_EXCLUDE
+    scope_map = sub_cfg.get("machine_scope") or DEFAULT_MACHINE_SCOPE
+    scope_map = {str(k): str(v) for k, v in scope_map.items()}
+    machine = (os.uname().sysname if hasattr(os, "uname")
+               else os.environ.get("OS", "Windows"))
+    machine = "Windows" if machine.lower().startswith("win") else machine
     session = sec.get("active_session") or cfg.get("sessions", {}).get("active") or "session-0909"
     out_dir = os.path.join(WORKSPACE, cfg.get("paths", {}).get("deliverables_root",
                                                                 "deliverables/cc-solo"), session)
     return {"base": base, "cookie": cookie, "csrf": csrf, "exclude": exclude,
+            "scope_map": scope_map, "machine": machine,
+            "machine_prefix": scope_map.get(machine, ""),
             "session": session, "out_dir": out_dir}
 
 
@@ -112,6 +136,19 @@ def fetch_detail(st, sid):
     return d, path
 
 
+def repo_project(item):
+    """从 repo_id（owner/cc-solo-<项目>）取 <项目>，用于判断归属哪台机器。"""
+    repo = (item.get("repo_id") or item.get("repo") or "")
+    name = repo.split("/")[-1] if repo else ""
+    return name[len("cc-solo-"):] if name.startswith("cc-solo-") else name
+
+
+def in_scope(item, prefix):
+    if not prefix:
+        return True
+    return repo_project(item).startswith(prefix)
+
+
 def failed_checks(detail):
     out = []
     for c in ((detail.get("verdict") or {}).get("failed_checks") or []):
@@ -133,6 +170,10 @@ def main():
     ap.add_argument("--detail", action="store_true", help="逐条拉详情，打印失败规则与缺失要素")
     ap.add_argument("--json", help="把清单写成 JSON（返修流水线用）")
     ap.add_argument("--all-status", action="store_true", help="打印全部状态分布（排查用）")
+    ap.add_argument("--scope", default="auto",
+                    help="机器归属过滤：auto（默认，按当前系统：Windows→cc-*／Mac→app-*）、"
+                         "win／mac（按机器取那一侧）、all（不过滤，两台机器的都列）、"
+                         "或直接给仓库前缀（如 cc、app）")
     args = ap.parse_args()
 
     st = settings()
@@ -154,6 +195,35 @@ def main():
             dist[it.get("status_label")] = dist.get(it.get("status_label"), 0) + 1
         items = [it for it in items if it.get("status") == args.status]
 
+    # ---- 机器归属过滤：只处理本机跑出来那一侧 ----
+    scope = (args.scope or "auto").strip().lower()
+    cross_machine = None
+    if scope == "all":
+        prefix, scope_label = "", "all（不过滤，两台机器的都列）"
+    elif scope == "auto":
+        prefix = st["machine_prefix"]
+        scope_label = ("auto → %s（%s 机）" % (prefix, st["machine"])
+                       if prefix else "auto（未配置本机前缀，不过滤）")
+    elif scope in SCOPE_ALIAS:
+        want = SCOPE_ALIAS[scope]
+        prefix = st["scope_map"].get(want, "")
+        if not prefix:
+            print("[错误] config.toml [submission].machine_scope 里没有 %s 的前缀" % want)
+            return 2
+        scope_label = "%s → %s（%s 机）" % (scope, prefix, want)
+        if want != st["machine"]:
+            cross_machine = want
+    else:
+        prefix = scope if scope.endswith("-") else scope + "-"
+        scope_label = "指定 → %s" % prefix
+        if st["machine_prefix"] and prefix != st["machine_prefix"]:
+            cross_machine = None  # 前缀写法无法可靠反查机器名，不做跨机提醒
+    if prefix and not args.ids:
+        out_of_scope = [it for it in items if not in_scope(it, prefix)]
+        items = [it for it in items if in_scope(it, prefix)]
+    else:
+        out_of_scope = []
+
     if args.all_status:
         print("[状态分布] %s" % "，".join("%s %d" % (k, v) for k, v in dist.items()))
 
@@ -162,9 +232,19 @@ def main():
 
     print("接口    ：%s" % st["base"])
     print("会话    ：%s｜交付目录：%s" % (st["session"], os.path.relpath(st["out_dir"], WORKSPACE)))
+    print("机器范围：%s" % scope_label)
     print("排除名单：%s（配置项 submission.fix_exclude_ids，规则未定，勿动）"
           % ", ".join(str(x) for x in st["exclude"]))
-    print("待处理  ：%d 条%s" % (len(todo), ("（另排除 %d 条）" % len(excluded)) if excluded else ""))
+    print("待处理  ：%d 条%s%s" % (
+        len(todo),
+        ("（另排除 %d 条）" % len(excluded)) if excluded else "",
+        ("（另有 %d 条属另一台机器，本机不动）" % len(out_of_scope)) if out_of_scope else ""))
+    if cross_machine:
+        print("⚠️  你正在看 %s 机那一侧（%s），而本机是 %s 机："
+              % (cross_machine, prefix, st["machine"]))
+        print("    这批条目的 records/ 与轨迹不在本机，**只能看，不要改**——"
+              "返修交给那台机器（指令：`cc-solo 返修 %s`）。"
+              % ("win" if cross_machine == "Windows" else "mac"))
 
     plan = []
     for it in sorted(todo, key=lambda x: int(x["id"])):
@@ -199,6 +279,9 @@ def main():
         os.makedirs(os.path.dirname(os.path.abspath(args.json)), exist_ok=True)
         with open(args.json, "w", encoding="utf-8") as f:
             json.dump({"base": st["base"], "excluded": [int(x["id"]) for x in excluded],
+                       "machine": st["machine"], "scope": scope, "scope_prefix": prefix,
+                       "out_of_scope": [{"id": int(x["id"]), "repo": x.get("repo_id")}
+                                        for x in out_of_scope],
                        "items": plan}, f, ensure_ascii=False, indent=2)
         print("\n已写出清单：%s" % args.json)
     return 0

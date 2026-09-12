@@ -16,11 +16,12 @@ cc-solo {项目} {操作}
 
 - **generate 用「项目名 + 各类型配额」**：`cc-solo app-12 generate` + 各类型配额（如 `bugfix*5 / codegen*5 / feature*5 / understand*1 / refactor*1 / engineering*1 / test*1`）→ agent 建 N 份任务副本 + 提示词，并按类型复制进容器。
 - **round / score 用「任务名」**（`{项目}-{类型}-{索引}`）：`cc-solo app-12-bugfix-01 round 1`、`cc-solo app-12-bugfix-01 score 1`。
-- **export 用 `cc-solo export`**（TODO：最终交付格式未定）。
+- **export 用 `cc-solo export`**（导出评价结果并提交，见第 6～7 步）。
+- **返修可带机器参数**：`cc-solo 返修`（按当前系统＝Mac 的 `mac`）／`cc-solo 返修 mac`／`cc-solo 返修 win`（另一台机器那侧，只看不改）；已知 ID 时 `cc-solo 返修 5237 5238`。
 
 > 这里的 `cc-solo {项目} {操作}` 是**给 AI agent 的自然语言指令**（runbook 通用缩写），不是容器命令。Mac 容器**没有** `cc` 题号入口（新版隔离镜像已废弃题号与 `cc`），两者不要混淆。
 >
-> **你只发指令，不跑命令**：本手册里出现的 `python …` 与 `docker …` 命令**全部由 agent 在宿主机执行**，你只需要发上面这类自然语言指令（`generate` / `round N` / `score N` / `export` …），不必自己敲任何 Python 或 docker 命令。
+> **你只发指令，不跑命令**：本手册里出现的 `python …` 与 `docker …` 命令**全部由 agent 在宿主机执行**，你只需要发上面这类自然语言指令（`generate` / `round N` / `score N` / `export` / `返修 win|mac` …），不必自己敲任何 Python 或 docker 命令。
 >
 > **容器模型（2026-09-10 起）**：**1 任务 = 1 会话 = 1 容器 = 1 本机工作目录**；容器名固定 `cc-solo-{任务}`（如 `cc-solo-app-12-bugfix-01`）；容器内工作目录恒为 `/workspace`（内容 = 本题任务副本）；轨迹恒在 `/home/node/.claude/projects/-workspace/`。
 > 与旧版（常驻容器 + `cc <题号>` + `docker cp` 搬代码）的差异与原因见 [image-upgrade-review.md](image-upgrade-review.md)。
@@ -304,20 +305,38 @@ cc-solo export submit
 ### 指令模板
 
 ```text
-cc-solo 返修
+cc-solo 返修            # 等价于 cc-solo 返修 mac（Mac 机默认只看 app-* 那侧）
+cc-solo 返修 mac
+cc-solo 返修 win        # 只看 Windows 机那侧（本机没有它的 records，看完别改）
 ```
 
-**不带 ID 时由 agent 自己去发现**（下一个要处理的批次）；已知 ID 时写 `cc-solo 返修 5237 5238`（空格或逗号分隔）。**你只发这一行**，下面全部由 agent 执行。
+**参数位置就是机器**：`mac` = Mac 机跑的那批（`cc-solo-app-*`），`win` = Windows 机跑的那批（`cc-solo-cc-*`）。**不写参数默认按当前系统（Mac = `mac`）**；写了另一台机器的词，清单照给，但开头会警告「本机是 Darwin 机，这批只能看不要改」。**已知 ID 时仍可写 `cc-solo 返修 5237 5238`**（空格或逗号分隔），ID 优先于范围参数。
+
+**你只发这一行**，下面全部由 agent 执行。
 
 > ⛔ **排除名单（红线）**：`config.toml [submission].fix_exclude_ids`（当前 `4142, 4143, 4144`）里的提交**一律不整改、不更新**——这几条规则的最终判定还没定，动了会与别人正在对齐的口径冲突。脚本会把它们从待处理清单里剔除并单独打印「另排除 N 条」。
+
+> 🖥️ **只返修本机（Mac）这一侧（红线）**：同一批数据由**两台机器**跑出来，靠 GitHub 仓库前缀区分归属——
+>
+> | 机器 | 仓库 | 素材源 | `os_platform` |
+> |---|---|---|---|
+> | **Mac（本机）** | `qianmo317/cc-solo-app-*` | `app-001` … | MacOS/Linux |
+> | Windows | `attitudeshuai/cc-solo-cc-*` | `cc-001` / `cc-002` … | Windows |
+>
+> **`cc-solo-cc-*` 的条目一律不碰**（如 `#4128`～`#4179`、`#5237`～`#5270` 这一大批）：它们的 `records/` 与轨迹在 Windows 那台机器上，本机没有对应记录，既核不了轨迹也改不了数据文件——接手只会写出没有取证依据的描述。**同一条待返修清单在两台机器上都会拉到，各修各的那一侧。**
+> - `list_pending_fix.py` 默认 `--scope auto`，按当前系统只列本机那侧；表头会打印「机器范围：auto → app-（Darwin 机）」与「另有 N 条属另一台机器，本机不动」。
+> - **指令里也可以直接点名机器**：`cc-solo 返修 mac`（本机侧）／`cc-solo 返修 win`（另一侧，只会看不会改）。不写参数＝按当前系统（Mac = `mac`）。
+> - 想看两侧全貌用 `--scope all` / 在指令里写 `cc-solo 返修 all`（只用于盘点，不要照着改）。
+> - 前缀表在 `config.toml [submission].machine_scope`（`Windows = "cc-"`、`Darwin/Linux = "app-"`）；换机器或换命名只改这一行。
+> - **判断某条归谁**：`GET {提交接口}/{ID}` 详情里的 `repo_id` + `os_platform`，或详情落盘文件 `deliverables/cc-solo/{SESSION}/submission-{ID}-detail.json`。
 
 ### AI 会执行
 
 1. **发现 + 归类**（不带 ID 时的第一步）：
    ```bash
-   python scripts/cc-solo/list_pending_fix.py --detail
+   python scripts/cc-solo/list_pending_fix.py --detail --scope mac
    ```
-   列表接口 `GET {提交接口}?page=1&page_size=20&stage=&keyword=&date_from=&date_to=&user_id=0`（返回 `items[]` + `meta{page,page_size,total,total_pages}`）；脚本自动翻页、只看 `status == PENDING_FIX`、剔除排除名单。**先按「维度 · 规则」统计本批是哪几条规则在打回、各占多少条，再决定改法**——同类规则要批量改，别逐条凭感觉改字。
+   列表接口 `GET {提交接口}?page=1&page_size=20&stage=&keyword=&date_from=&date_to=&user_id=0`（返回 `items[]` + `meta{page,page_size,total,total_pages}`）；脚本自动翻页、只看 `status == PENDING_FIX`、剔除排除名单、**并只留 `mac`（`app-*`）那一侧**（不写 `--scope` 时按当前系统自动判断，Mac 上等价于 `mac`）。**先按「维度 · 规则」统计本批是哪几条规则在打回、各占多少条，再决定改法**——同类规则要批量改，别逐条凭感觉改字。**待处理条数会随平台复检持续增加/减少**（刚提交的返修条目会先后回到待质检→通过或再次打回），所以每轮开工前重新拉一次，别拿上一轮的清单收尾。
 2. **查详情**（只读 GET `{提交接口}/{ID}`）：读出该条的状态（`status` / `status_label`）、`current_version`、`editable`、命中规则（`qc_hit_rule_label`）、打回原因（`qc_summary`）、**每条缺失要素的「原文依据 + 修改建议」**、重复命中明细（`dedup_hits[]`：命中字段、相似度、对比来源、历史侧与本次侧摘要）、锁定字段（`locked_fields`）。原始详情落盘到 `deliverables/cc-solo/{SESSION}/submission-{ID}-detail.json` 备查。
    ```bash
    python scripts/cc-solo/submit_eval_result.py --detail-id 5237
@@ -351,6 +370,7 @@ cc-solo 返修
 
 ### 注意事项
 
+- **只动 `cc-solo-app-*`（Mac 侧）的条目**，`cc-solo-cc-*`（Windows 侧）一条都不碰；两边各有各的 records 与轨迹，跨侧改等于没有取证依据（详见本节开头的机器归属红线）。
 - **排除名单里的 ID 一律不动**（`config.toml [submission].fix_exclude_ids`），也不要为了让它们「看起来通过」去改别的字段。
 - `editable=false`（如质检中、已通过、已裁决）时**不能改**，脚本会跳过并说明当前状态；只有 `PENDING_FIX`（待返修）才可更新。
 - **锁定字段不可改**：`env_snapshot`、`harness`、`repro_level`（平台侧 `locked_fields` 给出，改别的字段即可）。

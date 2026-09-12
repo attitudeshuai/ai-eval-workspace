@@ -61,8 +61,13 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
     → agent 播种任务副本到容器 /workspace（Mac：启动后播种；Windows：直接挂载，无此步）
     → 用户在容器内 Claude Code 连续交互（一个会话窗口，中途不要退出）
     └→ [第 N 轮] agent 导出轨迹 → 单轮录入 → 五维打分(去AI化+人工复核) → 决定是否继续(≤10 轮)
-        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → （本阶段先不提交）提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`
+        → 会话结束(导出轨迹 + 回导源码 + 删容器) → 生成评价结果文件（每轮一条）→ 质检 → 提交接口 `POST https://solo2.jzxhnh.com/api/v1/submissions`
+        → 被打回则返修（`list_pending_fix.py --detail` 归类 → 改 records → `--update-id <ID> --commit` 升版本）
 ```
+
+> 🖥️ **两台机器各修各的那一侧（返修前必读）**：同一批提交由两台机器跑出来，靠仓库前缀区分归属——**Windows 机 = `attitudeshuai/cc-solo-cc-*`（素材源 cc-001/cc-002…），Mac 机 = `qianmo317/cc-solo-app-*`（素材源 app-001…）**。另一侧的 `records/` 与轨迹不在本机，改了没法按轨迹取证，**不属于本机前缀的返修条目一律不碰**。
+>
+> **指令参数直接点名机器**：`cc-solo 返修 win` / `cc-solo 返修 mac`（不写＝按当前系统）。脚本侧对应 `list_pending_fix.py --scope auto|win|mac|all|<前缀>`（`auto` 为默认，只列本机那侧；`all` 只用于盘点；选中另一台机器那侧会警告「只能看不要改」）。前缀表在 `config.toml [submission].machine_scope`。返修总览见 [docs/reject-reasons.md](docs/reject-reasons.md) §六。
 
 > **任务初始化第一步必检两件事**：① **雷同题红线**——素材源项目落在 `docs/annotate-guide.md` §7「不被允许的雷同题」清单即中止、提示换素材，不得建副本/出题；② **仓库结构**——素材源须位于 `source-code/{项目}/`（项目根 = 唯一 git 仓库），其下按类型分组 `{项目}-{类型}/` 嵌套任务副本 `{项目}-{类型}-{索引}/`。结构不规范时先列出差异、**提示用户确认**，确认后整理成该格式再继续。详见 [skills/01-task-create.md](skills/01-task-create.md)。
 
@@ -85,7 +90,7 @@ description: "Claude Code 用户满意度标注。一个会话（任务）内至
    - 原因有两条：① 提示词要整段粘进容器里的 Claude Code 输入框，**空行会被当成回车提前提交**，题被截成两半且无法撤销（镜像不支持恢复会话）；② 提交表里的 `User Prompt` 会原样带上这一串空行。
    - 适用范围：`task-info.md` 的「任务标题」（= 首轮提示词）与 `{任务}-R{NN}-prompt.md`（下一轮提示词）。
    - 落盘前跑 `python scripts/cc-solo/lint_round_prompt.py --project {项目}` 自查，**含空行记 error**。**此前已发出的提示词不追改**，脚本对它们照旧记 error。
-7. 所有数据不允许返修：不符合质量要求直接拒收；被抽检高频不合格或检出未去 AI 化的 AI 文本，历史数据全部拒收。
+7. **数据不允许返修**：不符合质量要求直接拒收；被抽检高频不合格或检出未去 AI 化的 AI 文本，历史数据全部拒收。（**注意别和平台返修机制搞混**：平台判 `PENDING_FIX` 时必须按打回原因整改并升版本，那条流程见 [docs/runbook.md](docs/runbook.md) 第 8 步；「只处理本机前缀那一侧」见上方机器归属说明。）
 
 ## 核心口径速查（详见 docs/annotate-guide.md）
 

@@ -49,8 +49,9 @@ description: "cc-solo 生成评价结果：按平台提交表单的字段规范�
 | `cc-solo export <任务名>` | `python scripts/cc-solo/build_eval_result.py --task <任务名>` | 只生成指定任务 |
 | `cc-solo export fields` | `python scripts/cc-solo/extract_submit_fields.py` | 抽取/更新字段规范（**默认拉平台实时接口**；`--source js` 走本地快照离线兜底） |
 | `cc-solo export submit` | `python scripts/cc-solo/submit_eval_result.py …` | 上传轨迹附件 + 提交（先 dry-run，再 `--upload-only --commit --write-back`，最后 `--commit`） |
-| `cc-solo 返修` | `python scripts/cc-solo/list_pending_fix.py --detail` → 归类打回原因 → 整改 `records/` → `--update-id <ID> --commit --write-back` | **不带 ID**：先拉提交列表筛出**待返修**（`PENDING_FIX`），**排除 `config.toml [submission].fix_exclude_ids` 里的 ID**，归类原因后逐条整改更新，最后把新规则写回文档（步骤 6） |
-| `cc-solo 返修 <提交ID>` | 同上（跳过发现步骤，直接整改这几条） | 已知 ID 时用这条；多个 ID 用空格或逗号分隔 |
+| `cc-solo 返修` | `python scripts/cc-solo/list_pending_fix.py --detail --scope auto` → 归类打回原因 → 整改 `records/` → `--update-id <ID> --commit --write-back` | **不带 ID**：先拉提交列表筛出**待返修**（`PENDING_FIX`），**排除 `config.toml [submission].fix_exclude_ids` 里的 ID**，**只留本机那一侧**（`win`／`mac`，默认按当前系统），归类原因后逐条整改更新，最后把新规则写回文档（步骤 6） |
+| `cc-solo 返修 win` / `cc-solo 返修 mac` | 同上，`--scope win`／`--scope mac` | 直接点名机器范围：`win` = `cc-*`，`mac` = `app-*`；选中另一台机器那侧时只列清单并警告「只能看不要改」 |
+| `cc-solo 返修 <提交ID>` | 同上（跳过发现步骤，直接整改这几条） | 已知 ID 时用这条；多个 ID 用空格或逗号分隔，ID 优先于范围参数 |
 
 > 以下命令**仅供 agent 查阅与执行，你不需要手敲**（`--session` 缺省取 `config.toml [sessions].active`）：
 
@@ -185,8 +186,13 @@ python scripts/cc-solo/list_pending_fix.py --detail --json <out.json>    # 机�
 ```
 
 - 列表接口：`GET {提交接口}?page=1&page_size=20&stage=&keyword=&date_from=&date_to=&user_id=0`，返回 `items[]` 与 `meta{page,page_size,total,total_pages}`；脚本自动翻页，只看 `status == PENDING_FIX`。
+- **只返修本机这一侧（红线）**：同一批提交来自**两台机器**，靠仓库前缀区分归属——**Windows 机 = `cc-solo-cc-*`（素材源 cc-001/cc-002…），Mac 机 = `cc-solo-app-*`（素材源 app-001…）**。另一侧的 `records/` 与轨迹根本不在本机，改了也没法按轨迹取证，因此**不属于本机前缀的条目一律不碰**。
+  - **指令参数**：`cc-solo 返修 win` / `cc-solo 返修 mac` 直接点名机器；不写参数＝按当前系统（`auto`）。
+  - **脚本参数**：`list_pending_fix.py --scope auto|win|mac|all|<前缀>`（`auto` 为默认，按当前系统只列本机那侧；`all` 只用于盘点）。表头打印「机器范围」与「另有 N 条属另一台机器，本机不动」；看了另一台机器那侧会额外警告「只能看，不要改」。
+  - 前缀表在 `config.toml [submission].machine_scope`（`Windows = "cc-"`、`Darwin/Linux = "app-"`）。判定某条归谁看详情的 `repo_id` + `os_platform`。
 - **排除名单（红线）**：`config.toml [submission].fix_exclude_ids`（当前 `4142, 4143, 4144`）里的提交**一律不整改、不更新**——这几条规则的最终判定还没定，动了会与别人正在对齐的口径冲突。脚本会把它们从待处理清单里剔除并打印「另排除 N 条」；临时覆盖用 `--exclude id1,id2`。
 - **先归类再动手**：把失败项按「维度 · 规则」统计（`--detail` 的输出就是这个结构），先看清本批是**哪几条规则**在打回、各占多少条，再决定改法。同类规则要**批量改**，不要逐条凭感觉改字。
+- **待处理条数是滚动的**：刚推送的返修条目会先后回到「待质检 → 通过 / 再次打回」，所以清单会随平台复检持续变化（实测 4 条刚清完，下一轮拉取就涨到 18 条）。**每轮开工前重新拉一次**，别拿上一轮的清单收工。
 
 **6.1 查详情**（只读，`list_pending_fix.py --detail` 已包含；也可单条查）：
    ```bash
@@ -243,6 +249,7 @@ python scripts/cc-solo/list_pending_fix.py --detail --json <out.json>    # 机�
 - `editable=false`（质检中 / 已通过 / 已裁决）**不能改**，脚本会跳过并说明当前状态；只有 `PENDING_FIX` 可更新。
 - **锁定字段不可改**：`env_snapshot`、`harness`、`repro_level`（详情里的 `locked_fields`）。
 - **排除名单里的 ID 一律不动**（`config.toml [submission].fix_exclude_ids`）。
+- **只改本机前缀那一侧**：本机是 Windows 就只改 `cc-solo-cc-*`，是 Mac 就只改 `cc-solo-app-*`；另一侧交给另一台机器（脚本 `--scope auto` 已按此过滤）。
 - 返修**只升版本、不新增记录**；反复被打回时每次都要按**新的打回原因**重新整改，别只改一处字就重提。
 - 更新前必须先把 `records/` 改好并过门禁——脚本只负责把本地现状推上去，不代改文案。
 - 返修不是「改字过关」：先归类、后批量改、最后复盘，才算走完一步。
