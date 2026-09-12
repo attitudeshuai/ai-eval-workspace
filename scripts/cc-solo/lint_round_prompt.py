@@ -6,8 +6,13 @@
   第二轮及以后只描述现象、不写怎么改、不分条列举；开头固定「修复bug：」。
 
 error 级：开头不对、出现分条列举（行首 1. / 1、/「第一，」）、出现改法类措辞（改成/换成/加个/补一条/
-        抽成/统一成/限住/去掉/二选一/收口…）、humanizer 强制符号、A 表套话词、长英文串（≥16 字符）。
+        抽成/统一成/限住/去掉/二选一/收口…）、humanizer 强制符号、A 表套话词、长英文串（≥16 字符）、
+        **含空行（红线：提示词不得有空行，段落之间只用单个换行）**。
 warn 级：建议类措辞（应该/建议/需要把/要把）、B 表密集、跨轮次与前后对比表述、长英文串（12–15 字符）。
+
+> 空行红线（2026-09-13 起）：提示词全文不得出现空行，一段一行、段间单换行即可。空行在粘贴进容器时会被
+> 当成回车提前提交，且提交表里的 User Prompt 会带上一串空行。此前已发出的提示词不追改，本脚本对它们
+> 照旧记 error。
 
 用法：
   python scripts/cc-solo/lint_round_prompt.py
@@ -130,6 +135,12 @@ def main():
                     if cr or pc:
                         warns.append("%s：含跨轮次/前后对比说法 %s（提示词里可保留用户口吻，但注意别让人读不懂）"
                                      % (tag, "、".join(cr + pc)))
+                    # 红线：提示词不得有空行（段落之间只用单个换行）
+                    blank_no = [i + 1 for i, ln in enumerate(text.splitlines()) if not ln.strip()]
+                    if blank_no:
+                        errors.append("%s：提示词含空行（第 %s 行）——提示词不得有空行，段落之间只用单个换行，"
+                                      "粘贴进容器时空行会被当成回车提前提交"
+                                      % (tag, "、".join(str(x) for x in blank_no[:6])))
 
     print("== cc-solo 下一轮提示词校验（会话 %s）==" % args.session)
     print("已检查 %d 份提示词：error %d，warn %d\n" % (checked, len(errors), len(warns)))
